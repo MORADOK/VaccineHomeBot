@@ -6,6 +6,29 @@
 All colors MUST be HSL.
 */
 
+/* Custom design tokens for n8n workflow analyzer */
+--workflow-primary: 220 70% 50%;
+--workflow-success: 142 76% 36%;
+--workflow-warning: 38 92% 50%;
+--workflow-error: 0 84% 60%;
+--workflow-info: 217 91% 60%;
+
+/* Node type colors */
+--node-webhook: 280 100% 70%;
+--node-switch: 195 100% 50%;
+--node-ai: 260 100% 80%;
+--node-http: 120 100% 40%;
+--node-function: 30 100% 50%;
+
+/* Gradients */
+--gradient-workflow: linear-gradient(135deg, hsl(var(--workflow-primary)), hsl(var(--workflow-info)));
+--gradient-error: linear-gradient(135deg, hsl(var(--workflow-error)), hsl(var(--destructive)));
+--gradient-success: linear-gradient(135deg, hsl(var(--workflow-success)), hsl(var(--primary)));
+
+/* Shadows */
+--shadow-workflow: 0 8px 32px hsl(var(--workflow-primary) / 0.15);
+--shadow-error: 0 8px 32px hsl(var(--workflow-error) / 0.15);
+
 @layer base {
   :root {
     --background: 0 0% 100%;

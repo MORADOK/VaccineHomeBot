@@ -24,6 +24,20 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				workflow: {
+					primary: 'hsl(var(--workflow-primary))',
+					success: 'hsl(var(--workflow-success))',
+					warning: 'hsl(var(--workflow-warning))',
+					error: 'hsl(var(--workflow-error))',
+					info: 'hsl(var(--workflow-info))',
+				},
+				node: {
+					webhook: 'hsl(var(--node-webhook))',
+					switch: 'hsl(var(--node-switch))',
+					ai: 'hsl(var(--node-ai))',
+					http: 'hsl(var(--node-http))',
+					function: 'hsl(var(--node-function))',
+				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
