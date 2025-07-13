@@ -258,7 +258,7 @@ const WorkflowAnalyzer = () => {
         <Tabs defaultValue="issues" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="issues">ปัญหาที่พบ ({issues.length})</TabsTrigger>
-            <TabsTrigger value="overview">ภาพรวม Workflow</TabsTrigger>
+            <TabsTrigger value="overview">ภาพรวม เวิร์คโฟลว์</TabsTrigger>
           </TabsList>
 
           <TabsContent value="issues" className="space-y-4">
@@ -325,7 +325,7 @@ const WorkflowAnalyzer = () => {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Connections</CardTitle>
+                  <CardTitle className="text-sm">การเชื่อมต่อ</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-workflow-info">
