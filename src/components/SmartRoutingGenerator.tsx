@@ -116,7 +116,7 @@ Collected Data: \${JSON.stringify(dataCollected)}
 
 ส่งคืนในรูปแบบ JSON:
 {
-  "action": "checkin|record_appointment|hospital_info|vaccine_info|book_appointment|cancel_booking|check_status|general_info|show_rich_menu",
+  "action": "checkin|record_appointment|hospital_info|vaccine_info|book_appointment|cancel_booking|check_status|general_info|show_rich_menu|show_vaccine_menu",
   "vaccine_type": "covid|flu|hepatitis|hpv|other",
   "intent_confidence": 0.8,
   "required_data": ["name", "phone", "vaccine_type", "date", "time", "symptoms"],
@@ -129,8 +129,13 @@ Collected Data: \${JSON.stringify(dataCollected)}
 - "checkin" → action: "checkin" (เช็คอิน)
 - "record_appointment" → action: "record_appointment" (บันทึกนัดหมาย/ชื่อวัคซีน)
 - "hospital_info" → action: "hospital_info" (ข้อมูลโรงพยาบาล)
+- "show_vaccine_menu" → action: "show_vaccine_menu" (แสดงเมนูวัคซีน)
 - "book_vaccine" → action: "book_appointment", vaccine_type: "covid"
 - datetime selection → action: "collect_data", data_collection_step: "collecting"
+
+การจับคู่ action:
+- หาก input คือ "show_vaccine_menu" ต้องส่งคืน action: "show_vaccine_menu"
+- หาก input คือ vaccine postback (pfizer, moderna, ฯลฯ) ส่งคืน action: "book_appointment"
 \`;
 
 // เตรียมข้อมูลสำหรับ HTTP Request
