@@ -137,14 +137,26 @@ return $input.all();`
         type: 'response-generator',
         description: 'สร้าง response แบบ dynamic ตาม AI routing results',
         replaces: ['Static Response Nodes'],
-        code: `// Rich Menu Enhanced Dynamic Response Generator
+        code: `// Rich Menu Enhanced Dynamic Response Generator (Fixed)
 const { routing, userId, collectedData, isRichMenuAction } = $json;
 
-// Database Node - สำหรับบันทึกข้อมูล (ต้องเชื่อมต่อ Database)
-const staticData = getWorkflowStaticData('global');
-if (!staticData.userBookings) staticData.userBookings = {};
-if (!staticData.vaccineSlots) {
-  staticData.vaccineSlots = {
+// ใช้ localStorage แทน getWorkflowStaticData เพื่อแก้ปัญหา ReferenceError
+const nodeKey = 'vaccine_system_data';
+let systemData = {};
+
+try {
+  // อ่านข้อมูลจาก localStorage (หรือจะใช้ database แทนได้)
+  const existingData = $node.context().get(nodeKey);
+  systemData = existingData || {};
+} catch (e) {
+  systemData = {};
+}
+
+// Database Node - สำหรับบันทึกข้อมูล  
+if (!systemData.userBookings) systemData.userBookings = {};
+if (!systemData.checkinRecords) systemData.checkinRecords = {};
+if (!systemData.vaccineSlots) {
+  systemData.vaccineSlots = {
     "2024-12-20": { available: 5, booked: 0 },
     "2024-12-21": { available: 8, booked: 0 },
     "2024-12-22": { available: 3, booked: 2 }
@@ -840,15 +852,13 @@ switch(routing.action) {
 
   case 'checkin':
     // เช็คอิน - เก็บข้อมูลการมาถึง
-    if (!staticData.checkinRecords) staticData.checkinRecords = {};
-    
     const checkinId = 'CI' + Date.now();
-    staticData.checkinRecords[userId] = {
+    systemData.checkinRecords[userId] = {
       id: checkinId,
       userId: userId,
       checkinTime: new Date().toISOString(),
       status: 'checked_in',
-      appointment: staticData.userBookings[userId] || null
+      appointment: systemData.userBookings[userId] || null
     };
     
     response = {
@@ -1177,9 +1187,16 @@ switch(routing.action) {
     };
 }
 
+// บันทึกข้อมูลกลับไปยัง node context
+try {
+  $node.context().set(nodeKey, systemData);
+} catch (e) {
+  console.error('Cannot save data to context:', e);
+}
+
 $json.lineResponse = response;
 $json.processedBy = 'rich-menu-response-generator';
-$json.savedData = staticData.userBookings[userId] || null;
+$json.savedData = systemData.userBookings[userId] || null;
 
 return $input.all();`
       },
@@ -1189,14 +1206,24 @@ return $input.all();`
         type: 'context-manager',
         description: 'จัดการ user context และ session state',
         replaces: ['Multiple Set Nodes'],
-        code: `// Context Manager - จัดการ User Session
-const staticData = getWorkflowStaticData('global');
+        code: `// Context Manager - จัดการ User Session (Fixed)
 const { routing, userId } = $json;
 
+// ใช้ node context แทน getWorkflowStaticData  
+const nodeKey = 'user_sessions_data';
+let sessionData = {};
+
+try {
+  const existingData = $node.context().get(nodeKey);
+  sessionData = existingData || {};
+} catch (e) {
+  sessionData = {};
+}
+
 // จัดการ User Context
-if (!staticData.userSessions) staticData.userSessions = {};
-if (!staticData.userSessions[userId]) {
-  staticData.userSessions[userId] = {
+if (!sessionData.userSessions) sessionData.userSessions = {};
+if (!sessionData.userSessions[userId]) {
+  sessionData.userSessions[userId] = {
     currentFlow: null,
     data: {},
     history: [],
@@ -1280,10 +1307,17 @@ if (routing.action === 'book_appointment' && routing.intent_confidence < 0.6) {
   nextAction = 'handle_date_selection';
 }
 
+// บันทึกข้อมูล session กลับไปยัง context
+try {
+  $node.context().set(nodeKey, sessionData);
+} catch (e) {
+  console.error('Cannot save session data:', e);
+}
+
 $json.userSession = userSession;
 $json.nextAction = nextAction;
 $json.sessionStats = {
-  totalUsers: Object.keys(staticData.userSessions).length,
+  totalUsers: Object.keys(sessionData.userSessions).length,
   currentUserHistory: userSession.history.length,
   userPreferences: userSession.preferences
 };
