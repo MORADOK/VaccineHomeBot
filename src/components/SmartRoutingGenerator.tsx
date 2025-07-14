@@ -36,11 +36,11 @@ const SmartRoutingGenerator = ({ workflowNodes = [] }: SmartRoutingGeneratorProp
     const routingNodes: SmartRoutingNode[] = [
       {
         id: 'ai-smart-router',
-        name: 'AI Smart Router',
+        name: 'AI Smart Router (Input Processor)',
         type: 'ai-router',
-        description: 'Router หลักที่ใช้ AI วิเคราะห์ input และตัดสินใจ action',
+        description: 'เตรียมข้อมูลสำหรับส่งไป OpenAI API',
         replaces: switchNodes.map(node => node.name),
-        code: `// AI Smart Router - แทนที่ Switch Nodes
+        code: `// AI Smart Router - Input Processor
 const input = $json.body.events[0];
 const userMessage = input.message?.text || input.postbackData?.data || '';
 const userId = input.source.userId;
@@ -65,27 +65,16 @@ Input: "\${userMessage}"
 - "ยกเลิกการจอง" → action: "cancel_booking"
 \`;
 
-// เรียกใช้ AI API (OpenAI/Anthropic)
-const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Authorization': \`Bearer \${process.env.OPENAI_API_KEY}\`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    model: 'gpt-4',
-    messages: [{ role: 'user', content: routingPrompt }],
-    temperature: 0.1
-  })
-});
+// เตรียมข้อมูลสำหรับ HTTP Request
+$json.openai_request = {
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: routingPrompt }],
+  temperature: 0.1
+};
 
-const aiResult = await aiResponse.json();
-const routing = JSON.parse(aiResult.choices[0].message.content);
-
-// เพิ่ม metadata
-$json.routing = routing;
 $json.userId = userId;
 $json.originalInput = input;
+$json.userMessage = userMessage;
 $json.timestamp = new Date().toISOString();
 
 return $input.all();`
@@ -418,9 +407,9 @@ return $input.all();`
       }
     ];
 
-    // สร้าง Complete n8n Workflow JSON
+    // สร้าง Complete n8n Workflow JSON พร้อม HTTP Request
     const completeWorkflow = {
-      name: 'Smart Routing Vaccine Booking Workflow',
+      name: 'Smart Routing Vaccine Booking Workflow (HTTP Version)',
       nodes: [
         {
           parameters: {
@@ -439,11 +428,56 @@ return $input.all();`
           parameters: {
             jsCode: routingNodes[0].code
           },
-          id: 'ai-router-node', 
-          name: 'AI Smart Router',
+          id: 'input-processor-node', 
+          name: 'Input Processor',
           type: 'n8n-nodes-base.code',
           typeVersion: 2,
           position: [460, 300]
+        },
+        {
+          parameters: {
+            url: 'https://api.openai.com/v1/chat/completions',
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer YOUR_OPENAI_API_KEY_HERE',
+              'Content-Type': 'application/json'
+            },
+            body: '={{ JSON.stringify($json.openai_request) }}',
+            options: {
+              response: {
+                response: {
+                  neverError: true,
+                  responseFormat: 'json'
+                }
+              }
+            }
+          },
+          id: 'openai-http-node',
+          name: 'OpenAI HTTP Request',
+          type: 'n8n-nodes-base.httpRequest',
+          typeVersion: 4,
+          position: [680, 300]
+        },
+        {
+          parameters: {
+            jsCode: `// Process OpenAI Response
+const aiResult = $json;
+const routing = JSON.parse(aiResult.choices[0].message.content);
+
+// Combine with previous data
+$json.routing = routing;
+$json.userId = $('Input Processor').item.json.userId;
+$json.originalInput = $('Input Processor').item.json.originalInput;
+$json.userMessage = $('Input Processor').item.json.userMessage;
+$json.timestamp = $('Input Processor').item.json.timestamp;
+
+return $input.all();`
+          },
+          id: 'ai-response-processor-node',
+          name: 'AI Response Processor',
+          type: 'n8n-nodes-base.code',
+          typeVersion: 2,
+          position: [900, 300]
         },
         {
           parameters: {
@@ -453,7 +487,7 @@ return $input.all();`
           name: 'Context Manager', 
           type: 'n8n-nodes-base.code',
           typeVersion: 2,
-          position: [680, 300]
+          position: [1120, 300]
         },
         {
           parameters: {
@@ -463,7 +497,7 @@ return $input.all();`
           name: 'Dynamic Response Generator',
           type: 'n8n-nodes-base.code', 
           typeVersion: 2,
-          position: [900, 300]
+          position: [1340, 300]
         },
         {
           parameters: {
@@ -476,7 +510,7 @@ return $input.all();`
           name: 'LINE Response',
           type: 'n8n-nodes-base.line',
           typeVersion: 1,
-          position: [1120, 300]
+          position: [1560, 300]
         }
       ],
       connections: {
@@ -484,14 +518,36 @@ return $input.all();`
           main: [
             [
               {
-                node: 'AI Smart Router',
+                node: 'Input Processor',
                 type: 'main',
                 index: 0
               }
             ]
           ]
         },
-        'AI Smart Router': {
+        'Input Processor': {
+          main: [
+            [
+              {
+                node: 'OpenAI HTTP Request',
+                type: 'main',
+                index: 0
+              }
+            ]
+          ]
+        },
+        'OpenAI HTTP Request': {
+          main: [
+            [
+              {
+                node: 'AI Response Processor',
+                type: 'main',
+                index: 0
+              }
+            ]
+          ]
+        },
+        'AI Response Processor': {
           main: [
             [
               {
@@ -531,7 +587,7 @@ return $input.all();`
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      id: 'smart-routing-workflow',
+      id: 'smart-routing-workflow-http',
       tags: []
     };
 
