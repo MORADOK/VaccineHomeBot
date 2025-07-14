@@ -97,19 +97,20 @@ Collected Data: \${JSON.stringify(dataCollected)}
 
 ส่งคืนในรูปแบบ JSON:
 {
-  "action": "vaccine_info|book_appointment|cancel_booking|check_status|general_info|show_rich_menu|collect_data|confirm_booking",
+  "action": "checkin|record_appointment|hospital_info|vaccine_info|book_appointment|cancel_booking|check_status|general_info|show_rich_menu",
   "vaccine_type": "covid|flu|hepatitis|hpv|other",
   "intent_confidence": 0.8,
-  "required_data": ["age", "location", "vaccine_type", "date", "time"],
-  "response_type": "rich_menu|quick_reply|datetime_picker|flex_message|confirm_template",
+  "required_data": ["name", "phone", "vaccine_type", "date", "time", "symptoms"],
+  "response_type": "rich_menu|quick_reply|datetime_picker|flex_message|confirm_template|form_input",
   "data_collection_step": "start|collecting|complete",
   "next_action": "show_menu|collect_missing_data|confirm|complete"
 }
 
 การทำงานของ Rich Menu:
-- "vaccine_menu" → action: "show_rich_menu", response_type: "rich_menu"
-- "book_covid" → action: "book_appointment", vaccine_type: "covid"
-- "info_hpv" → action: "vaccine_info", vaccine_type: "hpv"
+- "checkin" → action: "checkin" (เช็คอิน)
+- "record_appointment" → action: "record_appointment" (บันทึกนัดหมาย/ชื่อวัคซีน)
+- "hospital_info" → action: "hospital_info" (ข้อมูลโรงพยาบาล)
+- "book_vaccine" → action: "book_appointment", vaccine_type: "covid"
 - datetime selection → action: "collect_data", data_collection_step: "collecting"
 \`;
 
@@ -187,6 +188,148 @@ let response = {};
 
 switch(routing.action) {
   case 'show_rich_menu':
+    // Main Rich Menu ตามที่คุณต้องการ
+    response = {
+      type: 'flex',
+      altText: 'เมนูหลัก - บริการโรงพยาบาล',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '🏥 ระบบบริการโรงพยาบาล',
+              weight: 'bold',
+              size: 'xl',
+              color: '#1DB446',
+              align: 'center'
+            },
+            {
+              type: 'text',
+              text: 'เลือกบริการที่ต้องการ',
+              wrap: true,
+              margin: 'md',
+              color: '#666666',
+              align: 'center'
+            },
+            {
+              type: 'separator',
+              margin: 'xl'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'xl',
+              spacing: 'md',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  spacing: 'md',
+                  contents: [
+                    {
+                      type: 'button',
+                      flex: 1,
+                      height: 'md',
+                      style: 'primary',
+                      color: '#1DB446',
+                      action: {
+                        type: 'postback',
+                        label: '✅ เช็คอิน',
+                        data: JSON.stringify({ action: 'checkin' })
+                      }
+                    }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  spacing: 'md',
+                  contents: [
+                    {
+                      type: 'button',
+                      flex: 1,
+                      height: 'md',
+                      style: 'secondary',
+                      action: {
+                        type: 'postback',
+                        label: '📝 บันทึกนัดหมาย',
+                        data: JSON.stringify({ action: 'record_appointment' })
+                      }
+                    }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  spacing: 'md',
+                  contents: [
+                    {
+                      type: 'button',
+                      flex: 1,
+                      height: 'md',
+                      style: 'secondary',
+                      action: {
+                        type: 'postback',
+                        label: '🏥 ข้อมูลโรงพยาบาล',
+                        data: JSON.stringify({ action: 'hospital_info' })
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: 'separator',
+              margin: 'xl'
+            },
+            {
+              type: 'text',
+              text: 'บริการเพิ่มเติม',
+              weight: 'bold',
+              margin: 'xl',
+              color: '#666666'
+            },
+            {
+              type: 'box',
+              layout: 'horizontal',
+              margin: 'md',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'button',
+                  flex: 1,
+                  height: 'sm',
+                  style: 'link',
+                  action: {
+                    type: 'postback',
+                    label: '💉 จองวัคซีน',
+                    data: JSON.stringify({ action: 'show_vaccine_menu' })
+                  }
+                },
+                {
+                  type: 'button',
+                  flex: 1,
+                  height: 'sm',
+                  style: 'link',
+                  action: {
+                    type: 'postback',
+                    label: '📋 ตรวจสอบการจอง',
+                    data: JSON.stringify({ action: 'check_status' })
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    };
+    break;
+
+  case 'show_vaccine_menu':
+    // Vaccine Menu แยกต่างหาก
     response = {
       type: 'flex',
       altText: 'เมนูวัคซีน - เลือกบริการ',
@@ -695,10 +838,257 @@ switch(routing.action) {
     }
     break;
 
+  case 'checkin':
+    // เช็คอิน - เก็บข้อมูลการมาถึง
+    if (!staticData.checkinRecords) staticData.checkinRecords = {};
+    
+    const checkinId = 'CI' + Date.now();
+    staticData.checkinRecords[userId] = {
+      id: checkinId,
+      userId: userId,
+      checkinTime: new Date().toISOString(),
+      status: 'checked_in',
+      appointment: staticData.userBookings[userId] || null
+    };
+    
+    response = {
+      type: 'flex',
+      altText: 'เช็คอินสำเร็จ',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '✅ เช็คอินสำเร็จ!',
+              weight: 'bold',
+              size: 'xl',
+              color: '#1DB446'
+            },
+            {
+              type: 'text',
+              text: \`รหัสเช็คอิน: \${checkinId}\`,
+              margin: 'md',
+              color: '#666666'
+            },
+            {
+              type: 'text',
+              text: \`เวลา: \${new Date().toLocaleString('th-TH')}\`,
+              margin: 'sm',
+              color: '#666666',
+              size: 'sm'
+            },
+            {
+              type: 'separator',
+              margin: 'xl'
+            },
+            {
+              type: 'text',
+              text: 'กรุณารอคิวและติดตามประกาศ',
+              margin: 'xl',
+              color: '#FF5555',
+              weight: 'bold'
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              action: {
+                type: 'postback',
+                label: 'ดูสถานะคิว',
+                data: JSON.stringify({ action: 'check_queue' })
+              }
+            }
+          ]
+        }
+      }
+    };
+    break;
+
+  case 'record_appointment':
+    // บันทึกนัดหมาย/ชื่อวัคซีน
+    response = {
+      type: 'flex',
+      altText: 'บันทึกนัดหมาย',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '📝 บันทึกนัดหมาย',
+              weight: 'bold',
+              size: 'xl',
+              color: '#1DB446'
+            },
+            {
+              type: 'text',
+              text: 'เลือกประเภทการบันทึก',
+              wrap: true,
+              margin: 'md'
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              action: {
+                type: 'postback',
+                label: 'บันทึกนัดหมายใหม่',
+                data: JSON.stringify({ action: 'new_appointment_record' })
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: 'บันทึกชื่อวัคซีน',
+                data: JSON.stringify({ action: 'record_vaccine_name' })
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: 'ดูประวัติการบันทึก',
+                data: JSON.stringify({ action: 'view_records' })
+              }
+            }
+          ]
+        }
+      }
+    };
+    break;
+
+  case 'hospital_info':
+    // ข้อมูลโรงพยาบาล
+    response = {
+      type: 'flex',
+      altText: 'ข้อมูลโรงพยาบาล',
+      contents: {
+        type: 'bubble',
+        hero: {
+          type: 'image',
+          url: 'https://via.placeholder.com/300x200/1DB446/FFFFFF?text=HOSPITAL',
+          size: 'full',
+          aspectRatio: '20:13',
+          aspectMode: 'cover'
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: '🏥 โรงพยาบาลเครือข่าย',
+              weight: 'bold',
+              size: 'xl',
+              color: '#1DB446'
+            },
+            {
+              type: 'separator',
+              margin: 'xl'
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              margin: 'xl',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  spacing: 'sm',
+                  contents: [
+                    { type: 'text', text: '📍', color: '#1DB446', size: 'sm', flex: 0 },
+                    { type: 'text', text: 'ที่อยู่', color: '#aaaaaa', size: 'sm', flex: 1 },
+                    { type: 'text', text: '123 ถนนสุขภาพ เขตดีเจ กรุงเทพฯ 10400', wrap: true, color: '#666666', size: 'sm', flex: 4 }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  spacing: 'sm',
+                  contents: [
+                    { type: 'text', text: '⏰', color: '#1DB446', size: 'sm', flex: 0 },
+                    { type: 'text', text: 'เวลา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                    { type: 'text', text: 'จันทร์-ศุกร์ 8:00-20:00\nเสาร์-อาทิตย์ 9:00-17:00', wrap: true, color: '#666666', size: 'sm', flex: 4 }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  spacing: 'sm',
+                  contents: [
+                    { type: 'text', text: '📞', color: '#1DB446', size: 'sm', flex: 0 },
+                    { type: 'text', text: 'โทร', color: '#aaaaaa', size: 'sm', flex: 1 },
+                    { type: 'text', text: '02-123-4567', wrap: true, color: '#666666', size: 'sm', flex: 4 }
+                  ]
+                },
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  spacing: 'sm',
+                  contents: [
+                    { type: 'text', text: '🚗', color: '#1DB446', size: 'sm', flex: 0 },
+                    { type: 'text', text: 'จอดรถ', color: '#aaaaaa', size: 'sm', flex: 1 },
+                    { type: 'text', text: 'มีที่จอดรถฟรี 200 คัน', wrap: true, color: '#666666', size: 'sm', flex: 4 }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              action: {
+                type: 'uri',
+                label: 'เปิดแผนที่',
+                uri: 'https://maps.google.com/?q=โรงพยาบาล'
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'uri',
+                label: 'โทรติดต่อ',
+                uri: 'tel:021234567'
+              }
+            }
+          ]
+        }
+      }
+    };
+    break;
+
   case 'general_info':
     response = {
       type: 'flex',
-      altText: 'ข้อมูลทั่วไป',
+      altText: 'เมนูหลัก - เลือกบริการ',
       contents: {
         type: 'bubble',
         body: {
@@ -714,22 +1104,10 @@ switch(routing.action) {
             },
             {
               type: 'text',
-              text: 'ยินดีต้อนรับสู่ระบบจองวัคซีนออนไลน์ สะดวก รวดเร็ว ไม่ต้องพิมข้อมูล',
-              wrap: true,
-              margin: 'md'
-            },
-            {
-              type: 'text',
-              text: 'วัคซีนที่มีบริการ:',
-              weight: 'bold',
-              margin: 'xl'
-            },
-            {
-              type: 'text',
-              text: '• วัคซีนโควิด-19 (ฟรี)\n• วัคซีนไข้หวัดใหญ่ (800 บาท)\n• วัคซีนไวรัสตับอักเสบบี (1,200 บาท)\n• วัคซีน HPV (3,500 บาท)',
+              text: 'เลือกบริการที่ต้องการ',
               wrap: true,
               margin: 'md',
-              size: 'sm'
+              color: '#666666'
             }
           ]
         },
@@ -743,8 +1121,8 @@ switch(routing.action) {
               style: 'primary',
               action: {
                 type: 'postback',
-                label: 'ดูเมนูวัคซีน',
-                data: JSON.stringify({ action: 'show_menu' })
+                label: '✅ เช็คอิน',
+                data: JSON.stringify({ action: 'checkin' })
               }
             },
             {
@@ -752,8 +1130,26 @@ switch(routing.action) {
               style: 'secondary',
               action: {
                 type: 'postback',
-                label: 'ตรวจสอบการจอง',
-                data: JSON.stringify({ action: 'check_status' })
+                label: '📝 บันทึกนัดหมาย/วัคซีน',
+                data: JSON.stringify({ action: 'record_appointment' })
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: '🏥 ข้อมูลโรงพยาบาล',
+                data: JSON.stringify({ action: 'hospital_info' })
+              }
+            },
+            {
+              type: 'button',
+              style: 'link',
+              action: {
+                type: 'postback',
+                label: 'ดูเมนูวัคซีน',
+                data: JSON.stringify({ action: 'show_menu' })
               }
             }
           ]
