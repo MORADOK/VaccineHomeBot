@@ -36,45 +36,81 @@ const SmartRoutingGenerator = ({ workflowNodes = [] }: SmartRoutingGeneratorProp
     const routingNodes: SmartRoutingNode[] = [
       {
         id: 'ai-smart-router',
-        name: 'AI Smart Router (Input Processor)',
+        name: 'AI Smart Router (Rich Menu Compatible)',
         type: 'ai-router',
-        description: 'เตรียมข้อมูลสำหรับส่งไป OpenAI API',
+        description: 'รองรับ Rich Menu, Postback และ Quick Reply',
         replaces: switchNodes.map(node => node.name),
-        code: `// AI Smart Router - Input Processor with Validation
+        code: `// AI Smart Router - Rich Menu & Quick Reply Compatible
 const input = $json.body?.events?.[0];
 if (!input) {
   throw new Error('Invalid webhook payload: No events found');
 }
 
-const userMessage = input.message?.text || input.postbackData?.data || '';
+// รองรับทั้ง text message, postback และ quick reply
+const userMessage = input.message?.text || 
+                   input.postbackData?.data || 
+                   input.message?.quickReply?.postbackData?.data || 
+                   input.postback?.data || '';
+
 const userId = input.source?.userId;
+const eventType = input.type; // message, postback, follow, etc.
 
 if (!userId) {
   throw new Error('Invalid webhook payload: No userId found');
 }
 
-if (!userMessage.trim()) {
-  throw new Error('Empty message received');
+// จัดการ Rich Menu Actions และ Quick Replies
+let processedMessage = userMessage;
+let isRichMenuAction = false;
+let dataCollected = {};
+
+// ตรวจสอบ Postback Data จาก Rich Menu
+if (input.postback?.data) {
+  isRichMenuAction = true;
+  try {
+    // รองรับ Postback data ในรูปแบบ JSON
+    dataCollected = JSON.parse(input.postback.data);
+    processedMessage = dataCollected.action || dataCollected.type || userMessage;
+  } catch {
+    // รองรับ Postback data แบบ string
+    processedMessage = input.postback.data;
+  }
 }
 
-// AI Prompt สำหรับ Smart Routing
-const routingPrompt = \`คุณเป็น Smart Router สำหรับระบบจองวัคซีน วิเคราะห์ข้อความนี้และส่งคืน JSON:
+// ตรวจสอบ datetime picker result
+if (input.postback?.params?.date) {
+  dataCollected.selectedDate = input.postback.params.date;
+  processedMessage = 'confirm_appointment_date';
+}
 
-Input: "\${userMessage}"
+if (input.postback?.params?.time) {
+  dataCollected.selectedTime = input.postback.params.time;
+}
 
-ส่งคืนในรูปแบบ:
+// AI Prompt ที่รองรับ Rich Menu และการบันทึกข้อมูล
+const routingPrompt = \`คุณเป็น Smart Router สำหรับระบบจองวัคซีนที่รองรับ Rich Menu และการบันทึกข้อมูลอัตโนมัติ
+
+Input: "\${processedMessage}"
+Event Type: "\${eventType}"
+Is Rich Menu Action: \${isRichMenuAction}
+Collected Data: \${JSON.stringify(dataCollected)}
+
+ส่งคืนในรูปแบบ JSON:
 {
-  "action": "vaccine_info|book_appointment|cancel_booking|check_status|general_info",
+  "action": "vaccine_info|book_appointment|cancel_booking|check_status|general_info|show_rich_menu|collect_data|confirm_booking",
   "vaccine_type": "covid|flu|hepatitis|hpv|other",
   "intent_confidence": 0.8,
-  "required_data": ["age", "location", "vaccine_type"],
-  "response_type": "text|rich_menu|carousel|confirm"
+  "required_data": ["age", "location", "vaccine_type", "date", "time"],
+  "response_type": "rich_menu|quick_reply|datetime_picker|flex_message|confirm_template",
+  "data_collection_step": "start|collecting|complete",
+  "next_action": "show_menu|collect_missing_data|confirm|complete"
 }
 
-ตัวอย่าง:
-- "ขอดูข้อมูลวัคซีนโควิด" → action: "vaccine_info", vaccine_type: "covid"
-- "จองวัคซีนไข้หวัดใหญ่" → action: "book_appointment", vaccine_type: "flu"
-- "ยกเลิกการจอง" → action: "cancel_booking"
+การทำงานของ Rich Menu:
+- "vaccine_menu" → action: "show_rich_menu", response_type: "rich_menu"
+- "book_covid" → action: "book_appointment", vaccine_type: "covid"
+- "info_hpv" → action: "vaccine_info", vaccine_type: "hpv"
+- datetime selection → action: "collect_data", data_collection_step: "collecting"
 \`;
 
 // เตรียมข้อมูลสำหรับ HTTP Request
@@ -86,7 +122,10 @@ $json.openai_request = {
 
 $json.userId = userId;
 $json.originalInput = input;
-$json.userMessage = userMessage;
+$json.userMessage = processedMessage;
+$json.eventType = eventType;
+$json.isRichMenuAction = isRichMenuAction;
+$json.collectedData = dataCollected;
 $json.timestamp = new Date().toISOString();
 
 return $input.all();`
@@ -97,47 +136,158 @@ return $input.all();`
         type: 'response-generator',
         description: 'สร้าง response แบบ dynamic ตาม AI routing results',
         replaces: ['Static Response Nodes'],
-        code: `// Dynamic Response Generator
-const { routing, userId } = $json;
+        code: `// Rich Menu Enhanced Dynamic Response Generator
+const { routing, userId, collectedData, isRichMenuAction } = $json;
 
-// เก็บ Configuration แบบ JSON
+// Database Node - สำหรับบันทึกข้อมูล (ต้องเชื่อมต่อ Database)
+const staticData = getWorkflowStaticData('global');
+if (!staticData.userBookings) staticData.userBookings = {};
+if (!staticData.vaccineSlots) {
+  staticData.vaccineSlots = {
+    "2024-12-20": { available: 5, booked: 0 },
+    "2024-12-21": { available: 8, booked: 0 },
+    "2024-12-22": { available: 3, booked: 2 }
+  };
+}
+
+// Configuration แบบ Rich Menu Compatible
 const vaccineConfig = {
   "covid": {
     "info": "วัคซีนโควิด-19 ป้องกันการติดเชื้อ รุนแรง ลดการเสียชีวิต",
-    "booking_flow": "ask_age_location",
-    "quick_replies": ["จองเลย", "ดูข้อมูลเพิ่ม", "สถานที่ให้บริการ"],
-    "age_requirement": "6 เดือนขึ้นไป"
+    "price": "ฟรี (ภาครัฐ)",
+    "duration": "6 เดือน",
+    "age_requirement": "6 เดือนขึ้นไป",
+    "postback_data": { "action": "book_vaccine", "type": "covid" }
   },
   "flu": {
     "info": "วัคซีนไข้หวัดใหญ่ ป้องกันไข้หวัด โดยเฉพาะในกลุ่มเสี่ยง",
-    "booking_flow": "ask_age_only", 
-    "quick_replies": ["จองวัคซีนไข้หวัด", "ราคา", "ใครควรฉีด"],
-    "age_requirement": "6 เดือนขึ้นไป"
+    "price": "800 บาท",
+    "duration": "1 ปี", 
+    "age_requirement": "6 เดือนขึ้นไป",
+    "postback_data": { "action": "book_vaccine", "type": "flu" }
   },
   "hepatitis": {
     "info": "วัคซีนไวรัสตับอักเสบบี ป้องกันโรคตับอักเสบ",
-    "booking_flow": "ask_age_location",
-    "quick_replies": ["จองวัคซีน", "กลุ่มเสี่ยง", "ราคา"],
-    "age_requirement": "แรกเกิดขึ้นไป"
+    "price": "1,200 บาท",
+    "duration": "ตลอดชีวิต",
+    "age_requirement": "แรกเกิดขึ้นไป",
+    "postback_data": { "action": "book_vaccine", "type": "hepatitis" }
   },
   "hpv": {
     "info": "วัคซีน HPV ป้องกันมะเร็งปากมดลูกและโรคอื่นๆ",
-    "booking_flow": "ask_age_location",
-    "quick_replies": ["จองวัคซีน", "ช่วงอายุที่เหมาะสม", "ราคา"],
-    "age_requirement": "9-45 ปี"
+    "price": "3,500 บาท",
+    "duration": "ตลอดชีวิต",
+    "age_requirement": "9-45 ปี",
+    "postback_data": { "action": "book_vaccine", "type": "hpv" }
   }
 };
 
-// สร้าง Response แบบ Dynamic
+// สร้าง Response แบบ Rich Menu Compatible
 let response = {};
 
 switch(routing.action) {
+  case 'show_rich_menu':
+    response = {
+      type: 'flex',
+      altText: 'เมนูวัคซีน - เลือกบริการ',
+      contents: {
+        type: 'carousel',
+        contents: Object.keys(vaccineConfig).map(vaccineType => {
+          const vaccine = vaccineConfig[vaccineType];
+          return {
+            type: 'bubble',
+            hero: {
+              type: 'image',
+              url: 'https://via.placeholder.com/300x200/1DB446/FFFFFF?text=' + vaccineType.toUpperCase(),
+              size: 'full',
+              aspectRatio: '20:13',
+              aspectMode: 'cover'
+            },
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                {
+                  type: 'text',
+                  text: \`วัคซีน \${vaccineType.toUpperCase()}\`,
+                  weight: 'bold',
+                  size: 'xl',
+                  color: '#1DB446'
+                },
+                {
+                  type: 'text',
+                  text: vaccine.info,
+                  wrap: true,
+                  margin: 'md',
+                  size: 'sm'
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  margin: 'lg',
+                  spacing: 'sm',
+                  contents: [
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      spacing: 'sm',
+                      contents: [
+                        { type: 'text', text: 'ราคา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                        { type: 'text', text: vaccine.price, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                      ]
+                    },
+                    {
+                      type: 'box',
+                      layout: 'baseline',
+                      spacing: 'sm',
+                      contents: [
+                        { type: 'text', text: 'ระยะเวลา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                        { type: 'text', text: vaccine.duration, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            footer: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'sm',
+              contents: [
+                {
+                  type: 'button',
+                  style: 'primary',
+                  height: 'sm',
+                  action: {
+                    type: 'postback',
+                    label: 'จองเลย',
+                    data: JSON.stringify(vaccine.postback_data)
+                  }
+                },
+                {
+                  type: 'button',
+                  style: 'secondary',
+                  height: 'sm',
+                  action: {
+                    type: 'postback',
+                    label: 'ดูข้อมูล',
+                    data: JSON.stringify({ "action": "view_info", "type": vaccineType })
+                  }
+                }
+              ]
+            }
+          };
+        })
+      }
+    };
+    break;
+
   case 'vaccine_info':
     const vaccineData = vaccineConfig[routing.vaccine_type];
     if (vaccineData) {
       response = {
         type: 'flex',
-        altText: \`ข้อมูลวัคซีน\${routing.vaccine_type}\`,
+        altText: \`ข้อมูลวัคซีน \${routing.vaccine_type}\`,
         contents: {
           type: 'bubble',
           body: {
@@ -146,7 +296,7 @@ switch(routing.action) {
             contents: [
               {
                 type: 'text',
-                text: \`วัคซีน\${routing.vaccine_type.toUpperCase()}\`,
+                text: \`วัคซีน \${routing.vaccine_type.toUpperCase()}\`,
                 weight: 'bold',
                 size: 'xl',
                 color: '#1DB446'
@@ -158,27 +308,70 @@ switch(routing.action) {
                 margin: 'md'
               },
               {
-                type: 'text',
-                text: \`อายุที่เหมาะสม: \${vaccineData.age_requirement}\`,
-                size: 'sm',
-                color: '#666666',
-                margin: 'md'
+                type: 'separator',
+                margin: 'xl'
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                margin: 'xl',
+                spacing: 'sm',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'ราคา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: vaccineData.price, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'อายุ', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: vaccineData.age_requirement, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'ระยะเวลา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: vaccineData.duration, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  }
+                ]
               }
             ]
           },
           footer: {
             type: 'box',
             layout: 'vertical',
-            contents: vaccineData.quick_replies.map(text => ({
-              type: 'button',
-              action: {
-                type: 'message',
-                label: text,
-                text: text
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                action: {
+                  type: 'postback',
+                  label: 'จองวัคซีนนี้',
+                  data: JSON.stringify(vaccineData.postback_data)
+                }
               },
-              style: 'primary',
-              margin: 'sm'
-            }))
+              {
+                type: 'button',
+                style: 'secondary',
+                action: {
+                  type: 'postback',
+                  label: 'ดูวัคซีนอื่น',
+                  data: JSON.stringify({ "action": "show_menu" })
+                }
+              }
+            ]
           }
         }
       };
@@ -186,25 +379,73 @@ switch(routing.action) {
     break;
 
   case 'book_appointment':
-    if (routing.intent_confidence > 0.7) {
-      const vaccineInfo = vaccineConfig[routing.vaccine_type];
+    // ตรวจสอบข้อมูลที่เก็บได้แล้ว
+    const currentBooking = staticData.userBookings[userId] || {};
+    
+    if (collectedData.selectedDate) {
+      // มีการเลือกวันที่แล้ว -> แสดง Time Picker
+      response = {
+        type: 'template',
+        altText: 'เลือกเวลา',
+        template: {
+          type: 'buttons',
+          text: \`เลือกเวลาสำหรับวันที่ \${collectedData.selectedDate}\`,
+          actions: [
+            {
+              type: 'datetimepicker',
+              label: '9:00-12:00',
+              data: JSON.stringify({
+                action: 'confirm_booking',
+                date: collectedData.selectedDate,
+                time: '09:00-12:00',
+                vaccine_type: routing.vaccine_type
+              }),
+              mode: 'time'
+            },
+            {
+              type: 'datetimepicker', 
+              label: '13:00-16:00',
+              data: JSON.stringify({
+                action: 'confirm_booking',
+                date: collectedData.selectedDate,
+                time: '13:00-16:00',
+                vaccine_type: routing.vaccine_type
+              }),
+              mode: 'time'
+            },
+            {
+              type: 'message',
+              label: 'เลือกวันใหม่',
+              text: 'เลือกวันใหม่'
+            }
+          ]
+        }
+      };
+    } else {
+      // ยังไม่มีวันที่ -> แสดง Date Picker
       response = {
         type: 'template',
         altText: 'เลือกวันที่จอง',
         template: {
           type: 'buttons',
-          text: \`จองวัคซีน \${routing.vaccine_type}\`,
+          text: \`จองวัคซีน \${routing.vaccine_type.toUpperCase()}\nกรุณาเลือกวันที่\`,
           actions: [
             { 
               type: 'datetimepicker', 
               label: 'เลือกวันที่', 
-              data: \`date_\${routing.vaccine_type}\`,
+              data: JSON.stringify({
+                action: 'collect_date',
+                vaccine_type: routing.vaccine_type
+              }),
               mode: 'date'
             },
             { 
-              type: 'message', 
+              type: 'postback', 
               label: 'ดูข้อมูลเพิ่ม', 
-              text: \`ข้อมูลวัคซีน\${routing.vaccine_type}\`
+              data: JSON.stringify({
+                action: 'view_info',
+                type: routing.vaccine_type
+              })
             },
             { 
               type: 'message', 
@@ -214,99 +455,309 @@ switch(routing.action) {
           ]
         }
       };
-    } else {
-      // ถ้า confidence ต่ำ ให้ clarify
+    }
+    break;
+
+  case 'confirm_booking':
+    // บันทึกข้อมูลการจอง
+    if (collectedData.selectedDate && collectedData.selectedTime) {
+      const bookingId = 'BK' + Date.now();
+      staticData.userBookings[userId] = {
+        id: bookingId,
+        vaccineType: routing.vaccine_type || collectedData.vaccine_type,
+        date: collectedData.selectedDate,
+        time: collectedData.selectedTime,
+        status: 'confirmed',
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update available slots
+      if (staticData.vaccineSlots[collectedData.selectedDate]) {
+        staticData.vaccineSlots[collectedData.selectedDate].booked += 1;
+      }
+      
       response = {
-        type: 'text',
-        text: 'ขออภัย ไม่แน่ใจว่าต้องการจองวัคซีนประเภทไหน กรุณาเลือกจากเมนูด้านล่าง',
-        quickReply: {
-          items: Object.keys(vaccineConfig).map(vaccine => ({
-            type: 'action',
-            action: {
-              type: 'message',
-              label: \`วัคซีน\${vaccine}\`,
-              text: \`จองวัคซีน\${vaccine}\`
-            }
-          }))
+        type: 'flex',
+        altText: 'การจองสำเร็จ',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '✅ จองสำเร็จ!',
+                weight: 'bold',
+                size: 'xl',
+                color: '#1DB446'
+              },
+              {
+                type: 'text',
+                text: \`รหัสการจอง: \${bookingId}\`,
+                margin: 'md',
+                color: '#666666'
+              },
+              {
+                type: 'separator',
+                margin: 'xl'
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                margin: 'xl',
+                spacing: 'sm',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'วัคซีน', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: (routing.vaccine_type || collectedData.vaccine_type).toUpperCase(), wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'วันที่', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: collectedData.selectedDate, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'เวลา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: collectedData.selectedTime, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'primary',
+                action: {
+                  type: 'postback',
+                  label: 'ดูรายละเอียด',
+                  data: JSON.stringify({ action: 'view_booking', booking_id: bookingId })
+                }
+              }
+            ]
+          }
         }
       };
     }
     break;
 
   case 'cancel_booking':
-    response = {
-      type: 'template',
-      altText: 'ยืนยันการยกเลิก',
-      template: {
-        type: 'confirm',
-        text: 'คุณแน่ใจหรือไม่ที่ต้องการยกเลิกการจองวัคซีน?',
-        actions: [
-          {
-            type: 'message',
-            label: 'ยืนยันยกเลิก',
-            text: 'confirm_cancel'
-          },
-          {
-            type: 'message',
-            label: 'ไม่ยกเลิก',
-            text: 'keep_booking'
-          }
-        ]
-      }
-    };
+    const userBooking = staticData.userBookings[userId];
+    if (userBooking) {
+      response = {
+        type: 'template',
+        altText: 'ยืนยันการยกเลิก',
+        template: {
+          type: 'confirm',
+          text: \`ยกเลิกการจองรหัส \${userBooking.id}?\nวัคซีน: \${userBooking.vaccineType}\nวันที่: \${userBooking.date}\`,
+          actions: [
+            {
+              type: 'postback',
+              label: 'ยืนยันยกเลิก',
+              data: JSON.stringify({ action: 'confirm_cancel', booking_id: userBooking.id })
+            },
+            {
+              type: 'message',
+              label: 'ไม่ยกเลิก',
+              text: 'ไม่ยกเลิก'
+            }
+          ]
+        }
+      };
+    } else {
+      response = {
+        type: 'text',
+        text: 'ไม่พบการจองของคุณ กรุณาตรวจสอบอีกครั้ง'
+      };
+    }
     break;
 
   case 'check_status':
-    response = {
-      type: 'text',
-      text: 'กำลังตรวจสอบสถานะการจองของคุณ...',
-      quickReply: {
-        items: [
-          {
-            type: 'action',
-            action: {
-              type: 'message',
-              label: 'ดูการจองทั้งหมด',
-              text: 'booking_history'
-            }
+    const booking = staticData.userBookings[userId];
+    if (booking) {
+      response = {
+        type: 'flex',
+        altText: 'สถานะการจอง',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: 'สถานะการจอง',
+                weight: 'bold',
+                size: 'xl',
+                color: '#1DB446'
+              },
+              {
+                type: 'text',
+                text: \`รหัส: \${booking.id}\`,
+                margin: 'md',
+                color: '#666666'
+              },
+              {
+                type: 'separator',
+                margin: 'xl'
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                margin: 'xl',
+                spacing: 'sm',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'วัคซีน', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: booking.vaccineType.toUpperCase(), wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'วันที่', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: booking.date, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'baseline',
+                    spacing: 'sm',
+                    contents: [
+                      { type: 'text', text: 'สถานะ', color: '#aaaaaa', size: 'sm', flex: 1 },
+                      { type: 'text', text: booking.status === 'confirmed' ? '✅ ยืนยันแล้ว' : booking.status, wrap: true, color: '#666666', size: 'sm', flex: 3 }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          footer: {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'button',
+                style: 'secondary',
+                action: {
+                  type: 'postback',
+                  label: 'ยกเลิกการจอง',
+                  data: JSON.stringify({ action: 'cancel_booking' })
+                }
+              }
+            ]
           }
-        ]
-      }
-    };
+        }
+      };
+    } else {
+      response = {
+        type: 'text',
+        text: 'คุณยังไม่มีการจองวัคซีน กรุณาเลือกวัคซีนที่ต้องการจองจากเมนูด้านล่าง',
+        quickReply: {
+          items: [
+            {
+              type: 'action',
+              action: {
+                type: 'postback',
+                label: 'ดูเมนูวัคซีน',
+                data: JSON.stringify({ action: 'show_menu' })
+              }
+            }
+          ]
+        }
+      };
+    }
     break;
 
   case 'general_info':
-    // สำหรับ general info ใช้ template response แทนการเรียก API ซ้ำ
     response = {
-      type: 'text',
-      text: \`ขอบคุณที่สอบถาม! 🩹\n\nเรามีข้อมูลวัคซีนดังนี้:\n• วัคซีนโควิด-19\n• วัคซีนไข้หวัดใหญ่\n• วัคซีนไวรัสตับอักเสบบี\n• วัคซีน HPV\n\nกรุณาเลือกประเภทวัคซีนที่ต้องการสอบถามจากเมนูด้านล่าง\`,
-      quickReply: {
-        items: [
-          {
-            type: 'action',
-            action: {
-              type: 'message',
-              label: 'วัคซีนโควิด',
-              text: 'ข้อมูลวัคซีนโควิด'
+      type: 'flex',
+      altText: 'ข้อมูลทั่วไป',
+      contents: {
+        type: 'bubble',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: 'ระบบจองวัคซีน 💉',
+              weight: 'bold',
+              size: 'xl',
+              color: '#1DB446'
+            },
+            {
+              type: 'text',
+              text: 'ยินดีต้อนรับสู่ระบบจองวัคซีนออนไลน์ สะดวก รวดเร็ว ไม่ต้องพิมข้อมูล',
+              wrap: true,
+              margin: 'md'
+            },
+            {
+              type: 'text',
+              text: 'วัคซีนที่มีบริการ:',
+              weight: 'bold',
+              margin: 'xl'
+            },
+            {
+              type: 'text',
+              text: '• วัคซีนโควิด-19 (ฟรี)\n• วัคซีนไข้หวัดใหญ่ (800 บาท)\n• วัคซีนไวรัสตับอักเสบบี (1,200 บาท)\n• วัคซีน HPV (3,500 บาท)',
+              wrap: true,
+              margin: 'md',
+              size: 'sm'
             }
-          },
-          {
-            type: 'action',
-            action: {
-              type: 'message',
-              label: 'วัคซีนไข้หวัด',
-              text: 'ข้อมูลวัคซีนไข้หวัด'
+          ]
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'primary',
+              action: {
+                type: 'postback',
+                label: 'ดูเมนูวัคซีน',
+                data: JSON.stringify({ action: 'show_menu' })
+              }
+            },
+            {
+              type: 'button',
+              style: 'secondary',
+              action: {
+                type: 'postback',
+                label: 'ตรวจสอบการจอง',
+                data: JSON.stringify({ action: 'check_status' })
+              }
             }
-          },
-          {
-            type: 'action',
-            action: {
-              type: 'message',
-              label: 'วัคซีน HPV',
-              text: 'ข้อมูลวัคซีน HPV'
-            }
-          }
-        ]
+          ]
+        }
       }
     };
     break;
@@ -314,12 +765,25 @@ switch(routing.action) {
   default:
     response = {
       type: 'text',
-      text: 'ขออภัย ไม่เข้าใจคำสั่ง กรุณาลองใหม่อีกครั้ง'
+      text: 'ขออภัย ไม่เข้าใจคำสั่ง กรุณาเลือกจากเมนูด้านล่าง',
+      quickReply: {
+        items: [
+          {
+            type: 'action',
+            action: {
+              type: 'postback',
+              label: 'เมนูหลัก',
+              data: JSON.stringify({ action: 'show_menu' })
+            }
+          }
+        ]
+      }
     };
 }
 
 $json.lineResponse = response;
-$json.processedBy = 'dynamic-response-generator';
+$json.processedBy = 'rich-menu-response-generator';
+$json.savedData = staticData.userBookings[userId] || null;
 
 return $input.all();`
       },
