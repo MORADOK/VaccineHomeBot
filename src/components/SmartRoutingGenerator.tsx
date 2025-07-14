@@ -510,9 +510,8 @@ try {
   }
   
   // Parse AI response with validation
-  let routing;
   try {
-    routing = JSON.parse(aiResult.choices[0].message.content);
+    routing = JSON.parse(httpResponse.choices[0].message.content);
   } catch (parseError) {
     // ถ้า JSON ไม่ถูกต้อง ใช้ fallback
     routing = {
@@ -618,14 +617,14 @@ return $input.all();`
           main: [
             [
               {
-                node: 'OpenAI HTTP Request',
+                node: 'OpenAI HTTP Request (with Credentials)',
                 type: 'main',
                 index: 0
               }
             ]
           ]
         },
-        'OpenAI HTTP Request': {
+        'OpenAI HTTP Request (with Credentials)': {
           main: [
             [
               {
