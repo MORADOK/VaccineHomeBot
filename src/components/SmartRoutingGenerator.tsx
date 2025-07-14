@@ -535,7 +535,7 @@ switch(routing.action) {
 
   case 'book_appointment':
     // ตรวจสอบข้อมูลที่เก็บได้แล้ว
-    const currentBooking = staticData.userBookings[userId] || {};
+    const currentBooking = systemData.userBookings[userId] || {};
     
     if (collectedData.selectedDate) {
       // มีการเลือกวันที่แล้ว -> แสดง Time Picker
@@ -617,7 +617,7 @@ switch(routing.action) {
     // บันทึกข้อมูลการจอง
     if (collectedData.selectedDate && collectedData.selectedTime) {
       const bookingId = 'BK' + Date.now();
-      staticData.userBookings[userId] = {
+      systemData.userBookings[userId] = {
         id: bookingId,
         vaccineType: routing.vaccine_type || collectedData.vaccine_type,
         date: collectedData.selectedDate,
@@ -627,8 +627,8 @@ switch(routing.action) {
       };
       
       // Update available slots
-      if (staticData.vaccineSlots[collectedData.selectedDate]) {
-        staticData.vaccineSlots[collectedData.selectedDate].booked += 1;
+      if (systemData.vaccineSlots[collectedData.selectedDate]) {
+        systemData.vaccineSlots[collectedData.selectedDate].booked += 1;
       }
       
       response = {
@@ -716,7 +716,7 @@ switch(routing.action) {
     break;
 
   case 'cancel_booking':
-    const userBooking = staticData.userBookings[userId];
+    const userBooking = systemData.userBookings[userId];
     if (userBooking) {
       response = {
         type: 'template',
@@ -747,7 +747,7 @@ switch(routing.action) {
     break;
 
   case 'check_status':
-    const booking = staticData.userBookings[userId];
+    const booking = systemData.userBookings[userId];
     if (booking) {
       response = {
         type: 'flex',
@@ -1232,7 +1232,7 @@ if (!sessionData.userSessions[userId]) {
   };
 }
 
-const userSession = staticData.userSessions[userId];
+const userSession = sessionData.userSessions[userId];
 
 // Update Context based on AI Routing
 switch(routing.action) {
@@ -1278,13 +1278,13 @@ userSession.lastActivity = new Date().toISOString();
 
 // ตรวจสอบและทำความสะอาด old sessions (เก็บ 24 ชั่วโมง)
 const now = new Date();
-Object.keys(staticData.userSessions).forEach(sessionUserId => {
-  const session = staticData.userSessions[sessionUserId];
+Object.keys(sessionData.userSessions).forEach(sessionUserId => {
+  const session = sessionData.userSessions[sessionUserId];
   const lastActivity = new Date(session.lastActivity);
   const hoursDiff = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
   
   if (hoursDiff > 24) {
-    delete staticData.userSessions[sessionUserId];
+    delete sessionData.userSessions[sessionUserId];
   }
 });
 
