@@ -14,6 +14,7 @@ interface WorkflowNode {
   type: string;
   position: [number, number];
   parameters?: any;
+  credentials?: any;
 }
 
 interface WorkflowConnection {
@@ -93,16 +94,21 @@ const WorkflowAnalyzer = () => {
     switchNodes.forEach(switchNode => {
       const connections = data.connections[switchNode.id];
       if (connections && connections.main) {
-        const outputCount = connections.main.filter(output => output.length > 0).length;
-        const totalRules = switchNode.parameters?.rules?.rules?.length || 0;
+        const outputCount = connections.main.filter(output => output && output.length > 0).length;
+        const totalRules = switchNode.parameters?.conditions?.conditions?.length || 
+                          switchNode.parameters?.rules?.rules?.length || 0;
         
-        if (outputCount <= totalRules) {
+        // ตรวจสอบว่ามี fallback path หรือไม่ (output index สุดท้าย)
+        const hasFallback = connections.main.length > totalRules && 
+                           connections.main[connections.main.length - 1]?.length > 0;
+        
+        if (!hasFallback && totalRules > 0) {
           foundIssues.push({
             type: 'warning',
             title: 'Switch Node ไม่มี Fallback Path',
-            description: `Switch node "${switchNode.name}" อาจไม่มี path สำหรับกรณีที่ไม่ตรงกับเงื่อนไขใดๆ`,
+            description: `Switch node "${switchNode.name}" มี ${totalRules} เงื่อนไข แต่ไม่มี fallback path สำหรับกรณีที่ไม่ตรงเงื่อนไขใดๆ`,
             nodeId: switchNode.id,
-            solution: 'เพิ่ม fallback path สำหรับกรณีที่ไม่ตรงเงื่อนไข เช่น เพิ่ม default output หรือ error handling'
+            solution: 'เพิ่ม fallback path โดยเชื่อมต่อ output ท้ายสุดของ Switch node เพื่อจัดการกรณีที่ไม่ตรงเงื่อนไข'
           });
         }
       }
@@ -111,45 +117,97 @@ const WorkflowAnalyzer = () => {
     // ตรวจสอบ HTTP nodes ที่ไม่มี error handling
     httpNodes.forEach(httpNode => {
       const connections = data.connections[httpNode.id];
-      const hasErrorHandling = connections?.main && connections.main.length > 1;
+      const hasErrorHandling = connections?.main && connections.main.length > 1 && 
+                              connections.main[1]?.length > 0;
+      
+      // ตรวจสอบว่าเป็น critical API calls หรือไม่
+      const isCriticalAPI = httpNode.parameters?.url?.includes('api.line.me') ||
+                           httpNode.parameters?.url?.includes('openai.com') ||
+                           httpNode.name?.toLowerCase().includes('line') ||
+                           httpNode.name?.toLowerCase().includes('ai');
       
       if (!hasErrorHandling) {
         foundIssues.push({
-          type: 'warning',
+          type: isCriticalAPI ? 'error' : 'warning',
           title: 'HTTP Request ไม่มี Error Handling',
-          description: `HTTP node "${httpNode.name}" ไม่มีการจัดการ error กรณีที่ request ล้มเหลว`,
+          description: `HTTP node "${httpNode.name}" ${isCriticalAPI ? '(Critical API)' : ''} ไม่มีการจัดการ error กรณีที่ request ล้มเหลว`,
           nodeId: httpNode.id,
-          solution: 'เพิ่ม error output และสร้าง path สำหรับจัดการ error เช่น retry logic หรือ fallback response'
+          solution: 'เพิ่ม error output และเชื่อมต่อไปยัง error handling nodes เช่น Set node สำหรับ log หรือ HTTP node สำหรับส่งการแจ้งเตือน'
         });
       }
     });
 
     // ตรวจสอบปัญหาเฉพาะของ LINE Bot
+    const hasWebhook = webhookNodes.length > 0;
     const lineResponseNodes = data.nodes.filter(node => 
-      node.name.includes('LINE') || 
+      node.name.toLowerCase().includes('line') || 
       (node.type === 'n8n-nodes-base.httpRequest' && 
-       node.parameters?.url?.includes('line.me'))
+       node.parameters?.url?.includes('api.line.me'))
     );
 
-    if (lineResponseNodes.length === 0) {
+    // ตรวจสอบเฉพาะเมื่อมี webhook (เป็น chatbot workflow)
+    if (hasWebhook && lineResponseNodes.length === 0) {
       foundIssues.push({
         type: 'error',
         title: 'ไม่พบ LINE Response Node',
         description: 'Chatbot workflow ควรมี node สำหรับตอบกลับข้อความผ่าน LINE API',
-        solution: 'เพิ่ม HTTP Request node เพื่อเรียก LINE Reply API'
+        solution: 'เพิ่ม HTTP Request node ที่เรียก https://api.line.me/v2/bot/message/reply พร้อม reply token และข้อความที่ต้องการส่ง'
       });
     }
 
+    // ตรวจสอบ LINE Reply Token
+    lineResponseNodes.forEach(lineNode => {
+      const hasReplyToken = lineNode.parameters?.bodyParametersJson?.includes('replyToken') ||
+                           lineNode.parameters?.body?.includes('replyToken') ||
+                           JSON.stringify(lineNode.parameters).includes('replyToken');
+      
+      if (!hasReplyToken) {
+        foundIssues.push({
+          type: 'error',
+          title: 'LINE Node ไม่มี Reply Token',
+          description: `LINE response node "${lineNode.name}" ไม่ได้ใช้ reply token ที่ได้จาก webhook`,
+          nodeId: lineNode.id,
+          solution: 'ใช้ reply token จาก webhook data ในรูปแบบ {{ $json["events"][0]["replyToken"] }}'
+        });
+      }
+    });
+
     // ตรวจสอบ AI Agent configuration
-    const aiNodes = data.nodes.filter(node => node.type.includes('langchain'));
+    const aiNodes = data.nodes.filter(node => 
+      node.type.includes('langchain') || 
+      node.type.includes('openai') ||
+      node.name.toLowerCase().includes('ai') ||
+      node.name.toLowerCase().includes('gpt')
+    );
+    
     aiNodes.forEach(aiNode => {
-      if (!aiNode.parameters?.text) {
+      const hasPrompt = aiNode.parameters?.prompt || 
+                       aiNode.parameters?.text ||
+                       aiNode.parameters?.message;
+      
+      if (!hasPrompt) {
         foundIssues.push({
           type: 'warning',
           title: 'AI Agent ไม่มี Prompt',
-          description: `AI node "${aiNode.name}" ไม่ได้กำหนด prompt text`,
+          description: `AI node "${aiNode.name}" ไม่ได้กำหนด prompt หรือ instruction ที่ชัดเจน`,
           nodeId: aiNode.id,
-          solution: 'กำหนด prompt ที่ชัดเจนสำหรับ AI Agent เพื่อให้ได้ผลลัพธ์ที่ต้องการ'
+          solution: 'กำหนด prompt ที่ชัดเจน รวมถึง role, context และ instruction สำหรับ AI Agent'
+        });
+      }
+
+      // ตรวจสอบ API key configuration สำหรับ AI nodes
+      const hasApiKey = aiNode.parameters?.apiKey || 
+                       aiNode.credentials ||
+                       aiNode.parameters?.authentication ||
+                       aiNode.parameters?.model;
+      
+      if (!hasApiKey && (aiNode.type.includes('openai') || aiNode.type.includes('langchain'))) {
+        foundIssues.push({
+          type: 'error',
+          title: 'AI Agent ไม่มี API Key',
+          description: `AI node "${aiNode.name}" ไม่ได้กำหนด API key หรือ credentials สำหรับการเชื่อมต่อ AI service`,
+          nodeId: aiNode.id,
+          solution: 'กำหนด API key ผ่าน credentials หรือ parameters ของ node ให้ตรงกับ AI service ที่ใช้'
         });
       }
     });
