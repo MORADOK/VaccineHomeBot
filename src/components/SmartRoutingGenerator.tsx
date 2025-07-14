@@ -86,13 +86,17 @@ let dataCollected = {};
 // ตรวจสอบ Postback Data จาก Rich Menu
 if (input.postback?.data) {
   isRichMenuAction = true;
+  console.log("Raw postback data:", input.postback.data);
   try {
     // รองรับ Postback data ในรูปแบบ JSON
     dataCollected = JSON.parse(input.postback.data);
     processedMessage = dataCollected.action || dataCollected.type || userMessage;
-  } catch {
+    console.log("Parsed postback data:", dataCollected);
+    console.log("Processed message:", processedMessage);
+  } catch (error) {
     // รองรับ Postback data แบบ string
     processedMessage = input.postback.data;
+    console.log("String postback data:", processedMessage);
   }
 }
 
