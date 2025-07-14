@@ -583,7 +583,7 @@ switch(routing.action) {
         altText: 'เลือกวันที่จอง',
         template: {
           type: 'buttons',
-          text: \`จองวัคซีน \${routing.vaccine_type.toUpperCase()}\nกรุณาเลือกวันที่\`,
+          text: "จองวัคซีน " + routing.vaccine_type.toUpperCase() + "\\nกรุณาเลือกวันที่",
           actions: [
             { 
               type: 'datetimepicker', 
@@ -723,7 +723,7 @@ switch(routing.action) {
         altText: 'ยืนยันการยกเลิก',
         template: {
           type: 'confirm',
-          text: \`ยกเลิกการจองรหัส \${userBooking.id}?\nวัคซีน: \${userBooking.vaccineType}\nวันที่: \${userBooking.date}\`,
+          text: "ยกเลิกการจองรหัส " + userBooking.id + "?\\nวัคซีน: " + userBooking.vaccineType + "\\nวันที่: " + userBooking.date,
           actions: [
             {
               type: 'postback',
@@ -1039,7 +1039,7 @@ switch(routing.action) {
                   contents: [
                     { type: 'text', text: '⏰', color: '#1DB446', size: 'sm', flex: 0 },
                     { type: 'text', text: 'เวลา', color: '#aaaaaa', size: 'sm', flex: 1 },
-                    { type: 'text', text: 'จันทร์-ศุกร์ 8:00-20:00\nเสาร์-อาทิตย์ 9:00-17:00', wrap: true, color: '#666666', size: 'sm', flex: 4 }
+                    { type: 'text', text: 'จันทร์-ศุกร์ 8:00-20:00\\nเสาร์-อาทิตย์ 9:00-17:00', wrap: true, color: '#666666', size: 'sm', flex: 4 }
                   ]
                 },
                 {
