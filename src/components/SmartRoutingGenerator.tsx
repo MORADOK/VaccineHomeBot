@@ -40,10 +40,22 @@ const SmartRoutingGenerator = ({ workflowNodes = [] }: SmartRoutingGeneratorProp
         type: 'ai-router',
         description: 'เตรียมข้อมูลสำหรับส่งไป OpenAI API',
         replaces: switchNodes.map(node => node.name),
-        code: `// AI Smart Router - Input Processor
-const input = $json.body.events[0];
+        code: `// AI Smart Router - Input Processor with Validation
+const input = $json.body?.events?.[0];
+if (!input) {
+  throw new Error('Invalid webhook payload: No events found');
+}
+
 const userMessage = input.message?.text || input.postbackData?.data || '';
-const userId = input.source.userId;
+const userId = input.source?.userId;
+
+if (!userId) {
+  throw new Error('Invalid webhook payload: No userId found');
+}
+
+if (!userMessage.trim()) {
+  throw new Error('Empty message received');
+}
 
 // AI Prompt สำหรับ Smart Routing
 const routingPrompt = \`คุณเป็น Smart Router สำหรับระบบจองวัคซีน วิเคราะห์ข้อความนี้และส่งคืน JSON:
@@ -264,25 +276,38 @@ switch(routing.action) {
     break;
 
   case 'general_info':
-    // ส่งไป AI อีกครั้งเพื่อสร้างคำตอบ
-    const generalPrompt = \`ตอบคำถามเกี่ยวกับวัคซีน: "\${routing.originalMessage}"\`;
-    const generalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': \`Bearer \${process.env.OPENAI_API_KEY}\`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: generalPrompt }],
-        max_tokens: 300
-      })
-    });
-    
-    const generalResult = await generalResponse.json();
+    // สำหรับ general info ใช้ template response แทนการเรียก API ซ้ำ
     response = {
       type: 'text',
-      text: generalResult.choices[0].message.content
+      text: \`ขอบคุณที่สอบถาม! 🩹\n\nเรามีข้อมูลวัคซีนดังนี้:\n• วัคซีนโควิด-19\n• วัคซีนไข้หวัดใหญ่\n• วัคซีนไวรัสตับอักเสบบี\n• วัคซีน HPV\n\nกรุณาเลือกประเภทวัคซีนที่ต้องการสอบถามจากเมนูด้านล่าง\`,
+      quickReply: {
+        items: [
+          {
+            type: 'action',
+            action: {
+              type: 'message',
+              label: 'วัคซีนโควิด',
+              text: 'ข้อมูลวัคซีนโควิด'
+            }
+          },
+          {
+            type: 'action',
+            action: {
+              type: 'message',
+              label: 'วัคซีนไข้หวัด',
+              text: 'ข้อมูลวัคซีนไข้หวัด'
+            }
+          },
+          {
+            type: 'action',
+            action: {
+              type: 'message',
+              label: 'วัคซีน HPV',
+              text: 'ข้อมูลวัคซีน HPV'
+            }
+          }
+        ]
+      }
     };
     break;
 
@@ -444,10 +469,17 @@ return $input.all();`
             },
             body: '={{ JSON.stringify($json.openai_request) }}',
             options: {
+              timeout: 30000,
               response: {
                 response: {
                   neverError: true,
                   responseFormat: 'json'
+                }
+              },
+              redirect: {
+                redirect: {
+                  followRedirect: true,
+                  maxRedirect: 3
                 }
               }
             }
@@ -460,16 +492,65 @@ return $input.all();`
         },
         {
           parameters: {
-            jsCode: `// Process OpenAI Response
-const aiResult = $json;
-const routing = JSON.parse(aiResult.choices[0].message.content);
-
-// Combine with previous data
-$json.routing = routing;
-$json.userId = $('Input Processor').item.json.userId;
-$json.originalInput = $('Input Processor').item.json.originalInput;
-$json.userMessage = $('Input Processor').item.json.userMessage;
-$json.timestamp = $('Input Processor').item.json.timestamp;
+            jsCode: `// Process OpenAI Response with Error Handling
+try {
+  const aiResult = $json;
+  
+  // ตรวจสอบว่า API ตอบกลับปกติ
+  if (!aiResult.choices || !aiResult.choices[0] || !aiResult.choices[0].message) {
+    throw new Error('Invalid OpenAI API response format');
+  }
+  
+  // Parse AI response with validation
+  let routing;
+  try {
+    routing = JSON.parse(aiResult.choices[0].message.content);
+  } catch (parseError) {
+    // ถ้า JSON ไม่ถูกต้อง ใช้ fallback
+    routing = {
+      action: 'general_info',
+      vaccine_type: 'covid',
+      intent_confidence: 0.3,
+      required_data: [],
+      response_type: 'text'
+    };
+  }
+  
+  // Validate routing object
+  if (!routing.action) {
+    routing.action = 'general_info';
+  }
+  if (!routing.intent_confidence || routing.intent_confidence < 0 || routing.intent_confidence > 1) {
+    routing.intent_confidence = 0.5;
+  }
+  
+  // Combine with previous data
+  $json.routing = routing;
+  $json.userId = $('Input Processor').item.json.userId;
+  $json.originalInput = $('Input Processor').item.json.originalInput;
+  $json.userMessage = $('Input Processor').item.json.userMessage;
+  $json.timestamp = $('Input Processor').item.json.timestamp;
+  $json.apiSuccess = true;
+  
+} catch (error) {
+  // Error handling - ใช้ fallback routing
+  console.error('OpenAI API Error:', error);
+  
+  $json.routing = {
+    action: 'general_info',
+    vaccine_type: 'covid',
+    intent_confidence: 0.2,
+    required_data: [],
+    response_type: 'text',
+    error: true
+  };
+  $json.userId = $('Input Processor').item.json.userId;
+  $json.originalInput = $('Input Processor').item.json.originalInput;
+  $json.userMessage = $('Input Processor').item.json.userMessage;
+  $json.timestamp = $('Input Processor').item.json.timestamp;
+  $json.apiSuccess = false;
+  $json.errorMessage = error.message;
+}
 
 return $input.all();`
           },
