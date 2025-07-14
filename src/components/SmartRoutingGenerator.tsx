@@ -463,13 +463,14 @@ return $input.all();`
           parameters: {
             url: 'https://api.openai.com/v1/chat/completions',
             method: 'POST',
+            authentication: 'predefinedCredentialType',
+            nodeCredentialType: 'openAiApi',
             headers: {
-              'Authorization': 'Bearer YOUR_OPENAI_API_KEY_HERE',
               'Content-Type': 'application/json'
             },
             body: '={{ JSON.stringify($json.openai_request) }}',
             options: {
-              timeout: 30000,
+              timeout: 15000,
               response: {
                 response: {
                   neverError: true,
@@ -478,26 +479,33 @@ return $input.all();`
               },
               redirect: {
                 redirect: {
-                  followRedirect: true,
-                  maxRedirect: 3
+                  followRedirect: false,
+                  maxRedirect: 0
                 }
               }
             }
           },
           id: 'openai-http-node',
-          name: 'OpenAI HTTP Request',
+          name: 'OpenAI HTTP Request (with Credentials)',
           type: 'n8n-nodes-base.httpRequest',
           typeVersion: 4,
           position: [680, 300]
         },
         {
-          parameters: {
-            jsCode: `// Process OpenAI Response with Error Handling
+            parameters: {
+            jsCode: `// AI Response Processor with Robust Error Handling
 try {
-  const aiResult = $json;
+  const httpResponse = $json;
+  let routing = {};
   
-  // ตรวจสอบว่า API ตอบกลับปกติ
-  if (!aiResult.choices || !aiResult.choices[0] || !aiResult.choices[0].message) {
+  // ตรวจสอบ HTTP status และ response structure
+  if (httpResponse.statusCode && httpResponse.statusCode !== 200) {
+    console.warn('OpenAI API returned non-200 status:', httpResponse.statusCode);
+    throw new Error(\`API returned status: \${httpResponse.statusCode}\`);
+  }
+  
+  // ตรวจสอบ response structure
+  if (!httpResponse.choices || !httpResponse.choices[0] || !httpResponse.choices[0].message) {
     throw new Error('Invalid OpenAI API response format');
   }
   
