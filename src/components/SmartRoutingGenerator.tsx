@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Zap, Copy, CheckCircle, ArrowRight, Bot, Settings, Code, Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Zap, Copy, CheckCircle, ArrowRight, Bot, Settings, Code, Download, FileDown } from 'lucide-react';
 
 interface SmartRoutingNode {
   id: string;
@@ -14,6 +15,7 @@ interface SmartRoutingNode {
   code: string;
   description: string;
   replaces: string[];
+  workflowJSON?: any;
 }
 
 interface SmartRoutingGeneratorProps {
@@ -23,6 +25,7 @@ interface SmartRoutingGeneratorProps {
 const SmartRoutingGenerator = ({ workflowNodes = [] }: SmartRoutingGeneratorProps) => {
   const [generatedNodes, setGeneratedNodes] = useState<SmartRoutingNode[]>([]);
   const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const generateSmartRouting = () => {
     // หา Switch nodes ที่สามารถแทนที่ได้
@@ -415,16 +418,164 @@ return $input.all();`
       }
     ];
 
+    // สร้าง Complete n8n Workflow JSON
+    const completeWorkflow = {
+      name: 'Smart Routing Vaccine Booking Workflow',
+      nodes: [
+        {
+          parameters: {
+            httpMethod: 'POST',
+            path: 'vaccine-webhook',
+            options: {}
+          },
+          id: 'webhook-node',
+          name: 'Webhook',
+          type: 'n8n-nodes-base.webhook',
+          typeVersion: 1,
+          position: [240, 300],
+          webhookId: 'webhook-id'
+        },
+        {
+          parameters: {
+            jsCode: routingNodes[0].code
+          },
+          id: 'ai-router-node', 
+          name: 'AI Smart Router',
+          type: 'n8n-nodes-base.code',
+          typeVersion: 2,
+          position: [460, 300]
+        },
+        {
+          parameters: {
+            jsCode: routingNodes[2].code
+          },
+          id: 'context-manager-node',
+          name: 'Context Manager', 
+          type: 'n8n-nodes-base.code',
+          typeVersion: 2,
+          position: [680, 300]
+        },
+        {
+          parameters: {
+            jsCode: routingNodes[1].code
+          },
+          id: 'response-generator-node',
+          name: 'Dynamic Response Generator',
+          type: 'n8n-nodes-base.code', 
+          typeVersion: 2,
+          position: [900, 300]
+        },
+        {
+          parameters: {
+            authentication: 'lineNotifyOAuth2Api',
+            resource: 'message',
+            operation: 'send',
+            message: '={{ $json.lineResponse }}'
+          },
+          id: 'line-response-node',
+          name: 'LINE Response',
+          type: 'n8n-nodes-base.line',
+          typeVersion: 1,
+          position: [1120, 300]
+        }
+      ],
+      connections: {
+        'Webhook': {
+          main: [
+            [
+              {
+                node: 'AI Smart Router',
+                type: 'main',
+                index: 0
+              }
+            ]
+          ]
+        },
+        'AI Smart Router': {
+          main: [
+            [
+              {
+                node: 'Context Manager',
+                type: 'main',
+                index: 0
+              }
+            ]
+          ]
+        },
+        'Context Manager': {
+          main: [
+            [
+              {
+                node: 'Dynamic Response Generator',
+                type: 'main',
+                index: 0
+              }
+            ]
+          ]
+        },
+        'Dynamic Response Generator': {
+          main: [
+            [
+              {
+                node: 'LINE Response',
+                type: 'main',
+                index: 0
+              }
+            ]
+          ]
+        }
+      },
+      active: false,
+      settings: {
+        executionOrder: 'v1'
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      id: 'smart-routing-workflow',
+      tags: []
+    };
+
+    // เพิ่ม workflow JSON ให้กับแต่ละ node
+    routingNodes.forEach(node => {
+      node.workflowJSON = completeWorkflow;
+    });
+
     setGeneratedNodes(routingNodes);
   };
 
   const copyToClipboard = async (code: string, nodeId: string) => {
     try {
-      await navigator.clipboard.writeText(code);
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+      
       setCopiedNodeId(nodeId);
       setTimeout(() => setCopiedNodeId(null), 2000);
+      
+      toast({
+        title: "คัดลอกสำเร็จ",
+        description: "โค้ดถูกคัดลอกไปยัง clipboard แล้ว",
+      });
     } catch (err) {
       console.error('Failed to copy: ', err);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถคัดลอกได้ กรุณาลองใช้ปุ่มดาวน์โหลดแทน",
+        variant: "destructive",
+      });
     }
   };
 
@@ -438,6 +589,23 @@ return $input.all();`
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const downloadWorkflowJSON = (workflowJSON: any) => {
+    const blob = new Blob([JSON.stringify(workflowJSON, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'smart-routing-workflow.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "ดาวน์โหลดสำเร็จ",
+      description: "ไฟล์ workflow JSON ถูกดาวน์โหลดแล้ว สามารถ import เข้า n8n ได้เลย",
+    });
   };
 
   const getNodeIcon = (type: string) => {
@@ -492,12 +660,37 @@ return $input.all();`
               </div>
 
               {generatedNodes.length > 0 && (
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <AlertDescription className="text-green-700">
-                    สร้าง Smart Routing สำเร็จ! คัดลอกโค้ดไปใช้ใน Code nodes ใน n8n
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-3">
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <AlertDescription className="text-green-700">
+                      สร้าง Smart Routing สำเร็จ! ดาวน์โหลด Workflow JSON เพื่อ import เข้า n8n โดยตรง
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => downloadWorkflowJSON(generatedNodes[0].workflowJSON)}
+                      className="flex items-center gap-2"
+                      variant="default"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      ดาวน์โหลด Complete Workflow (JSON)
+                    </Button>
+                    <Button 
+                      onClick={() => copyToClipboard(JSON.stringify(generatedNodes[0].workflowJSON, null, 2), 'workflow-json')}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      {copiedNodeId === 'workflow-json' ? (
+                        <CheckCircle className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                      {copiedNodeId === 'workflow-json' ? 'คัดลอกแล้ว' : 'คัดลอก JSON'}
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           )}
