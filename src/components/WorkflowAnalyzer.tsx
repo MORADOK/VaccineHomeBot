@@ -314,9 +314,10 @@ const WorkflowAnalyzer = () => {
 
       {workflowData && (
         <Tabs defaultValue="issues" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="issues">ปัญหาที่พบ ({issues.length})</TabsTrigger>
             <TabsTrigger value="overview">ภาพรวม เวิร์คโฟลว์</TabsTrigger>
+            <TabsTrigger value="troubleshooting">คู่มือแก้ไข</TabsTrigger>
           </TabsList>
 
           <TabsContent value="issues" className="space-y-4">
@@ -433,6 +434,79 @@ const WorkflowAnalyzer = () => {
                       </Badge>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="troubleshooting" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  คู่มือแก้ไขปัญหาแบบละเอียด
+                </CardTitle>
+                <CardDescription>
+                  แนวทางแก้ไขปัญหาทีละขั้นตอนสำหรับปัญหาที่พบใน workflow นี้
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {issues.length > 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        ปัญหาที่พบใน workflow ของคุณ และวิธีแก้ไขที่แนะนำ:
+                      </p>
+                      {issues.map((issue, index) => (
+                        <div key={index} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-center gap-2">
+                            {getIssueIcon(issue.type)}
+                            <h4 className="font-semibold">{issue.title}</h4>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{issue.description}</p>
+                          <div className="bg-muted p-3 rounded-md">
+                            <p className="text-sm font-medium mb-1">💡 วิธีแก้ไข:</p>
+                            <p className="text-sm">{issue.solution}</p>
+                          </div>
+                          {issue.nodeId && (
+                            <Badge variant="outline" className="text-xs">
+                              Node: {issue.nodeId.slice(0, 8)}...
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                      <h3 className="font-semibold text-green-700">Workflow ไม่มีปัญหา!</h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        ไม่พบปัญหาสำคัญใน workflow นี้ แต่ควรทดสอบการทำงานจริงอีกครั้ง
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-6 pt-4 border-t">
+                    <h4 className="font-semibold mb-3">📋 Checklist การตรวจสอบเพิ่มเติม:</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" />
+                        <span>ทดสอบ workflow ด้วยข้อมูลจริง</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" />
+                        <span>ตรวจสอบ API keys และ credentials</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" />
+                        <span>ทดสอบ error scenarios</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" />
+                        <span>ตรวจสอบ performance และ rate limits</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
