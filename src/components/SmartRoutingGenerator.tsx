@@ -1836,12 +1836,12 @@ return $input.all();`
                 </div>
                 
                 <div className="space-y-3">
-                  <h4 className="font-semibold">3. เชื่อมต่อ Workflow</h4>
+                  <h4 className="font-semibold">3. เชื่อมต่อกับ Nodes เดิม</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• Webhook → AI Smart Router</li>
-                    <li>• AI Smart Router → Context Manager</li>
-                    <li>• Context Manager → Dynamic Response Generator</li>
-                    <li>• Dynamic Response Generator → LINE Response</li>
+                    <li>• Smart Router → Database Nodes เดิม</li>
+                    <li>• Response Generator → LINE Response เดิม</li>
+                    <li>• Context Manager → HTTP Request เดิม</li>
+                    <li>• ใช้ Merge Node เพื่อรวม flow เดิมและใหม่</li>
                   </ul>
                 </div>
                 
@@ -1855,12 +1855,23 @@ return $input.all();`
                 </div>
               </div>
               
-              <Alert>
+                <Alert>
                 <CheckCircle className="w-4 h-4" />
                 <AlertDescription>
-                  <strong>ข้อดีของ Smart Routing:</strong> ลดความซับซ้อน, เพิ่มความยืดหยุ่น, เข้าใจบริบทได้ดีกว่า, ง่ายต่อการ maintain
+                  <strong>Integration กับ Flow เดิม:</strong> สามารถเชื่อมต่อกับ Database, HTTP Request, และ LINE nodes เดิมได้ทั้งหมด โดยใช้ Merge Node หรือแทนที่ Switch nodes โดยตรง
                 </AlertDescription>
               </Alert>
+              
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
+                <h4 className="font-semibold text-blue-800 mb-2">🔄 วิธี Migration ที่แนะนำ:</h4>
+                <ol className="text-sm text-blue-700 space-y-1">
+                  <li>1. <strong>Backup</strong> workflow เดิมก่อน</li>
+                  <li>2. <strong>Import</strong> Smart Routing workflow ใหม่</li>
+                  <li>3. <strong>Test</strong> ใน development environment</li>
+                  <li>4. <strong>Connect</strong> กับ nodes เดิมทีละส่วน</li>
+                  <li>5. <strong>Remove</strong> Switch nodes เดิมเมื่อแน่ใจแล้ว</li>
+                </ol>
+              </div>
             </CardContent>
           </Card>
         </div>
