@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { AlertTriangle, CheckCircle, XCircle, Info, Settings, Zap, MessageSquare, Database } from 'lucide-react';
+import SmartRoutingGenerator from './SmartRoutingGenerator';
 
 interface WorkflowNode {
   id: string;
@@ -314,9 +315,10 @@ const WorkflowAnalyzer = () => {
 
       {workflowData && (
         <Tabs defaultValue="issues" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="issues">ปัญหาที่พบ ({issues.length})</TabsTrigger>
             <TabsTrigger value="overview">ภาพรวม เวิร์คโฟลว์</TabsTrigger>
+            <TabsTrigger value="smart-routing">Smart Routing</TabsTrigger>
             <TabsTrigger value="troubleshooting">คู่มือแก้ไข</TabsTrigger>
           </TabsList>
 
@@ -437,6 +439,10 @@ const WorkflowAnalyzer = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="smart-routing" className="space-y-4">
+            <SmartRoutingGenerator workflowNodes={workflowData?.nodes || []} />
           </TabsContent>
 
           <TabsContent value="troubleshooting" className="space-y-4">
