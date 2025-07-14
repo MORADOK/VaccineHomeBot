@@ -59,6 +59,25 @@ if (!userId) {
   throw new Error('Invalid webhook payload: No userId found');
 }
 
+// ดึง LINE Profile เพื่อเอา Display Name
+let displayName = "คุณ"; // default fallback
+try {
+  const profileResponse = await $http.request({
+    method: "GET",
+    url: "https://api.line.me/v2/bot/profile/" + userId,
+    headers: {
+      "Authorization": "Bearer " + $node.context().get("channelAccessToken")
+    }
+  });
+  
+  if (profileResponse.statusCode === 200) {
+    displayName = profileResponse.body.displayName || "คุณ";
+  }
+} catch (error) {
+  console.log("Error fetching profile:", error);
+  // ใช้ fallback แทน
+}
+
 // จัดการ Rich Menu Actions และ Quick Replies
 let processedMessage = userMessage;
 let isRichMenuAction = false;
@@ -122,6 +141,7 @@ $json.openai_request = {
 };
 
 $json.userId = userId;
+$json.displayName = displayName;
 $json.originalInput = input;
 $json.userMessage = processedMessage;
 $json.eventType = eventType;
@@ -138,7 +158,7 @@ return $input.all();`
         description: 'สร้าง response แบบ dynamic ตาม AI routing results',
         replaces: ['Static Response Nodes'],
         code: `// Rich Menu Enhanced Dynamic Response Generator (Fixed)
-const { routing, userId, collectedData, isRichMenuAction } = $json;
+const { routing, userId, displayName, collectedData, isRichMenuAction } = $json;
 
 // ใช้ localStorage แทน getWorkflowStaticData เพื่อแก้ปัญหา ReferenceError
 const nodeKey = 'vaccine_system_data';
@@ -872,7 +892,7 @@ switch(routing.action) {
           contents: [
             {
               type: 'text',
-              text: '✅ เช็คอินสำเร็จ!',
+              text: "✅ เช็คอินสำเร็จ " + (displayName || "คุณ") + "!",
               weight: 'bold',
               size: 'xl',
               color: '#1DB446'
