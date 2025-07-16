@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Copy, CheckCircle, Server, Shield, Settings, Code2, Database, Key } from 'lucide-react';
+import { Copy, CheckCircle, Server, Shield, Settings, Code2, Database, Key, Download } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,6 +28,23 @@ const RenderSetupGuide = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const downloadFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "ดาวน์โหลดแล้ว!",
+      description: `ดาวน์โหลด ${filename} เรียบร้อย`,
+    });
   };
 
   const dockerFile = `# Dockerfile สำหรับ n8n บน Render
@@ -332,6 +349,14 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          <Alert>
+            <Download className="h-4 w-4" />
+            <AlertDescription>
+              <strong>💾 ดาวน์โหลดไฟล์:</strong> ในแต่ละ tab สามารถคลิกปุ่ม Download เพื่อดาวน์โหลดไฟล์ได้ทันที 
+              หรือคลิก Copy เพื่อคัดลอกเนื้อหา
+            </AlertDescription>
+          </Alert>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="text-center">
@@ -406,14 +431,22 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
                   <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
                     <code>{dockerFile}</code>
                   </pre>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(dockerFile, "Dockerfile")}
-                  >
-                    {copiedItem === "Dockerfile" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadFile(dockerFile, "Dockerfile")}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(dockerFile, "Dockerfile")}
+                    >
+                      {copiedItem === "Dockerfile" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -431,14 +464,22 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
                   <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-96">
                     <code>{renderYaml}</code>
                   </pre>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(renderYaml, "render.yaml")}
-                  >
-                    {copiedItem === "render.yaml" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadFile(renderYaml, "render.yaml")}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(renderYaml, "render.yaml")}
+                    >
+                      {copiedItem === "render.yaml" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -456,14 +497,22 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
                   <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
                     <code>{packageJson}</code>
                   </pre>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(packageJson, "package.json")}
-                  >
-                    {copiedItem === "package.json" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadFile(packageJson, "package.json")}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(packageJson, "package.json")}
+                    >
+                      {copiedItem === "package.json" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -481,14 +530,22 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
                   <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-96">
                     <code>{envExample}</code>
                   </pre>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(envExample, ".env.example")}
-                  >
-                    {copiedItem === ".env.example" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadFile(envExample, ".env.example")}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(envExample, ".env.example")}
+                    >
+                      {copiedItem === ".env.example" ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
