@@ -776,10 +776,20 @@ return $input.all();`,
 
   const generateConnections = () => {
     const connections: any = {};
+    // ✅ สร้าง mapping ระหว่าง id กับ name
+    const idToName = workflowSteps.reduce((map, step) => {
+      map[step.id] = step.name;
+      return map;
+    }, {} as Record<string, string>);
+    
     workflowSteps.forEach(step => {
       if (step.connections.length > 0) {
-        connections[step.id] = {
-          main: [step.connections.map(conn => ({ node: conn, type: 'main', index: 0 }))]
+        connections[step.name] = {
+          main: [step.connections.map(conn => ({ 
+            node: idToName[conn] || conn, // ✅ แปลง id เป็น name
+            type: 'main', 
+            index: 0 
+          }))]
         };
       }
     });
