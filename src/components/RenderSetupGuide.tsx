@@ -50,16 +50,18 @@ const RenderSetupGuide = () => {
   const dockerFile = `# Dockerfile สำหรับ n8n บน Render
 FROM n8nio/n8n:latest
 
-# ตั้งค่า User
+# ติดตั้ง dependencies เพิ่มเติม
 USER root
 
-# ติดตั้ง dependencies เพิ่มเติม (ถ้าต้องการ)
-RUN apk add --no-cache \
-    tzdata \
-    curl
+# ติดตั้ง dependencies ที่จำเป็น
+RUN apk add --no-cache \\
+    tzdata \\
+    curl \\
+    bash
 
-# ตั้งค่า timezone
+# ตั้งค่า timezone เป็นไทย
 ENV TZ=Asia/Bangkok
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # กลับไปใช้ user node
 USER node
@@ -67,8 +69,11 @@ USER node
 # ตั้งค่า working directory
 WORKDIR /home/node
 
+# สร้าง .n8n directory
+RUN mkdir -p /home/node/.n8n
+
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \\
   CMD curl -f http://localhost:5678/healthz || exit 1
 
 # เปิด port
@@ -249,15 +254,20 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
   "scripts": {
     "start": "n8n start",
     "dev": "n8n start --tunnel",
-    "build": "echo 'No build step required'",
-    "postinstall": "echo 'Installation complete'"
+    "build": "echo 'Build completed'",
+    "postinstall": "echo 'Dependencies installed'"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.10.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
-    "n8n": "^1.102.3"
+    "n8n": "latest"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/n8n-vaccine-workflow.git"
   },
   "keywords": [
     "n8n",
@@ -265,10 +275,15 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
     "automation",
     "vaccine",
     "line-bot",
-    "render"
+    "render",
+    "healthcare"
   ],
-  "author": "Your Name",
-  "license": "MIT"
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/n8n-vaccine-workflow/issues"
+  },
+  "homepage": "https://github.com/yourusername/n8n-vaccine-workflow#readme"
 }`;
 
   const setupSteps = [
