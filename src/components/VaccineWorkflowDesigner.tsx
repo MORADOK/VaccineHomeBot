@@ -123,16 +123,16 @@ $json.input = input;
 $json.timestamp = new Date().toISOString();
 
 return $input.all();`,
-      connections: ['smart-router'],
-      icon: Users,
-      color: 'bg-green-500'
-    },
-    {
-      id: 'smart-router',
-      name: 'AI Smart Router',
-      type: 'logic',
-      description: 'วิเคราะห์ intent และเส้นทางการทำงาน',
-      implementation: `// AI Smart Router with Rich Menu Support
+        connections: ['smart-router'],
+        icon: Users,
+        color: 'bg-green-500'
+      },
+      {
+        id: 'smart-router',
+        name: 'AI Smart Router',
+        type: 'logic',
+        description: 'วิเคราะห์ intent และเส้นทางการทำงาน',
+        implementation: `// AI Smart Router with Rich Menu Support
 const { input, userProfile, existingUser } = $json;
 
 let action = 'unknown';
@@ -357,68 +357,244 @@ return $input.all();`,
       icon: Syringe,
       color: 'bg-red-500'
     },
-    {
-      id: 'calendar-scheduler',
-      name: 'Calendar & Reminder System',
-      type: 'action',
-      description: 'ระบบปฏิทินและการแจ้งเตือนอัตโนมัติ',
-      implementation: `// Automated Reminder System
+      {
+        id: 'calendar-scheduler',
+        name: 'Google Calendar Scheduler',
+        type: 'action',
+        description: 'สร้างนัดหมายใน Google Calendar พร้อมระบบแจ้งเตือนอัตโนมัติ',
+        implementation: `// Google Calendar Integration with Auto Reminders
 const { appointment } = $json;
 
 if (appointment) {
-  // สร้าง Cron Job สำหรับแจ้งเตือน
+  // กำหนดค่า Google Calendar
+  const CALENDAR_ID = 'primary'; // หรือ calendar ID ที่ต้องการ
+  
+  // สร้าง Event ใน Google Calendar
+  const eventData = {
+    summary: \`วัคซีน \${appointment.vaccineName} - โดสที่ \${appointment.doseNumber}/\${appointment.totalDoses}\`,
+    description: \`📋 รายละเอียดการนัดฉีดวัคซีน
+    
+👤 ผู้ป่วย: \${appointment.userProfile?.displayName || 'ไม่ระบุ'}
+💉 วัคซีน: \${appointment.vaccineName}
+📊 โดสที่: \${appointment.doseNumber} จาก \${appointment.totalDoses} โดส
+📱 LINE User ID: \${appointment.userId}
+🆔 Appointment ID: \${appointment.appointmentId}
+
+⚠️ หมายเหตุ: กรุณาให้ผู้ป่วยมาตรงเวลา
+\${appointment.nextAppointment ? \`📅 นัดครั้งถัดไป: \${appointment.nextAppointment}\` : ''}\`,
+    
+    start: {
+      dateTime: \`\${appointment.appointmentDate}T\${appointment.appointmentTime}:00+07:00\`,
+      timeZone: 'Asia/Bangkok'
+    },
+    end: {
+      dateTime: \`\${appointment.appointmentDate}T\${String(parseInt(appointment.appointmentTime.split(':')[0]) + 1).padStart(2, '0')}:\${appointment.appointmentTime.split(':')[1]}:00+07:00\`,
+      timeZone: 'Asia/Bangkok'
+    },
+    
+    // ตั้งค่าการแจ้งเตือน
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: 'email', minutes: 24 * 60 }, // 1 วันก่อน
+        { method: 'popup', minutes: 60 },      // 1 ชั่วโมงก่อน
+        { method: 'email', minutes: 30 }       // 30 นาทีก่อน
+      ]
+    },
+    
+    // เพิ่ม Attendee
+    attendees: [
+      {
+        email: 'vaccine.admin@hospital.com',
+        displayName: 'Vaccine Administrator',
+        responseStatus: 'accepted'
+      }
+    ],
+    
+    // กำหนดสถานะ
+    status: 'confirmed',
+    transparency: 'opaque',
+    visibility: 'private',
+    
+    // Extended Properties สำหรับการติดตาม
+    extendedProperties: {
+      private: {
+        lineUserId: appointment.userId,
+        appointmentId: appointment.appointmentId,
+        vaccineType: appointment.vaccineType,
+        doseNumber: appointment.doseNumber.toString(),
+        totalDoses: appointment.totalDoses.toString(),
+        isVaccineAppointment: 'true'
+      }
+    }
+  };
+
+  // สร้าง Event ใน Google Calendar
+  const calendarResponse = await $http.request({
+    method: 'POST',
+    url: \`https://www.googleapis.com/calendar/v3/calendars/\${CALENDAR_ID}/events\`,
+    headers: {
+      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+      'Content-Type': 'application/json'
+    },
+    body: eventData
+  });
+
+  // บันทึก Event ID สำหรับการจัดการในอนาคต
+  const calendarEvent = calendarResponse.body;
+  appointment.calendarEventId = calendarEvent.id;
+  appointment.calendarEventUrl = calendarEvent.htmlLink;
+
+  // สร้าง Scheduled Reminder ใน n8n (ใช้ Cron Trigger)
   const reminderDate = new Date(appointment.appointmentDate);
   reminderDate.setDate(reminderDate.getDate() - 1); // 1 วันก่อน
+  reminderDate.setHours(9, 0, 0, 0); // เวลา 9:00 น.
 
-  const cronExpression = \`0 9 \${reminderDate.getDate()} \${reminderDate.getMonth() + 1} *\`;
-
-  // Schedule Reminder
   const reminderData = {
+    reminderId: generateId(),
     scheduledFor: reminderDate.toISOString(),
     userId: appointment.userId,
     appointmentId: appointment.appointmentId,
-    message: \`🔔 แจ้งเตือนนัดหมาย
+    calendarEventId: calendarEvent.id,
+    message: \`🔔 แจ้งเตือนการนัดฉีดวัคซีน
 
-พรุ่งนี้คุณมีนัดฉีดวัคซีน:
-🏥 วัคซีน: \${appointment.vaccineName}
-💉 โดสที่: \${appointment.doseNumber}/\${appointment.totalDoses}
-📅 วันที่: \${appointment.appointmentDate}
-⏰ เวลา: \${appointment.appointmentTime}
+พรุ่งนี้ (\${appointment.appointmentDate}) คุณมีนัดฉีดวัคซีน:
 
-📍 กรุณามาตรงเวลา
-📱 หากต้องการเลื่อนนัด กดเมนู "ตรวจสอบการจอง"\`,
-    type: 'appointment_reminder'
+💉 วัคซีน: \${appointment.vaccineName}
+📊 โดสที่: \${appointment.doseNumber}/\${appointment.totalDoses}
+⏰ เวลา: \${appointment.appointmentTime} น.
+📍 สถานที่: โรงพยาบาล/คลินิก
+
+✅ สิ่งที่ต้องเตรียม:
+• บัตรประชาชน
+• บัตรประกันสุขภาพ (ถ้ามี)
+• หน้ากากอนามัย
+
+⚠️ หากไม่สามารถมาได้ กรุณาแจ้งล่วงหน้า 24 ชั่วโมง
+📱 กดเมนู "ตรวจสอบการจอง" เพื่อดูรายละเอียด\`,
+    type: 'appointment_reminder',
+    status: 'pending'
   };
 
-  // บันทึก reminder ใน Google Sheets
+  // บันทึก Reminder Schedule
   await saveReminderToSheets(reminderData);
 
-  // ถ้ามีโดสถัดไป สร้าง reminder สำหรับโดสถัดไป
+  // ถ้ามีโดสถัดไป ให้สร้าง Event สำหรับโดสถัดไป (แบบ Tentative)
   if (appointment.nextAppointment) {
+    const nextEventData = {
+      ...eventData,
+      summary: \`วัคซีน \${appointment.vaccineName} - โดสที่ \${appointment.doseNumber + 1}/\${appointment.totalDoses} (ขั้นต้น)\`,
+      description: \`📋 นัดฉีดโดสถัดไป (รอยืนยัน)
+      
+👤 ผู้ป่วย: \${appointment.userProfile?.displayName || 'ไม่ระบุ'}
+💉 วัคซีน: \${appointment.vaccineName}
+📊 โดสที่: \${appointment.doseNumber + 1} จาก \${appointment.totalDoses} โดส
+⏰ สถานะ: รอยืนยันการจอง
+
+📱 ระบบจะแจ้งเตือนให้จองเวลาที่แน่นอน\`,
+      start: {
+        dateTime: \`\${appointment.nextAppointment}T09:00:00+07:00\`,
+        timeZone: 'Asia/Bangkok'
+      },
+      end: {
+        dateTime: \`\${appointment.nextAppointment}T10:00:00+07:00\`,
+        timeZone: 'Asia/Bangkok'
+      },
+      status: 'tentative', // สถานะไม่แน่นอน
+      transparency: 'transparent'
+    };
+
+    const nextCalendarResponse = await $http.request({
+      method: 'POST',
+      url: \`https://www.googleapis.com/calendar/v3/calendars/\${CALENDAR_ID}/events\`,
+      headers: {
+        'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+        'Content-Type': 'application/json'
+      },
+      body: nextEventData
+    });
+
+    // สร้าง Reminder สำหรับโดสถัดไป
+    const nextReminderDate = new Date(appointment.nextAppointment);
+    nextReminderDate.setDate(nextReminderDate.getDate() - 7); // 1 สัปดาห์ก่อน
+    nextReminderDate.setHours(10, 0, 0, 0);
+
     const nextReminderData = {
-      ...reminderData,
-      scheduledFor: appointment.nextAppointment,
-      message: \`🔔 ถึงเวลานัดโดสถัดไป!
+      reminderId: generateId(),
+      scheduledFor: nextReminderDate.toISOString(),
+      userId: appointment.userId,
+      appointmentId: appointment.appointmentId,
+      relatedAppointmentId: appointment.appointmentId,
+      calendarEventId: nextCalendarResponse.body.id,
+      message: \`🔔 แจ้งเตือนโดสวัคซีนถัดไป
 
-คุณมีนัดฉีดวัคซีนโดสที่ 2:
-🏥 วัคซีน: \${appointment.vaccineName}
-💉 โดสที่: 2/\${appointment.totalDoses}
+อีก 1 สัปดาห์ถึงเวลานัดโดสถัดไป!
 
-📱 กดจองเวลาใหม่ได้ที่เมนู "จองวัคซีน"\`,
-      type: 'next_dose_reminder'
+💉 วัคซีน: \${appointment.vaccineName}
+📊 โดสที่: \${appointment.doseNumber + 1}/\${appointment.totalDoses}
+📅 วันที่แนะนำ: \${appointment.nextAppointment}
+
+📱 กรุณาจองเวลาที่แน่นอนผ่านเมนู "จองวัคซีน"
+⚠️ ไม่ควรล่าช้าเกินวันที่แนะนำ\`,
+      type: 'next_dose_reminder',
+      status: 'pending'
     };
 
     await saveReminderToSheets(nextReminderData);
+    
+    appointment.nextCalendarEventId = nextCalendarResponse.body.id;
   }
 
+  // อัปเดตข้อมูล appointment ด้วย Calendar Event IDs
+  await updateAppointmentInSheets(appointment);
+
+  $json.calendarEvent = calendarEvent;
   $json.reminderScheduled = true;
+  $json.calendarCreated = true;
+}
+
+// Helper Functions
+function generateId() {
+  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+}
+
+async function saveReminderToSheets(reminderData) {
+  const sheetData = [
+    reminderData.reminderId,
+    reminderData.scheduledFor,
+    reminderData.userId,
+    reminderData.appointmentId,
+    reminderData.calendarEventId || '',
+    reminderData.message,
+    reminderData.type,
+    reminderData.status,
+    new Date().toISOString()
+  ];
+
+  return await $http.request({
+    method: 'POST',
+    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${$node.context().get('spreadsheetId')}/values/Reminders:append\`,
+    headers: {
+      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+      'Content-Type': 'application/json'
+    },
+    body: {
+      values: [sheetData],
+      valueInputOption: 'RAW'
+    }
+  });
+}
+
+async function updateAppointmentInSheets(appointment) {
+  // อัปเดตข้อมูล appointment ด้วย calendar event IDs
+  // ใช้ Google Sheets API เพื่ออัปเดตแถวที่ตรงกับ appointmentId
 }
 
 return $input.all();`,
-      connections: ['google-sheets'],
-      icon: Calendar,
-      color: 'bg-orange-500'
-    },
+        connections: ['google-sheets'],
+        icon: Calendar,
+        color: 'bg-orange-500'
+      },
     {
       id: 'google-sheets',
       name: 'Google Sheets Database',
