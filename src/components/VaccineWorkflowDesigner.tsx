@@ -26,7 +26,7 @@ import {
 interface WorkflowStep {
   id: string;
   name: string;
-  type: 'trigger' | 'logic' | 'action' | 'data';
+  type: 'trigger' | 'logic' | 'action' | 'data' | 'calendar';
   description: string;
   implementation: string;
   connections: string[];
@@ -360,7 +360,7 @@ return $input.all();`,
       {
         id: 'calendar-scheduler',
         name: 'Google Calendar Scheduler',
-        type: 'action',
+        type: 'calendar',
         description: 'สร้างนัดหมายใน Google Calendar พร้อมระบบแจ้งเตือนอัตโนมัติ',
         implementation: `// Google Calendar Integration with Auto Reminders
 const { appointment } = $json;
