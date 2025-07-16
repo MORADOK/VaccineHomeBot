@@ -727,6 +727,7 @@ return $input.all();`,
       case 'logic': return 'n8n-nodes-base.code';
       case 'action': return 'n8n-nodes-base.httpRequest';
       case 'data': return 'n8n-nodes-base.googleSheets';
+      case 'calendar': return 'n8n-nodes-base.googleCalendar';
       default: return 'n8n-nodes-base.code';
     }
   };
