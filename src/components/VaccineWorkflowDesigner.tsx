@@ -114,6 +114,39 @@ try {
 }
 
 // ตรวจสอบข้อมูลใน Google Sheets
+// ฟังก์ชันตรวจสอบผู้ใช้ใน Google Sheets
+async function checkUserInSheets(userId) {
+  const response = await $http.request({
+    method: 'GET',
+    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${SPREADSHEET_ID}/values/Users:A:G\`,
+    headers: {
+      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken')
+    }
+  });
+  
+  const rows = response.body.values || [];
+  
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === userId) {
+      return {
+        exists: true,
+        row: i + 1,
+        data: {
+          userId: rows[i][0],
+          name: rows[i][1],
+          phone: rows[i][2],
+          email: rows[i][3],
+          dateOfBirth: rows[i][4],
+          address: rows[i][5],
+          emergencyContact: rows[i][6]
+        }
+      };
+    }
+  }
+  
+  return { exists: false };
+}
+
 const existingUser = await checkUserInSheets(userId);
 
 $json.userId = userId;
@@ -626,18 +659,6 @@ async function saveToGoogleSheets(sheetName, data) {
   return response.body;
 }
 
-async function checkUserInSheets(userId) {
-  const response = await $http.request({
-    method: 'GET',
-    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${SPREADSHEET_ID}/values/Users:A:G\`,
-    headers: {
-      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken')
-    }
-  });
-  
-  const rows = response.body.values || [];
-  return rows.find(row => row[0] === userId);
-}
 
 // Auto-backup and data integrity
 const backupData = {
