@@ -30,7 +30,7 @@ interface WorkflowStep {
   description: string;
   implementation: string;
   connections: string[];
-  icon: any;
+  icon: React.ComponentType<any>; // ✅ ชัดเจนกว่า any
   color: string;
 }
 
