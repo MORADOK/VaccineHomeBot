@@ -113,23 +113,18 @@ try {
   userProfile = { displayName: "ผู้ใช้", userId: userId };
 }
 
-// ตรวจสอบข้อมูลใน Google Sheets  
-const existingUser = await checkUserInSheets(userId);
-
-$json.userId = userId;
-$json.userProfile = userProfile;
-$json.existingUser = existingUser;
-$json.input = input;
-$json.timestamp = new Date().toISOString();
+// ตรวจสอบข้อมูลใน Google Sheets
+// ✅ เอา credentials ออกมาข้างนอก function ก่อน
+const SPREADSHEET_ID = $node.context().get('spreadsheetId');
+const GOOGLE_ACCESS_TOKEN = $node.context().get('googleAccessToken');
 
 // Helper function ตรวจสอบผู้ใช้ใน Google Sheets
-async function checkUserInSheets(userId) {
-  const SPREADSHEET_ID = $node.context().get('spreadsheetId');
+async function checkUserInSheets(userId, spreadsheetId, accessToken) {
   const response = await $http.request({
     method: 'GET',
-    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${SPREADSHEET_ID}/values/Users:A:G\`,
+    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${spreadsheetId}/values/Users:A:G\`,
     headers: {
-      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken')
+      'Authorization': 'Bearer ' + accessToken
     }
   });
   
@@ -155,6 +150,14 @@ async function checkUserInSheets(userId) {
   
   return { exists: false };
 }
+
+const existingUser = await checkUserInSheets(userId, SPREADSHEET_ID, GOOGLE_ACCESS_TOKEN);
+
+$json.userId = userId;
+$json.userProfile = userProfile;
+$json.existingUser = existingUser;
+$json.input = input;
+$json.timestamp = new Date().toISOString();
 
 return $input.all();`,
         connections: ['smart-router'],
