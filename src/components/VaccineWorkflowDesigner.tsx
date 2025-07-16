@@ -216,7 +216,7 @@ $json.userMessage = userMessage;
 $json.collectedData = collectedData;
 
 return $input.all();`,
-      connections: ['user-registration', 'vaccine-booking', 'status-checker'],
+      connections: ['user-registration', 'vaccine-booking'], // ✅ ลบ 'status-checker' ที่ไม่มีอยู่
       icon: Settings,
       color: 'bg-purple-500'
     },
