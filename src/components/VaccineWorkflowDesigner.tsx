@@ -96,10 +96,10 @@ if (!userId) {
   throw new Error('Invalid webhook: No userId found');
 }
 
-// ✅ เอา credentials ออกมาข้างนอกก่อน
-const CHANNEL_ACCESS_TOKEN = $node.context().get("channelAccessToken");
-const SPREADSHEET_ID = $node.context().get('spreadsheetId');
-const GOOGLE_ACCESS_TOKEN = $node.context().get('googleAccessToken');
+// ✅ ใช้ Environment Variables แทน context
+const CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
+const GOOGLE_ACCESS_TOKEN = process.env.GOOGLE_ACCESS_TOKEN;
 
 // ดึง LINE Profile
 let userProfile = null;
