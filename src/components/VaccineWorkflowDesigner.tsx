@@ -113,9 +113,18 @@ try {
   userProfile = { displayName: "ผู้ใช้", userId: userId };
 }
 
-// ตรวจสอบข้อมูลใน Google Sheets
-// ฟังก์ชันตรวจสอบผู้ใช้ใน Google Sheets
+// ตรวจสอบข้อมูลใน Google Sheets  
+const existingUser = await checkUserInSheets(userId);
+
+$json.userId = userId;
+$json.userProfile = userProfile;
+$json.existingUser = existingUser;
+$json.input = input;
+$json.timestamp = new Date().toISOString();
+
+// Helper function ตรวจสอบผู้ใช้ใน Google Sheets
 async function checkUserInSheets(userId) {
+  const SPREADSHEET_ID = $node.context().get('spreadsheetId');
   const response = await $http.request({
     method: 'GET',
     url: \`https://sheets.googleapis.com/v4/spreadsheets/\${SPREADSHEET_ID}/values/Users:A:G\`,
@@ -146,14 +155,6 @@ async function checkUserInSheets(userId) {
   
   return { exists: false };
 }
-
-const existingUser = await checkUserInSheets(userId);
-
-$json.userId = userId;
-$json.userProfile = userProfile;
-$json.existingUser = existingUser;
-$json.input = input;
-$json.timestamp = new Date().toISOString();
 
 return $input.all();`,
         connections: ['smart-router'],
