@@ -27,9 +27,9 @@ const TroubleshootingGuide = () => {
         },
         {
           step: "แก้ไข n8n Version",
-          details: "ใช้ version 'latest' แทน version เฉพาะ",
+          details: "ใช้ version เฉพาะที่ stable (แนะนำ 1.100.1)",
           code: `"dependencies": {
-  "n8n": "latest"
+  "n8n": "1.100.1"
 }`
         },
         {

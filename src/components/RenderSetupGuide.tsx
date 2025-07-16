@@ -48,7 +48,7 @@ const RenderSetupGuide = () => {
   };
 
   const dockerFile = `# Dockerfile สำหรับ n8n บน Render
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:1.100.1
 
 # ติดตั้ง dependencies เพิ่มเติม
 USER root
@@ -262,7 +262,7 @@ N8N_SMTP_SENDER=your-email@gmail.com`;
     "npm": ">=9.0.0"
   },
   "dependencies": {
-    "n8n": "latest"
+    "n8n": "1.100.1"
   },
   "devDependencies": {},
   "repository": {
