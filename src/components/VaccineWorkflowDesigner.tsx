@@ -96,6 +96,11 @@ if (!userId) {
   throw new Error('Invalid webhook: No userId found');
 }
 
+// ✅ เอา credentials ออกมาข้างนอกก่อน
+const CHANNEL_ACCESS_TOKEN = $node.context().get("channelAccessToken");
+const SPREADSHEET_ID = $node.context().get('spreadsheetId');
+const GOOGLE_ACCESS_TOKEN = $node.context().get('googleAccessToken');
+
 // ดึง LINE Profile
 let userProfile = null;
 try {
@@ -103,7 +108,7 @@ try {
     method: "GET",
     url: "https://api.line.me/v2/bot/profile/" + userId,
     headers: {
-      "Authorization": "Bearer " + $node.context().get("channelAccessToken")
+      "Authorization": "Bearer " + CHANNEL_ACCESS_TOKEN
     }
   });
   
@@ -112,11 +117,6 @@ try {
   console.log("Profile fetch error:", error);
   userProfile = { displayName: "ผู้ใช้", userId: userId };
 }
-
-// ตรวจสอบข้อมูลใน Google Sheets
-// ✅ เอา credentials ออกมาข้างนอก function ก่อน
-const SPREADSHEET_ID = $node.context().get('spreadsheetId');
-const GOOGLE_ACCESS_TOKEN = $node.context().get('googleAccessToken');
 
 // Helper function ตรวจสอบผู้ใช้ใน Google Sheets
 async function checkUserInSheets(userId, spreadsheetId, accessToken) {
@@ -471,7 +471,7 @@ if (appointment) {
     method: 'POST',
     url: \`https://www.googleapis.com/calendar/v3/calendars/\${CALENDAR_ID}/events\`,
     headers: {
-      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+      'Authorization': 'Bearer ' + GOOGLE_ACCESS_TOKEN,
       'Content-Type': 'application/json'
     },
     body: eventData
@@ -545,7 +545,7 @@ if (appointment) {
       method: 'POST',
       url: \`https://www.googleapis.com/calendar/v3/calendars/\${CALENDAR_ID}/events\`,
       headers: {
-        'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+        'Authorization': 'Bearer ' + GOOGLE_ACCESS_TOKEN,
         'Content-Type': 'application/json'
       },
       body: nextEventData
@@ -610,9 +610,9 @@ async function saveReminderToSheets(reminderData) {
 
   return await $http.request({
     method: 'POST',
-    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${$node.context().get('spreadsheetId')}/values/Reminders:append\`,
+    url: \`https://sheets.googleapis.com/v4/spreadsheets/\${SPREADSHEET_ID}/values/Reminders:append\`,
     headers: {
-      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+      'Authorization': 'Bearer ' + GOOGLE_ACCESS_TOKEN,
       'Content-Type': 'application/json'
     },
     body: {
@@ -651,7 +651,7 @@ async function saveToGoogleSheets(sheetName, data) {
     method: 'POST',
     url: \`https://sheets.googleapis.com/v4/spreadsheets/\${SPREADSHEET_ID}/values/\${sheetName}:append\`,
     headers: {
-      'Authorization': 'Bearer ' + $node.context().get('googleAccessToken'),
+      'Authorization': 'Bearer ' + GOOGLE_ACCESS_TOKEN,
       'Content-Type': 'application/json'
     },
     body: {
@@ -698,7 +698,7 @@ const lineResponse = await $http.request({
   method: 'POST',
   url: 'https://api.line.me/v2/bot/message/reply',
   headers: {
-    'Authorization': 'Bearer ' + $node.context().get('channelAccessToken'),
+    'Authorization': 'Bearer ' + CHANNEL_ACCESS_TOKEN,
     'Content-Type': 'application/json'
   },
   body: {
