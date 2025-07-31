@@ -4,6 +4,7 @@ import WorkflowAnalyzer from '@/components/WorkflowAnalyzer';
 import VaccineWorkflowDesigner from '@/components/VaccineWorkflowDesigner';
 import StaffDashboard from '@/components/StaffDashboard';
 import PatientRegistration from '@/components/PatientRegistration';
+import SetupGuide from '@/components/SetupGuide';
 import RenderSetupGuide from '@/components/RenderSetupGuide';
 import TroubleshootingGuide from '@/components/TroubleshootingGuide';
 
@@ -13,11 +14,11 @@ const Index = () => {
       <Tabs defaultValue="designer" className="w-full">
         <div className="container mx-auto pt-6">
           <TabsList className="grid w-full grid-cols-6 max-w-5xl mx-auto">
+            <TabsTrigger value="setup">คู่มือติดตั้ง</TabsTrigger>
             <TabsTrigger value="designer">Workflow Designer</TabsTrigger>
             <TabsTrigger value="analyzer">Analyzer</TabsTrigger>
             <TabsTrigger value="staff">เจ้าหน้าที่</TabsTrigger>
             <TabsTrigger value="patient">คนไข้ LINE</TabsTrigger>
-            <TabsTrigger value="render">Render Setup</TabsTrigger>
             <TabsTrigger value="troubleshooting">แก้ไขปัญหา</TabsTrigger>
           </TabsList>
         </div>
@@ -38,8 +39,8 @@ const Index = () => {
           <PatientRegistration />
         </TabsContent>
         
-        <TabsContent value="render" className="mt-0">
-          <RenderSetupGuide />
+        <TabsContent value="setup" className="mt-0">
+          <SetupGuide />
         </TabsContent>
         
         <TabsContent value="troubleshooting" className="mt-0">
