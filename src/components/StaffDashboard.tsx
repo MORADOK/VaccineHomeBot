@@ -70,38 +70,70 @@ const StaffDashboard = () => {
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const { toast } = useToast();
 
-  // ข้อมูลวัคซีนที่มี
+  // ข้อมูลวัคซีนจาก n8n workflow
   const vaccineTypes: VaccineType[] = [
     {
-      id: 'covid-19',
-      name: 'วัคซีนโควิด-19',
-      doses: 2,
-      interval: 21,
-      description: 'วัคซีนป้องกันโควิด-19 ต้องฉีด 2 โดส ห่างกัน 21 วัน',
-      available: true
-    },
-    {
-      id: 'influenza',
+      id: 'flu',
       name: 'วัคซีนไข้หวัดใหญ่',
-      doses: 1,
-      interval: 0,
-      description: 'วัคซีนป้องกันไข้หวัดใหญ่ประจำปี ฉีด 1 โดส',
+      doses: 2,
+      interval: 365,
+      description: 'วัคซีนป้องกันไข้หวัดใหญ่ประจำปี และฉีดกระตุ้นปีหน้า',
       available: true
     },
     {
-      id: 'hepatitis-b',
+      id: 'hep_b',
       name: 'วัคซีนไวรัสตับอักเสบบี',
       doses: 3,
       interval: 30,
-      description: 'วัคซีนป้องกันไวรัสตับอักเสบบี ต้องฉีด 3 โดส',
+      description: 'ฉีด 3 โดส: โดส 1, โดส 2 (1 เดือน), โดส 3 (6 เดือน)',
+      available: true
+    },
+    {
+      id: 'tetanus',
+      name: 'วัคซีนป้องกันบาดทะยัก',
+      doses: 3,
+      interval: 30,
+      description: 'ฉีด 3 โดส: โดส 1, โดส 2 (1 เดือน), โดส 3 (หลังจากโดส 2 อีก 6 เดือน)',
+      available: true
+    },
+    {
+      id: 'shingles',
+      name: 'วัคซีนงูสวัด',
+      doses: 2,
+      interval: 90,
+      description: 'ฉีด 2 โดส ห่างกัน 3 เดือน',
       available: true
     },
     {
       id: 'hpv',
-      name: 'วัคซีน HPV',
+      name: 'วัคซีนป้องกันมะเร็งปากมดลูก',
+      doses: 3,
+      interval: 30,
+      description: 'ฉีด 3 โดส: โดส 1, โดส 2 (1 เดือน), โดส 3 (6 เดือน)',
+      available: true
+    },
+    {
+      id: 'pneumonia',
+      name: 'วัคซีนปอดอักเสบ',
       doses: 2,
       interval: 60,
-      description: 'วัคซีนป้องกันมะเร็งปากมดลูก ฉีด 2 โดส ห่างกัน 60 วัน',
+      description: 'ฉีด 2 โดส ห่างกัน 2 เดือน',
+      available: true
+    },
+    {
+      id: 'chickenpox',
+      name: 'วัคซีนอีสุกอีใส',
+      doses: 2,
+      interval: 30,
+      description: 'ฉีด 2 โดส ห่างกัน 1 เดือน',
+      available: true
+    },
+    {
+      id: 'rabies',
+      name: 'วัคซีนพิษสุนัขบ้า',
+      doses: 5,
+      interval: 3,
+      description: 'ฉีด 5 เข็ม: วันแรก, วันที่ 3, วันที่ 7, วันที่ 14, วันที่ 28',
       available: true
     }
   ];
