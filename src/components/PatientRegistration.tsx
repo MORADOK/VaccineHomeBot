@@ -15,12 +15,17 @@ import {
   UserPlus,
   ArrowRight,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Send,
+  Link,
+  Settings
 } from 'lucide-react';
 
 const PatientRegistration = () => {
   const [showQR, setShowQR] = useState(false);
   const [lineCode, setLineCode] = useState('');
+  const [n8nWebhookUrl, setN8nWebhookUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const lineBot = {
@@ -186,6 +191,60 @@ async function notifyStaff(userId, displayName, phone) {
     });
   };
 
+  const sendToN8n = async (patientData: any) => {
+    if (!n8nWebhookUrl) {
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "กรุณากรอก n8n Webhook URL ก่อน",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(n8nWebhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        mode: "no-cors",
+        body: JSON.stringify({
+          ...patientData,
+          timestamp: new Date().toISOString(),
+          source: "frontend_registration",
+        }),
+      });
+
+      toast({
+        title: "ส่งข้อมูลสำเร็จ",
+        description: "ข้อมูลได้ถูกส่งไปยัง n8n workflow แล้ว",
+      });
+    } catch (error) {
+      console.error("Error sending to n8n:", error);
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "ไม่สามารถส่งข้อมูลไปยัง n8n ได้",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const testPatientRegistration = () => {
+    const testData = {
+      LineUserID: "test-user-123",
+      displayName: "ทดสอบ ระบบ",
+      fullName: "นาย ทดสอบ ระบบ",
+      phone: "081-234-5678",
+      registrationType: "manual",
+    };
+    
+    sendToN8n(testData);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
@@ -199,6 +258,52 @@ async function notifyStaff(userId, displayName, phone) {
         </div>
 
         <div className="grid gap-6">
+          {/* n8n Integration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Link className="h-5 w-5" />
+                เชื่อมต่อกับ n8n Workflow
+              </CardTitle>
+              <CardDescription>
+                กรอก Webhook URL จาก n8n workflow เดิมของคุณเพื่อเชื่อมต่อระบบ
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="n8n-webhook">n8n Webhook URL</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="n8n-webhook"
+                    placeholder="https://your-n8n-render.domain/webhook/..."
+                    value={n8nWebhookUrl}
+                    onChange={(e) => setN8nWebhookUrl(e.target.value)}
+                  />
+                  <Button 
+                    onClick={testPatientRegistration}
+                    disabled={!n8nWebhookUrl || isLoading}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isLoading ? 'กำลังส่ง...' : 'ทดสอบ'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL จาก n8n workflow ที่มีอยู่แล้วบน Render
+                </p>
+              </div>
+              
+              <Alert>
+                <Settings className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>การใช้งานกับ workflow เดิม:</strong>
+                  <br />• ใส่ Webhook URL จาก n8n workflow ที่รันอยู่แล้ว
+                  <br />• กดปุ่ม "ทดสอบ" เพื่อส่งข้อมูลทดสอบ
+                  <br />• ระบบจะส่งข้อมูลผู้ป่วยไปยัง workflow โดยอัตโนมัติ
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+
           {/* ข้อมูล LINE Bot */}
           <Card>
             <CardHeader>
