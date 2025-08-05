@@ -7,18 +7,24 @@ import PatientRegistration from '@/components/PatientRegistration';
 import SetupGuide from '@/components/SetupGuide';
 import RenderSetupGuide from '@/components/RenderSetupGuide';
 import TroubleshootingGuide from '@/components/TroubleshootingGuide';
+import LineBot from '@/components/LineBot';
+import PatientPortal from '@/components/PatientPortal';
+import StaffPortal from '@/components/StaffPortal';
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Tabs defaultValue="designer" className="w-full">
         <div className="container mx-auto pt-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-5xl mx-auto">
+          <TabsList className="grid w-full grid-cols-9 max-w-7xl mx-auto">
             <TabsTrigger value="setup">คู่มือติดตั้ง</TabsTrigger>
             <TabsTrigger value="designer">Workflow Designer</TabsTrigger>
             <TabsTrigger value="analyzer">Analyzer</TabsTrigger>
-            <TabsTrigger value="staff">เจ้าหน้าที่</TabsTrigger>
-            <TabsTrigger value="patient">คนไข้ LINE</TabsTrigger>
+            <TabsTrigger value="linebot">LINE Bot</TabsTrigger>
+            <TabsTrigger value="patient-portal">ลงทะเบียนผู้ป่วย</TabsTrigger>
+            <TabsTrigger value="staff-portal">เจ้าหน้าที่</TabsTrigger>
+            <TabsTrigger value="staff">Dashboard เดิม</TabsTrigger>
+            <TabsTrigger value="patient">LINE เดิม</TabsTrigger>
             <TabsTrigger value="troubleshooting">แก้ไขปัญหา</TabsTrigger>
           </TabsList>
         </div>
@@ -41,6 +47,18 @@ const Index = () => {
         
         <TabsContent value="setup" className="mt-0">
           <SetupGuide />
+        </TabsContent>
+        
+        <TabsContent value="linebot" className="mt-0">
+          <LineBot />
+        </TabsContent>
+        
+        <TabsContent value="patient-portal" className="mt-0">
+          <PatientPortal />
+        </TabsContent>
+        
+        <TabsContent value="staff-portal" className="mt-0">
+          <StaffPortal />
         </TabsContent>
         
         <TabsContent value="troubleshooting" className="mt-0">
