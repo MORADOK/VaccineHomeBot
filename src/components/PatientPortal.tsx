@@ -14,7 +14,7 @@ interface PatientData {
 
 const PatientPortal = () => {
   // Webhook URL สำหรับ รพ.โฮม (ค่าคงที่สำหรับการใช้งานจริง)
-  const WEBHOOK_URL = 'https://your-n8n-webhook-url.com/webhook/patient-registration';
+  const WEBHOOK_URL = 'import.meta.env.VITE_WEBHOOK_URLn';
   
   const [patientData, setPatientData] = useState<PatientData>({
     fullName: '',
