@@ -479,6 +479,15 @@ async function notifyStaff(userId, displayName, phone) {
               </CardContent>
             </Card>
           )}
+              {!n8nWebhookUrl && (
+      <Alert>
+        <AlertDescription>
+          <span className="text-red-500 font-bold">
+            ระบบยังไม่ได้ตั้งค่า Webhook URL!
+          </span>
+        </AlertDescription>
+      </Alert>
+    )}
 
           {/* คำแนะนำ */}
           <Alert>
@@ -491,16 +500,7 @@ async function notifyStaff(userId, displayName, phone) {
         </div>
       </div>
     </div>
-     <div>
-{!n8nWebhookUrl && (
-      <Alert>
-    <AlertDescription>
-      <span className="text-red-500 font-bold">ระบบยังไม่ได้ตั้งค่า Webhook URL!</span>
-      กรุณาติดต่อผู้ดูแลระบบ
-    </AlertDescription>
-  </Alert>
-    </div>
-  )};
+  );
 };
 
 export default PatientRegistration;
