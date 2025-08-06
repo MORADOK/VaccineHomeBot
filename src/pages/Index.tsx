@@ -20,9 +20,9 @@ const Index = () => {
             <TabsTrigger value="setup">คู่มือติดตั้ง</TabsTrigger>
             <TabsTrigger value="designer">Workflow Designer</TabsTrigger>
             <TabsTrigger value="analyzer">Analyzer</TabsTrigger>
-            <TabsTrigger value="linebot">LINE Bot</TabsTrigger>
-            <TabsTrigger value="patient-portal">ลงทะเบียนผู้ป่วย</TabsTrigger>
-            <TabsTrigger value="staff-portal">เจ้าหน้าที่</TabsTrigger>
+            <TabsTrigger value="LineBot">LINE Bot</TabsTrigger>
+            <TabsTrigger value="PatientPortal">ลงทะเบียนผู้ป่วย</TabsTrigger>
+            <TabsTrigger value="StaffPortal">เจ้าหน้าที่</TabsTrigger>
             <TabsTrigger value="staff">Dashboard เดิม</TabsTrigger>
             <TabsTrigger value="patient">LINE เดิม</TabsTrigger>
             <TabsTrigger value="troubleshooting">แก้ไขปัญหา</TabsTrigger>
@@ -49,15 +49,15 @@ const Index = () => {
           <SetupGuide />
         </TabsContent>
         
-        <TabsContent value="linebot" className="mt-0">
+        <TabsContent value="LineBot" className="mt-0">
           <LineBot />
         </TabsContent>
         
-        <TabsContent value="patient-portal" className="mt-0">
+        <TabsContent value="PatientPortal" className="mt-0">
           <PatientPortal />
         </TabsContent>
         
-        <TabsContent value="staff-portal" className="mt-0">
+        <TabsContent value="StaffPortal" className="mt-0">
           <StaffPortal />
         </TabsContent>
         
