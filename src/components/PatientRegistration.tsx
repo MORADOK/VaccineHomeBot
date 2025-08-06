@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -24,18 +23,10 @@ import {
 const PatientRegistration = () => {
   const [showQR, setShowQR] = useState(false);
   const [lineCode, setLineCode] = useState('');
-  const n8nWebhookUrl = import.meta.env.VITE_WEBHOOK_URL;
-
-const testPatientRegistration = () => {
-  if (!n8nWebhookUrl) {
-    toast({ title: "Webhook URL ไม่ถูกต้อง", variant: "destructive" });
-    return;
-  }
-  // ...
-};
-
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const n8nWebhookUrl = import.meta.env.VITE_WEBHOOK_URL;
 
   const lineBot = {
     name: 'VaccineBot',
@@ -188,7 +179,6 @@ async function notifyStaff(userId, displayName, phone) {
     timestamp: new Date().toISOString()
   });
 }`;
-
     setLineCode(webhookCode);
   };
 
@@ -211,21 +201,16 @@ async function notifyStaff(userId, displayName, phone) {
     }
 
     setIsLoading(true);
-    
     try {
-      const response = await fetch(n8nWebhookUrl, {
+      await fetch(n8nWebhookUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...patientData,
           timestamp: new Date().toISOString(),
           source: "frontend_registration",
         }),
       });
-
       toast({
         title: "ส่งข้อมูลสำเร็จ",
         description: "ข้อมูลได้ถูกส่งไปยัง n8n workflow แล้ว",
@@ -241,6 +226,12 @@ async function notifyStaff(userId, displayName, phone) {
       setIsLoading(false);
     }
   };
+
+  const testPatientRegistration = () => {
+    if (!n8nWebhookUrl) {
+      toast({ title: "Webhook URL ไม่ถูกต้อง", variant: "destructive" });
+      return;
+    }
     const testData = {
       LineUserID: "test-user-123",
       displayName: "ทดสอบ ระบบ",
@@ -248,7 +239,6 @@ async function notifyStaff(userId, displayName, phone) {
       phone: "081-234-5678",
       registrationType: "manual",
     };
-    
     sendToN8n(testData);
   };
 
@@ -280,7 +270,11 @@ async function notifyStaff(userId, displayName, phone) {
               <div>
                 <Label htmlFor="n8n-webhook">n8n Webhook URL</Label>
                 <div className="flex gap-2 mt-1">
-                
+                  <Input
+                    id="n8n-webhook"
+                    value={n8nWebhookUrl}
+                    readOnly
+                  />
                   <Button 
                     onClick={testPatientRegistration}
                     disabled={!n8nWebhookUrl || isLoading}
@@ -479,15 +473,17 @@ async function notifyStaff(userId, displayName, phone) {
               </CardContent>
             </Card>
           )}
-              {!n8nWebhookUrl && (
-      <Alert>
-        <AlertDescription>
-          <span className="text-red-500 font-bold">
-            ระบบยังไม่ได้ตั้งค่า Webhook URL!
-          </span>
-        </AlertDescription>
-      </Alert>
-    )}
+
+          {/* แจ้งเตือนถ้าไม่มี n8nWebhookUrl */}
+          {!n8nWebhookUrl && (
+            <Alert>
+              <AlertDescription>
+                <span className="text-red-500 font-bold">
+                  ระบบยังไม่ได้ตั้งค่า Webhook URL!
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* คำแนะนำ */}
           <Alert>
