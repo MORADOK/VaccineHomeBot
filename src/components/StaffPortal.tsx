@@ -30,7 +30,7 @@ interface Appointment {
 }
 
 const StaffPortal = () => {
-  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookUrl, setWebhookUrl] = import.meta.env.VITE_WEBHOOK_URL;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
