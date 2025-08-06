@@ -218,7 +218,7 @@ async function notifyStaff(userId, displayName, phone) {
         headers: {
           "Content-Type": "application/json",
         },
-        {/*mode: "no-cors",*/}
+        // mode: "no-cors", //
         body: JSON.stringify({
           ...patientData,
           timestamp: new Date().toISOString(),
