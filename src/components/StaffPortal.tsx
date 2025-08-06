@@ -221,7 +221,7 @@ const StaffPortal = () => {
           </Button>
         </div>
 
-        {/* Webhook Configuration */}
+        {/* Webhook Configuration 
         <Card>
           <CardHeader>
             <CardTitle>เชื่อมต่อระบบ</CardTitle>
@@ -239,7 +239,7 @@ const StaffPortal = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card>*/}
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
