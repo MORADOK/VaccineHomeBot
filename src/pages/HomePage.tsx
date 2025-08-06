@@ -26,7 +26,7 @@ const HomePage = () => {
                 จัดการการตั้งค่า LINE Bot และทดสอบการเชื่อมต่อ
               </p>
               <Button asChild className="w-full">
-                <Link to="/line-bot">เข้าสู่ระบบ</Link>
+                <Link to="/LineBot">เข้าสู่ระบบ</Link>
               </Button>
             </CardContent>
           </Card>
@@ -43,7 +43,7 @@ const HomePage = () => {
                 หน้าสำหรับผู้ป่วยลงทะเบียนฉีดวัคซีน
               </p>
               <Button asChild className="w-full">
-                <Link to="/patient-portal">เข้าสู่ระบบ</Link>
+                <Link to="/PatientPortal">เข้าสู่ระบบ</Link>
               </Button>
             </CardContent>
           </Card>
@@ -60,7 +60,7 @@ const HomePage = () => {
                 หน้าสำหรับเจ้าหน้าที่จัดการนัดหมายผู้ป่วย
               </p>
               <Button asChild className="w-full">
-                <Link to="/staff-portal">เข้าสู่ระบบ</Link>
+                <Link to="/StaffPortal">เข้าสู่ระบบ</Link>
               </Button>
             </CardContent>
           </Card>
