@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
@@ -14,11 +13,9 @@ import {
   XCircle, 
   Clock,
   Search,
-  Filter,
   Download,
   Send
 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Appointment {
   id: string;
@@ -44,35 +41,35 @@ const StaffPortal = () => {
   useEffect(() => {
     const sampleAppointments: Appointment[] = [
       {
-        id: 'REG-001',
+        id: 'HOM-001',
         patientName: 'นาย สมชาย ใจดี',
         phone: '081-234-5678',
         vaccineType: 'Pfizer-BioNTech',
         date: '2024-01-15',
         time: '09:00',
-        hospital: 'โรงพยาบาลจุฬาลงกรณ์',
+        hospital: 'โรงพยาบาลโฮม',
         status: 'pending',
         registrationDate: '2024-01-10'
       },
       {
-        id: 'REG-002',
+        id: 'HOM-002',
         patientName: 'นางสาว มานี สบายดี',
         phone: '082-345-6789',
         vaccineType: 'Moderna',
         date: '2024-01-15',
         time: '10:00',
-        hospital: 'โรงพยาบาลศิริราช',
+        hospital: 'โรงพยาบาลโฮม',
         status: 'confirmed',
         registrationDate: '2024-01-11'
       },
       {
-        id: 'REG-003',
+        id: 'HOM-003',
         patientName: 'นาง สุดา รักสุข',
         phone: '083-456-7890',
         vaccineType: 'AstraZeneca',
         date: '2024-01-14',
         time: '14:00',
-        hospital: 'โรงพยาบาลรามาธิบดี',
+        hospital: 'โรงพยาบาลโฮม',
         status: 'completed',
         registrationDate: '2024-01-09'
       }
@@ -215,6 +212,7 @@ const StaffPortal = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">ระบบจัดการเจ้าหน้าที่</h1>
+            <h2 className="text-xl text-muted-foreground">โรงพยาบาลโฮม</h2>
             <p className="text-muted-foreground">จัดการการนัดหมายและการฉีดวัคซีน</p>
           </div>
           <Button onClick={exportData} variant="outline">
