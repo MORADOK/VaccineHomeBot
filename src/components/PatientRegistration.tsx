@@ -492,13 +492,13 @@ async function notifyStaff(userId, displayName, phone) {
       </div>
     </div>
     {!n8nWebhookUrl && (
-  <Alert>
+    <div><Alert>
     <AlertDescription>
       <span className="text-red-500 font-bold">ระบบยังไม่ได้ตั้งค่า Webhook URL!</span>
       กรุณาติดต่อผู้ดูแลระบบ
     </AlertDescription>
   </Alert>
- </div>
+    </div>
   )};
 };
 
