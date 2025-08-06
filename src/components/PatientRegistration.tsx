@@ -24,7 +24,16 @@ import {
 const PatientRegistration = () => {
   const [showQR, setShowQR] = useState(false);
   const [lineCode, setLineCode] = useState('');
-  const [n8nWebhookUrl, setN8nWebhookUrl] = import.meta.env.VITE_WEBHOOK_URL;
+  const n8nWebhookUrl = import.meta.env.VITE_WEBHOOK_URL;
+
+const testPatientRegistration = () => {
+  if (!n8nWebhookUrl) {
+    toast({ title: "Webhook URL ไม่ถูกต้อง", variant: "destructive" });
+    return;
+  }
+  // ...
+};
+
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -209,7 +218,7 @@ async function notifyStaff(userId, displayName, phone) {
         headers: {
           "Content-Type": "application/json",
         },
-        mode: "no-cors",
+        {/*mode: "no-cors",*/}
         body: JSON.stringify({
           ...patientData,
           timestamp: new Date().toISOString(),
@@ -266,19 +275,14 @@ async function notifyStaff(userId, displayName, phone) {
                 เชื่อมต่อกับ n8n Workflow
               </CardTitle>
               <CardDescription>
-                กรอก Webhook URL จาก n8n workflow เดิมของคุณเพื่อเชื่อมต่อระบบ
+                ระบบจะเชื่อมต่อกับ n8n Webhook อัตโนมัติจากการตั้งค่าของผู้ดูแลระบบ
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="n8n-webhook">n8n Webhook URL</Label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    id="n8n-webhook"
-                    placeholder="https://your-n8n-render.domain/webhook/..."
-                    value={n8nWebhookUrl}
-                    onChange={(e) => setN8nWebhookUrl(e.target.value)}
-                  />
+                
                   <Button 
                     onClick={testPatientRegistration}
                     disabled={!n8nWebhookUrl || isLoading}
@@ -489,6 +493,15 @@ async function notifyStaff(userId, displayName, phone) {
         </div>
       </div>
     </div>
+    {!n8nWebhookUrl && (
+  <Alert>
+    <AlertDescription>
+      <span className="text-red-500 font-bold">ระบบยังไม่ได้ตั้งค่า Webhook URL!</span>
+      กรุณาติดต่อผู้ดูแลระบบ
+    </AlertDescription>
+  </Alert>
+)}
+
   );
 };
 
