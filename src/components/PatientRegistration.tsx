@@ -241,8 +241,6 @@ async function notifyStaff(userId, displayName, phone) {
       setIsLoading(false);
     }
   };
-
-  const testPatientRegistration = () => {
     const testData = {
       LineUserID: "test-user-123",
       displayName: "ทดสอบ ระบบ",
@@ -500,9 +498,8 @@ async function notifyStaff(userId, displayName, phone) {
       กรุณาติดต่อผู้ดูแลระบบ
     </AlertDescription>
   </Alert>
-)}
 
-  );
+  )};
 };
 
 export default PatientRegistration;
