@@ -24,7 +24,7 @@ import {
 const PatientRegistration = () => {
   const [showQR, setShowQR] = useState(false);
   const [lineCode, setLineCode] = useState('');
-  const [n8nWebhookUrl, setN8nWebhookUrl] = useState('');
+  const [n8nWebhookUrl, setN8nWebhookUrl] = import.meta.env.VITE_WEBHOOK_URL;
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
