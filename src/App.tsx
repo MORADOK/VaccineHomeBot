@@ -24,8 +24,11 @@ const App = () => (
             <Route path="/" element={<HomePage />} />
             <Route path="/admin" element={<Index />} />
             <Route path="/line-bot" element={<LineBotPage />} />
+            <Route path="/LineBot" element={<LineBotPage />} />
             <Route path="/patient-portal" element={<PatientPortalPage />} />
+            <Route path="/PatientPortal" element={<PatientPortalPage />} />
             <Route path="/staff-portal" element={<StaffPortalPage />} />
+            <Route path="/StaffPortal" element={<StaffPortalPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
