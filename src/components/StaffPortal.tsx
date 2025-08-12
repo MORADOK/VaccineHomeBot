@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Users, 
   Calendar, 
@@ -14,8 +15,17 @@ import {
   Clock,
   Search,
   Download,
-  Send
+  Send,
+  RefreshCw
 } from 'lucide-react';
+
+interface Patient {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  lineId: string;
+}
 
 interface Appointment {
   id: string;
@@ -32,12 +42,41 @@ interface Appointment {
 const StaffPortal = () => {
   const [webhookUrl, setWebhookUrl] = useState('https://firstprojecthome.onrender.com/webhook-test/Webhook-Vaccine');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Sample data for demonstration
+  // Load patients from Google Sheets
+  const loadPatients = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
+        body: { action: 'readPatients' }
+      });
+
+      if (error) throw error;
+
+      if (data.patients) {
+        setPatients(data.patients);
+        toast({
+          title: "โหลดข้อมูลสำเร็จ",
+          description: `โหลดข้อมูลคนไข้ ${data.patients.length} คน`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "ข้อผิดพลาด",
+        description: error.message || "ไม่สามารถโหลดข้อมูลได้",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load sample appointments data
   useEffect(() => {
     const sampleAppointments: Appointment[] = [
       {
@@ -75,6 +114,9 @@ const StaffPortal = () => {
       }
     ];
     setAppointments(sampleAppointments);
+    
+    // Auto-load patients on component mount
+    loadPatients();
   }, []);
 
   const updateAppointmentStatus = async (id: string, newStatus: Appointment['status']) => {
@@ -183,6 +225,13 @@ const StaffPortal = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         patient.phone.includes(searchTerm) ||
+                         patient.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   const stats = {
     total: appointments.length,
     pending: appointments.filter(apt => apt.status === 'pending').length,
@@ -215,10 +264,16 @@ const StaffPortal = () => {
             <h2 className="text-xl text-muted-foreground">โรงพยาบาลโฮม</h2>
             <p className="text-muted-foreground">จัดการการนัดหมายและการฉีดวัคซีน</p>
           </div>
-          <Button onClick={exportData} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            ส่งออกข้อมูล
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={loadPatients} variant="outline" disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              โหลดข้อมูลคนไข้
+            </Button>
+            <Button onClick={exportData} variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              ส่งออกข้อมูล
+            </Button>
+          </div>
         </div>
 
         {/* Webhook Configuration 
@@ -322,6 +377,48 @@ const StaffPortal = () => {
           </CardContent>
         </Card>
 
+        {/* Patient List */}
+        {searchTerm && (
+          <Card>
+            <CardHeader>
+              <CardTitle>ผลการค้นหาคนไข้ ({filteredPatients.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredPatients.map((patient) => (
+                  <div key={patient.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{patient.name}</h3>
+                        <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        <span>{patient.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">อีเมล: {patient.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">LINE ID: {patient.lineId}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredPatients.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    ไม่พบข้อมูลคนไข้ที่ตรงกับการค้นหา
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Appointments List */}
         <Card>
           <CardHeader>
@@ -399,7 +496,7 @@ const StaffPortal = () => {
                 </div>
               ))}
 
-              {filteredAppointments.length === 0 && (
+              {filteredAppointments.length === 0 && !searchTerm && (
                 <div className="text-center py-8 text-muted-foreground">
                   ไม่พบข้อมูลการนัดหมาย
                 </div>
