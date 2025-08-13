@@ -30,11 +30,31 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { action, data } = await req.json();
-    const serviceAccount = JSON.parse(Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY") || "{}");
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError);
+      throw new Error('Invalid JSON in request body');
+    }
+    
+    const { action, data } = requestData;
+    
+    const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    if (!serviceAccountKey) {
+      throw new Error("Google Service Account credentials not configured");
+    }
+    
+    let serviceAccount;
+    try {
+      serviceAccount = JSON.parse(serviceAccountKey);
+    } catch (parseError) {
+      console.error('Service account parsing error:', parseError);
+      throw new Error("Invalid Google Service Account JSON format");
+    }
     
     if (!serviceAccount.client_email) {
-      throw new Error("Google Service Account credentials not configured");
+      throw new Error("Google Service Account credentials not configured properly");
     }
 
     // Create JWT token for Google Sheets API authentication
