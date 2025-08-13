@@ -189,12 +189,25 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
 
     // Import crypto for signing
     const encoder = new TextEncoder();
-    const keyData = serviceAccount.private_key.replace(/\\n/g, '\n');
+    let keyData = serviceAccount.private_key;
+    
+    // Handle different key formats
+    if (typeof keyData === 'string') {
+      keyData = keyData.replace(/\\n/g, '\n');
+    }
+    
+    // Convert PEM to DER format for import
+    const pemHeader = "-----BEGIN PRIVATE KEY-----";
+    const pemFooter = "-----END PRIVATE KEY-----";
+    const pemContents = keyData.replace(pemHeader, "").replace(pemFooter, "").replace(/\s/g, "");
+    
+    // Base64 decode the key
+    const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
     
     // Import the private key
     const cryptoKey = await crypto.subtle.importKey(
       "pkcs8",
-      new TextEncoder().encode(keyData),
+      binaryKey,
       {
         name: "RSASSA-PKCS1-v1_5",
         hash: "SHA-256",
