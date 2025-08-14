@@ -461,46 +461,70 @@ const StaffPortal = () => {
 
                      <div className="mt-4 pt-4 border-t">
                        <h4 className="text-sm font-medium mb-3">เลือกวัคซีนสำหรับคนไข้</h4>
-                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'COVID-19')}
+                           onClick={() => scheduleVaccine(patient, 'flu')}
                            className="text-xs"
                          >
-                           COVID-19
+                           วัคซีนไข้หวัดใหญ่
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'ไข้หวัดใหญ่')}
+                           onClick={() => scheduleVaccine(patient, 'hep_b')}
                            className="text-xs"
                          >
-                           ไข้หวัดใหญ่
+                           วัคซีนไวรัสตับอักเสบบี
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'โควิด + ไข้หวัดใหญ่')}
+                           onClick={() => scheduleVaccine(patient, 'tetanus')}
                            className="text-xs"
                          >
-                           โควิด + ไข้หวัดใหญ่
+                           วัคซีนป้องกันบาดทะยัก
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'HPV')}
+                           onClick={() => scheduleVaccine(patient, 'shingles')}
                            className="text-xs"
                          >
-                           HPV
+                           วัคซีนงูสวัด
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'MMR')}
+                           onClick={() => scheduleVaccine(patient, 'hpv')}
                            className="text-xs"
                          >
-                           MMR
+                           วัคซีนป้องกันมะเร็งปากมดลูก
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'pneumonia')}
+                           className="text-xs"
+                         >
+                           วัคซีนปอดอักเสบ
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'chickenpox')}
+                           className="text-xs"
+                         >
+                           วัคซีนอีสุกอีใส
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'rabies')}
+                           className="text-xs"
+                         >
+                           วัคซีนพิษสุนัขบ้า
                          </Button>
                        </div>
                      </div>
