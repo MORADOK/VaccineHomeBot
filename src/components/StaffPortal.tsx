@@ -461,38 +461,46 @@ const StaffPortal = () => {
 
                      <div className="mt-4 pt-4 border-t">
                        <h4 className="text-sm font-medium mb-3">เลือกวัคซีนสำหรับคนไข้</h4>
-                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'Pfizer-BioNTech')}
+                           onClick={() => scheduleVaccine(patient, 'COVID-19')}
                            className="text-xs"
                          >
-                           Pfizer-BioNTech
+                           COVID-19
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'Moderna')}
+                           onClick={() => scheduleVaccine(patient, 'ไข้หวัดใหญ่')}
                            className="text-xs"
                          >
-                           Moderna
+                           ไข้หวัดใหญ่
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'AstraZeneca')}
+                           onClick={() => scheduleVaccine(patient, 'โควิด + ไข้หวัดใหญ่')}
                            className="text-xs"
                          >
-                           AstraZeneca
+                           โควิด + ไข้หวัดใหญ่
                          </Button>
                          <Button
                            size="sm"
                            variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'Johnson & Johnson')}
+                           onClick={() => scheduleVaccine(patient, 'HPV')}
                            className="text-xs"
                          >
-                           Johnson & Johnson
+                           HPV
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'MMR')}
+                           className="text-xs"
+                         >
+                           MMR
                          </Button>
                        </div>
                      </div>
