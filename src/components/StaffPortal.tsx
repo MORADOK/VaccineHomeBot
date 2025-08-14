@@ -239,6 +239,58 @@ const StaffPortal = () => {
     completed: appointments.filter(apt => apt.status === 'completed').length,
   };
 
+  const scheduleVaccine = async (patient: Patient, vaccineType: string) => {
+    try {
+      // Generate new appointment ID
+      const newId = `HOM-${String(appointments.length + 1).padStart(3, '0')}`;
+      
+      // Create new appointment
+      const newAppointment: Appointment = {
+        id: newId,
+        patientName: patient.name,
+        phone: patient.phone,
+        vaccineType,
+        date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
+        time: '09:00',
+        hospital: 'โรงพยาบาลโฮม',
+        status: 'pending',
+        registrationDate: new Date().toISOString().split('T')[0]
+      };
+
+      // Add to appointments list
+      setAppointments(prev => [...prev, newAppointment]);
+
+      // Send to webhook if configured
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'vaccine_scheduled',
+            data: {
+              appointmentId: newId,
+              patient,
+              vaccineType,
+              scheduledBy: 'staff',
+              timestamp: new Date().toISOString()
+            }
+          }),
+        });
+      }
+
+      toast({
+        title: "นัดหมายสำเร็จ",
+        description: `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${patient.name} เรียบร้อยแล้ว`,
+      });
+    } catch (error) {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถสร้างนัดหมายได้",
+        variant: "destructive",
+      });
+    }
+  };
+
   const exportData = () => {
     const csv = [
       'ID,ชื่อผู้ป่วย,เบอร์โทร,วัคซีน,วันที่,เวลา,โรงพยาบาล,สถานะ,วันที่ลงทะเบียน',
@@ -402,11 +454,49 @@ const StaffPortal = () => {
                       <div className="flex items-center gap-2">
                         <span className="text-sm">อีเมล: {patient.email}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">LINE ID: {patient.lineId}</span>
-                      </div>
-                    </div>
-                  </div>
+                       <div className="flex items-center gap-2">
+                         <span className="text-sm">LINE ID: {patient.lineId}</span>
+                       </div>
+                     </div>
+
+                     <div className="mt-4 pt-4 border-t">
+                       <h4 className="text-sm font-medium mb-3">เลือกวัคซีนสำหรับคนไข้</h4>
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'Pfizer-BioNTech')}
+                           className="text-xs"
+                         >
+                           Pfizer-BioNTech
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'Moderna')}
+                           className="text-xs"
+                         >
+                           Moderna
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'AstraZeneca')}
+                           className="text-xs"
+                         >
+                           AstraZeneca
+                         </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => scheduleVaccine(patient, 'Johnson & Johnson')}
+                           className="text-xs"
+                         >
+                           Johnson & Johnson
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
                 ))}
 
                 {filteredPatients.length === 0 && (
