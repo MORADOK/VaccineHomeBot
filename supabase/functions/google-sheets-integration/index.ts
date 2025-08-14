@@ -43,7 +43,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Get environment variables
     const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
-    const spreadsheetId = Deno.env.get("GOOGLE_SHEETS_ID");
+    const spreadsheetId = "1ASjl_kZrQ4InVWmCS2qzf_ofT4Uj0gEo_Oy-fqwCc7Q";
     
     console.log('Service account key exists:', !!serviceAccountKey);
     console.log('Spreadsheet ID exists:', !!spreadsheetId);
