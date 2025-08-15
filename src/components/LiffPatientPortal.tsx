@@ -3,10 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { User, CheckCircle, Smartphone, AlertCircle, Syringe } from 'lucide-react';
+import { User, CheckCircle, Smartphone, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // LIFF Type Definitions
@@ -19,7 +18,6 @@ declare global {
 interface PatientData {
   fullName: string;
   phone: string;
-  selectedVaccine: string;
   lineUserId?: string;
   lineDisplayName?: string;
   linePictureUrl?: string;
@@ -38,8 +36,7 @@ const LiffPatientPortal = () => {
   
   const [patientData, setPatientData] = useState<PatientData>({
     fullName: '',
-    phone: '',
-    selectedVaccine: ''
+    phone: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -140,7 +137,7 @@ const LiffPatientPortal = () => {
   };
 
   const submitRegistration = async () => {
-    if (!patientData.fullName || !patientData.phone || !patientData.selectedVaccine) {
+    if (!patientData.fullName || !patientData.phone) {
       toast({
         title: "ข้อผิดพลาด",
         description: "กรุณากรอกข้อมูลให้ครบถ้วน",
@@ -173,7 +170,7 @@ const LiffPatientPortal = () => {
           patient_name: patientData.fullName,
           patient_phone: patientData.phone,
           patient_id_number: patientData.lineUserId,
-          vaccine_type: patientData.selectedVaccine,
+          vaccine_type: 'general_service',
           appointment_date: appointmentDate,
           appointment_time: '09:00',
           status: 'scheduled',
@@ -189,35 +186,20 @@ const LiffPatientPortal = () => {
       setIsRegistered(true);
       toast({
         title: "ลงทะเบียนสำเร็จ",
-        description: `นัดหมายฉีดวัคซีน ${patientData.selectedVaccine} สำเร็จแล้ว (ID: ${appointmentId})`,
+        description: `ลงทะเบียนรับบริการสำเร็จแล้ว (ID: ${appointmentId})`,
       });
 
       // ส่งข้อความยืนยันผ่าน LINE Bot API (ถ้ามี LINE User ID)
       if (patientData.lineUserId) {
         try {
-          const vaccineOptions = [
-            { value: 'flu', label: 'วัคซีนไข้หวัดใหญ่' },
-            { value: 'hep_b', label: 'วัคซีนไวรัสตับอักเสบบี' },
-            { value: 'tetanus', label: 'วัคซีนป้องกันบาดทะยัก' },
-            { value: 'shingles', label: 'วัคซีนงูสวัด' },
-            { value: 'hpv', label: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
-            { value: 'pneumonia', label: 'วัคซีนปอดอักเสบ' },
-            { value: 'chickenpox', label: 'วัคซีนอีสุกอีใส' },
-            { value: 'rabies', label: 'วัคซีนพิษสุนัขบ้า' },
-            { value: 'other', label: 'อื่นๆ (แจ้งเจ้าหน้าที่)' }
-          ];
-          
-          const selectedVaccineLabel = vaccineOptions.find(v => v.value === patientData.selectedVaccine)?.label || patientData.selectedVaccine;
-          
           await supabase.functions.invoke('send-line-message', {
             body: {
               userId: patientData.lineUserId,
-              message: `✅ ลงทะเบียนฉีดวัคซีนสำเร็จ\n\n📋 รายละเอียด:\n• ชื่อ: ${patientData.fullName}\n• เบอร์โทร: ${patientData.phone}\n• วัคซีน: ${selectedVaccineLabel}\n• วันที่: ${appointmentDate}\n• รหัสนัดหมาย: ${appointmentId}\n\n🏥 โรงพยาบาลโฮม\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`,
+              message: `✅ ลงทะเบียนรับบริการสำเร็จ\n\n📋 รายละเอียด:\n• ชื่อ: ${patientData.fullName}\n• เบอร์โทร: ${patientData.phone}\n• วันที่: ${appointmentDate}\n• รหัสนัดหมาย: ${appointmentId}\n\n🏥 โรงพยาบาลโฮม\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`,
               type: 'template',
               templateData: {
                 appointmentId,
                 patientName: patientData.fullName,
-                vaccineType: selectedVaccineLabel,
                 appointmentDate
               }
             }
@@ -234,7 +216,7 @@ const LiffPatientPortal = () => {
           await window.liff.sendMessages([
             {
               type: 'text',
-              text: `✅ ลงทะเบียนฉีดวัคซีนสำเร็จ\n\nชื่อ: ${patientData.fullName}\nเบอร์: ${patientData.phone}\nวัคซีน: ${patientData.selectedVaccine}\nรหัส: ${appointmentId}\n\nโรงพยาบาลโฮม\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`
+              text: `✅ ลงทะเบียนรับบริการสำเร็จ\n\nชื่อ: ${patientData.fullName}\nเบอร์: ${patientData.phone}\nรหัส: ${appointmentId}\n\nโรงพยาบาลโฮม\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`
             }
           ]);
         } catch (messageError) {
@@ -257,7 +239,6 @@ const LiffPatientPortal = () => {
     setPatientData({
       fullName: liffProfile?.displayName || '',
       phone: '',
-      selectedVaccine: '',
       lineUserId: liffProfile?.userId,
       lineDisplayName: liffProfile?.displayName,
       linePictureUrl: liffProfile?.pictureUrl
@@ -283,27 +264,14 @@ const LiffPatientPortal = () => {
                 ลงทะเบียนสำเร็จ!
               </h2>
               <p className="text-green-700 mb-6">
-                ขอบคุณที่ลงทะเบียนฉีดวัคซีน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
+                ขอบคุณที่ลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
               </p>
               
               <div className="bg-white p-4 rounded-lg border mb-6 text-left">
                 <h3 className="font-semibold mb-2">ข้อมูลที่ลงทะเบียน:</h3>
                 <div className="space-y-1 text-sm">
                   <p><strong>ชื่อ:</strong> {patientData.fullName}</p>
-                  <p><strong>วัคซีน:</strong> {(() => {
-                    const vaccineOptions = [
-                      { value: 'flu', label: 'วัคซีนไข้หวัดใหญ่' },
-                      { value: 'hep_b', label: 'วัคซีนไวรัสตับอักเสบบี' },
-                      { value: 'tetanus', label: 'วัคซีนป้องกันบาดทะยัก' },
-                      { value: 'shingles', label: 'วัคซีนงูสวัด' },
-                      { value: 'hpv', label: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
-                      { value: 'pneumonia', label: 'วัคซีนปอดอักเสบ' },
-                      { value: 'chickenpox', label: 'วัคซีนอีสุกอีใส' },
-                      { value: 'rabies', label: 'วัคซีนพิษสุนัขบ้า' },
-                      { value: 'other', label: 'อื่นๆ (แจ้งเจ้าหน้าที่)' }
-                    ];
-                    return vaccineOptions.find(v => v.value === patientData.selectedVaccine)?.label || patientData.selectedVaccine;
-                  })()}</p>
+                  <p><strong>เบอร์โทร:</strong> {patientData.phone}</p>
                   <p><strong>สถานที่:</strong> โรงพยาบาลโฮม</p>
                   {patientData.lineUserId && (
                     <p><strong>LINE ID:</strong> {patientData.lineUserId}</p>
@@ -333,12 +301,12 @@ const LiffPatientPortal = () => {
       <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold">ลงทะเบียนฉีดวัคซีน</h1>
+          <h1 className="text-3xl font-bold">ลงทะเบียนรับบริการ</h1>
           <h2 className="text-xl text-muted-foreground mt-2 font-semibold">
             โรงพยาบาลโฮม
           </h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            กรุณากรอกข้อมูลเพื่อลงทะเบียนฉีดวัคซีน
+            กรุณากรอกข้อมูลเพื่อลงทะเบียนรับบริการ
           </p>
         </div>
 
@@ -435,37 +403,6 @@ const LiffPatientPortal = () => {
           </CardContent>
         </Card>
 
-        {/* Vaccine Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Syringe className="h-5 w-5" />
-              เลือกประเภทวัคซีน
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Label htmlFor="vaccine">ประเภทวัคซีนที่ต้องการ</Label>
-              <Select value={patientData.selectedVaccine} onValueChange={(value) => handleInputChange('selectedVaccine', value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="เลือกประเภทวัคซีน" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border border-border rounded-md shadow-lg z-50">
-                  <SelectItem value="flu">วัคซีนไข้หวัดใหญ่</SelectItem>
-                  <SelectItem value="hep_b">วัคซีนไวรัสตับอักเสบบี</SelectItem>
-                  <SelectItem value="tetanus">วัคซีนป้องกันบาดทะยัก</SelectItem>
-                  <SelectItem value="shingles">วัคซีนงูสวัด</SelectItem>
-                  <SelectItem value="hpv">วัคซีนป้องกันมะเร็งปากมดลูก</SelectItem>
-                  <SelectItem value="pneumonia">วัคซีนปอดอักเสบ</SelectItem>
-                  <SelectItem value="chickenpox">วัคซีนอีสุกอีใส</SelectItem>
-                  <SelectItem value="rabies">วัคซีนพิษสุนัขบ้า</SelectItem>
-                  <SelectItem value="other">อื่นๆ (แจ้งเจ้าหน้าที่)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Submit Button */}
         <Button 
           onClick={submitRegistration}
@@ -473,13 +410,13 @@ const LiffPatientPortal = () => {
           className="w-full"
           size="lg"
         >
-          {isLoading ? 'กำลังลงทะเบียน...' : 'ลงทะเบียนฉีดวัคซีน'}
+          {isLoading ? 'กำลังลงทะเบียน...' : 'ลงทะเบียนรับบริการ'}
         </Button>
 
         <Alert>
           <AlertDescription>
             หลังจากลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
-            และแจ้งประเภทวัคซีนที่เหมาะสมกับคุณ
+            และแจ้งข้อมูลบริการที่ต้องการ
             {inLineApp && " ข้อความยืนยันจะถูกส่งไปที่แชท LINE ของคุณ"}
           </AlertDescription>
         </Alert>
