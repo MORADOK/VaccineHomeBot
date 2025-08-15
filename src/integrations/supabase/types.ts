@@ -109,6 +109,112 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_schedules: {
+        Row: {
+          created_at: string
+          id: string
+          line_user_id: string | null
+          message_content: string | null
+          notification_type: string
+          patient_tracking_id: string | null
+          scheduled_date: string
+          sent: boolean | null
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_user_id?: string | null
+          message_content?: string | null
+          notification_type: string
+          patient_tracking_id?: string | null
+          scheduled_date: string
+          sent?: boolean | null
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_user_id?: string | null
+          message_content?: string | null
+          notification_type?: string
+          patient_tracking_id?: string | null
+          scheduled_date?: string
+          sent?: boolean | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_schedules_patient_tracking_id_fkey"
+            columns: ["patient_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "patient_vaccine_tracking"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_vaccine_tracking: {
+        Row: {
+          auto_reminder_enabled: boolean | null
+          completion_status: string | null
+          contraindication_checked: boolean | null
+          contraindication_notes: string | null
+          created_at: string
+          current_dose: number
+          id: string
+          last_dose_date: string | null
+          next_dose_due: string | null
+          patient_id: string
+          patient_name: string
+          reminder_days_before: number | null
+          total_doses: number
+          updated_at: string
+          vaccine_schedule_id: string | null
+        }
+        Insert: {
+          auto_reminder_enabled?: boolean | null
+          completion_status?: string | null
+          contraindication_checked?: boolean | null
+          contraindication_notes?: string | null
+          created_at?: string
+          current_dose?: number
+          id?: string
+          last_dose_date?: string | null
+          next_dose_due?: string | null
+          patient_id: string
+          patient_name: string
+          reminder_days_before?: number | null
+          total_doses: number
+          updated_at?: string
+          vaccine_schedule_id?: string | null
+        }
+        Update: {
+          auto_reminder_enabled?: boolean | null
+          completion_status?: string | null
+          contraindication_checked?: boolean | null
+          contraindication_notes?: string | null
+          created_at?: string
+          current_dose?: number
+          id?: string
+          last_dose_date?: string | null
+          next_dose_due?: string | null
+          patient_id?: string
+          patient_name?: string
+          reminder_days_before?: number | null
+          total_doses?: number
+          updated_at?: string
+          vaccine_schedule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_vaccine_tracking_vaccine_schedule_id_fkey"
+            columns: ["vaccine_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "vaccine_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -186,11 +292,73 @@ export type Database = {
           },
         ]
       }
+      vaccine_schedules: {
+        Row: {
+          active: boolean | null
+          age_restrictions: Json | null
+          booster_interval: number | null
+          booster_required: boolean | null
+          contraindications: Json | null
+          created_at: string
+          dose_intervals: Json
+          efficacy_duration: number | null
+          id: string
+          indications: Json | null
+          side_effects: Json | null
+          total_doses: number
+          updated_at: string
+          vaccine_name: string
+          vaccine_type: string
+        }
+        Insert: {
+          active?: boolean | null
+          age_restrictions?: Json | null
+          booster_interval?: number | null
+          booster_required?: boolean | null
+          contraindications?: Json | null
+          created_at?: string
+          dose_intervals?: Json
+          efficacy_duration?: number | null
+          id?: string
+          indications?: Json | null
+          side_effects?: Json | null
+          total_doses?: number
+          updated_at?: string
+          vaccine_name: string
+          vaccine_type: string
+        }
+        Update: {
+          active?: boolean | null
+          age_restrictions?: Json | null
+          booster_interval?: number | null
+          booster_required?: boolean | null
+          contraindications?: Json | null
+          created_at?: string
+          dose_intervals?: Json
+          efficacy_duration?: number | null
+          id?: string
+          indications?: Json | null
+          side_effects?: Json | null
+          total_doses?: number
+          updated_at?: string
+          vaccine_name?: string
+          vaccine_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      calculate_next_dose_date: {
+        Args: { _patient_tracking_id: string }
+        Returns: string
+      }
+      check_contraindications: {
+        Args: { _patient_conditions?: Json; _vaccine_schedule_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
