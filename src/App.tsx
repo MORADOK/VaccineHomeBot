@@ -10,6 +10,7 @@ import LineBotPage from "./pages/LineBotPage";
 import PatientPortalPage from "./pages/PatientPortalPage";
 import StaffPortalPage from "./pages/StaffPortalPage";
 import HomePage from "./pages/HomePage";
+import AuthPage from "./pages/AuthPage";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/admin" element={<Index />} />
             <Route path="/line-bot" element={<LineBotPage />} />
             <Route path="/LineBot" element={<LineBotPage />} />

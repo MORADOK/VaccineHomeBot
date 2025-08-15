@@ -1,7 +1,7 @@
-import StaffPortal from '@/components/StaffPortal';
+import AuthenticatedStaffPortal from '@/components/AuthenticatedStaffPortal';
 
 const StaffPortalPage = () => {
-  return <StaffPortal />;
+  return <AuthenticatedStaffPortal />;
 };
 
 export default StaffPortalPage;

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.54.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,21 +15,67 @@ interface PatientData {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log('Function called with method:', req.method);
+  console.log('Function called');
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get JWT token from request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Verify user authentication and get user
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check if user has healthcare staff role
+    const { data: roleCheck, error: roleError } = await supabase
+      .rpc('is_healthcare_staff', { _user_id: user.id });
+
+    if (roleError || !roleCheck) {
+      console.log('Access denied - user lacks healthcare staff role');
+      return new Response(
+        JSON.stringify({ error: 'Access denied. Healthcare staff role required.' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log('Access granted to authenticated healthcare staff');
     // Parse request data
     let requestData;
     try {
       const requestText = await req.text();
-      console.log('Request body text:', requestText);
       requestData = JSON.parse(requestText);
     } catch (jsonError) {
-      console.error('JSON parsing error:', jsonError);
+      console.error('JSON parsing error');
       return new Response(
         JSON.stringify({ error: 'Invalid JSON in request body' }),
         {
@@ -44,11 +91,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Get environment variables
     const clientEmail = Deno.env.get("GOOGLE_CLIENT_EMAIL");
     const privateKey = Deno.env.get("GOOGLE_PRIVATE_KEY");
-    const spreadsheetId = "1ASjl_kZrQ4InVWmCS2qzf_ofT4Uj0gEo_Oy-fqwCc7Q";
+    const spreadsheetId = Deno.env.get("GOOGLE_SHEETS_ID");
     
-    console.log('Client email exists:', !!clientEmail);
-    console.log('Private key exists:', !!privateKey);
-    console.log('Spreadsheet ID exists:', !!spreadsheetId);
+    console.log('Credentials configured:', !!clientEmail && !!privateKey && !!spreadsheetId);
     
     if (!clientEmail || !privateKey) {
       console.error('Missing Google credentials');
@@ -78,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
       private_key: privateKey
     };
     
-    console.log('Service account configured, client_email:', serviceAccount.client_email);
+    console.log('Service account configured');
 
     switch (action) {
       case 'readPatients':
@@ -106,7 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
           }
           
           const patientsData = await patientsResponse.json();
-          console.log('Patients data received:', patientsData);
+          console.log('Patients data retrieved successfully');
           
           const patients: PatientData[] = patientsData.values?.slice(1).map((row: string[]) => ({
             id: row[0] || '',
