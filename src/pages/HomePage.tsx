@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Bot, UserPlus, Users, Shield, User, LogOut } from 'lucide-react';
+import { Bot, UserPlus, Users, Shield, User, LogOut, Activity, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { AppLayout } from '@/components/AppLayout';
 
 const HomePage = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -71,27 +72,13 @@ const HomePage = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถออกจากระบบได้",
-        variant: "destructive",
-      });
-    } else {
-      navigate('/auth');
-      toast({
-        title: "ออกจากระบบสำเร็จ",
-        description: "คุณได้ออกจากระบบเรียบร้อยแล้ว",
-      });
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">กำลังโหลด...</p>
+        </div>
       </div>
     );
   }
@@ -100,117 +87,137 @@ const HomePage = () => {
   if (!isAdmin) {
     return null; // This shouldn't happen due to navigation logic above
   }
-  return (
-    <div className="min-h-screen bg-background p-6">
-      {/* Admin Header */}
-      <div className="fixed top-4 right-4 z-50">
-        <Card className="bg-white/95 backdrop-blur-sm border-2 border-primary/20 shadow-lg">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <div className="text-sm">
-                <p className="font-semibold text-foreground flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {user?.email}
-                </p>
-                <p className="text-xs text-primary font-medium">ผู้ดูแลระบบ (Admin)</p>
-              </div>
-            </div>
-            <Button 
-              onClick={handleSignOut} 
-              variant="outline" 
-              size="sm"
-              className="h-8 px-3"
-            >
-              <LogOut className="h-4 w-4 mr-1" />
-              ออกจากระบบ
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="max-w-4xl mx-auto">
+  return (
+    <AppLayout user={user} title="ระบบจัดการหลัก - ผู้ดูแลระบบ">
+      {/* Hero Section */}
+      <div className="mb-8">
         <div className="text-center mb-8">
           <div className="mb-6">
             <img 
               src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
               alt="โรงพยาบาลโฮม" 
-              className="mx-auto h-32 w-auto object-contain"
+              className="mx-auto h-32 w-auto object-contain animate-float"
             />
           </div>
-          <h1 className="text-4xl font-bold mb-4">ระบบจัดการวัคซีน</h1>
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
+            ระบบจัดการวัคซีน
+          </h1>
           <h2 className="text-2xl text-muted-foreground mb-2">โรงพยาบาลโฮม</h2>
-          <p className="text-muted-foreground">สำหรับผู้ดูแลระบบ - เลือกระบบที่ต้องการจัดการ</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow border-2 border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-6 w-6 text-primary" />
-                จัดการนัดหมาย
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                หน้าสำหรับเจ้าหน้าที่จัดการนัดหมายผู้ป่วย
-              </p>
-              <Button asChild className="w-full bg-primary hover:bg-primary/90">
-                <Link to="/staff-portal">เข้าสู่ระบบ</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bot className="h-6 w-6" />
-                LINE Bot Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                จัดการการตั้งค่า LINE Bot และทดสอบการเชื่อมต่อ
-              </p>
-              <Button asChild className="w-full" variant="outline">
-                <Link to="/LineBot">เข้าสู่ระบบ</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-6 w-6" />
-                ลงทะเบียนผู้ป่วย
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                หน้าสำหรับผู้ป่วยลงทะเบียนฉีดวัคซีน
-              </p>
-              <Button asChild className="w-full" variant="outline">
-                <Link to="/PatientPortal">เข้าสู่ระบบ</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-8 text-center">
-          <Card className="bg-gradient-to-r from-primary/5 to-emerald-500/5 border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">สิทธิ์ผู้ดูแลระบบ</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                คุณมีสิทธิ์เข้าถึงทุกระบบและจัดการข้อมูลทั้งหมด
-              </p>
-            </CardContent>
-          </Card>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            ระบบจัดการที่ครบครันสำหรับการดูแลผู้ป่วยและการจัดการวัคซีน
+          </p>
         </div>
       </div>
-    </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="card-balanced p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">นัดหมายวันนี้</p>
+              <p className="text-2xl font-bold text-primary">12</p>
+            </div>
+            <Activity className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        
+        <div className="card-balanced p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">ผู้ป่วยทั้งหมด</p>
+              <p className="text-2xl font-bold text-medical-success">156</p>
+            </div>
+            <Users className="h-8 w-8 text-medical-success" />
+          </div>
+        </div>
+        
+        <div className="card-balanced p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">เจ้าหน้าที่</p>
+              <p className="text-2xl font-bold text-medical-info">8</p>
+            </div>
+            <Shield className="h-8 w-8 text-medical-info" />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Navigation Cards */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <Card className="card-balanced hover:shadow-lg group transition-all duration-300 hover:-translate-y-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="p-3 bg-primary/10 rounded-xl group-hover:bg-primary/20 transition-colors">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              จัดการนัดหมาย
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6 leading-relaxed">
+              หน้าสำหรับเจ้าหน้าที่จัดการนัดหมายผู้ป่วยและติดตามการฉีดวัคซีน
+            </p>
+            <Button asChild className="w-full btn-primary">
+              <Link to="/staff-portal">เข้าสู่ระบบ</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-balanced hover:shadow-lg group transition-all duration-300 hover:-translate-y-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="p-3 bg-medical-info/10 rounded-xl group-hover:bg-medical-info/20 transition-colors">
+                <Bot className="h-6 w-6 text-medical-info" />
+              </div>
+              LINE Bot Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6 leading-relaxed">
+              จัดการการตั้งค่า LINE Bot และทดสอบการเชื่อมต่อกับผู้ป่วย
+            </p>
+            <Button asChild className="w-full" variant="outline">
+              <Link to="/LineBot">เข้าสู่ระบบ</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-balanced hover:shadow-lg group transition-all duration-300 hover:-translate-y-1">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="p-3 bg-medical-accent/10 rounded-xl group-hover:bg-medical-accent/20 transition-colors">
+                <UserPlus className="h-6 w-6 text-medical-accent" />
+              </div>
+              ลงทะเบียนผู้ป่วย
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-6 leading-relaxed">
+              หน้าสำหรับผู้ป่วยลงทะเบียนฉีดวัคซีนและจองนัดหมาย
+            </p>
+            <Button asChild className="w-full" variant="outline">
+              <Link to="/PatientPortal">เข้าสู่ระบบ</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Admin Privileges Card */}
+      <Card className="bg-gradient-card border-primary/20 shadow-glow">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-xl font-semibold">สิทธิ์ผู้ดูแลระบบ</h3>
+          </div>
+          <p className="text-center text-muted-foreground leading-relaxed">
+            คุณมีสิทธิ์เข้าถึงทุกระบบและจัดการข้อมูลทั้งหมด รวมถึงการตั้งค่าระบบและจัดการผู้ใช้งาน
+          </p>
+        </CardContent>
+      </Card>
+    </AppLayout>
   );
 };
 
