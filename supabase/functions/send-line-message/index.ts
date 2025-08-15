@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +20,53 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Supabase configuration not found");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Get JWT from Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const jwt = authHeader.split(" ")[1];
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
+    if (authError || !user) {
+      console.error("Authentication error:", authError);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user is healthcare staff
+    const { data: isStaff, error: roleError } = await supabase.rpc("is_healthcare_staff", { _user_id: user.id });
+    if (roleError || !isStaff) {
+      console.error("Role check error:", roleError);
+      return new Response(
+        JSON.stringify({ error: "Access denied: Healthcare staff role required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { userId, message, type = 'text', templateData }: LineMessageRequest = await req.json();
+    
+    // Basic input validation
+    if (!userId || !message || message.length > 2000) {
+      throw new Error("Invalid input: userId and message (max 2000 chars) required");
+    }
     
     const channelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
     if (!channelAccessToken) {

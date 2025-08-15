@@ -77,13 +77,13 @@ enabled = true
 file_size_limit = "50MiB"
 
 [functions.google-sheets-integration]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-line-message]
-verify_jwt = false
+verify_jwt = true
 
 [functions.vaccine-reminder-system]
-verify_jwt = false
+verify_jwt = true
 
 [analytics]
 enabled = false

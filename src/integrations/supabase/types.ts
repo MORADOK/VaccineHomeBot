@@ -351,6 +351,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_make_user_admin: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       calculate_next_dose_date: {
         Args: { _patient_tracking_id: string }
         Returns: string

@@ -14,10 +14,9 @@ interface NotificationRequest {
 }
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN')!;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
@@ -28,26 +27,63 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log('Vaccine reminder system called');
     
+    // Create anon client for authentication
+    const anonSupabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Get JWT from Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const jwt = authHeader.split(" ")[1];
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await anonSupabase.auth.getUser(jwt);
+    if (authError || !user) {
+      console.error("Authentication error:", authError);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user is healthcare staff
+    const { data: isStaff, error: roleError } = await anonSupabase.rpc("is_healthcare_staff", { _user_id: user.id });
+    if (roleError || !isStaff) {
+      console.error("Role check error:", roleError);
+      return new Response(
+        JSON.stringify({ error: "Access denied: Healthcare staff role required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create service client for administrative operations (after authentication)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
     const { action, patient_id, appointment_id, tracking_id }: NotificationRequest = await req.json();
 
     switch (action) {
       case 'send_due_reminders':
-        return await sendDueReminders();
+        return await sendDueReminders(supabase);
       
       case 'send_single_reminder':
         if (!patient_id) {
           throw new Error('patient_id is required for single reminder');
         }
-        return await sendSingleReminder(patient_id);
+        return await sendSingleReminder(patient_id, supabase);
       
       case 'check_overdue':
-        return await checkOverdueAppointments();
+        return await checkOverdueAppointments(supabase);
       
       case 'schedule_next_dose':
         if (!tracking_id) {
           throw new Error('tracking_id is required for scheduling next dose');
         }
-        return await scheduleNextDose(tracking_id);
+        return await scheduleNextDose(tracking_id, supabase);
       
       default:
         throw new Error('Invalid action');
@@ -65,7 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-async function sendDueReminders() {
+async function sendDueReminders(supabase: any) {
   console.log('Sending due reminders...');
   
   // Get notifications scheduled for today that haven't been sent
@@ -141,7 +177,7 @@ async function sendDueReminders() {
   );
 }
 
-async function sendSingleReminder(patientId: string) {
+async function sendSingleReminder(patientId: string, supabase: any) {
   console.log(`Sending single reminder to ${patientId}`);
 
   // Get patient tracking info
@@ -195,7 +231,7 @@ async function sendSingleReminder(patientId: string) {
   );
 }
 
-async function checkOverdueAppointments() {
+async function checkOverdueAppointments(supabase: any) {
   console.log('Checking overdue appointments...');
 
   const today = new Date().toISOString().split('T')[0];
@@ -266,7 +302,7 @@ async function checkOverdueAppointments() {
   );
 }
 
-async function scheduleNextDose(trackingId: string) {
+async function scheduleNextDose(trackingId: string, supabase: any) {
   console.log(`Scheduling next dose for tracking ${trackingId}`);
 
   // Get tracking record
