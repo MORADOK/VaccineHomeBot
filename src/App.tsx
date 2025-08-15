@@ -12,6 +12,7 @@ import StaffPortalPage from "./pages/StaffPortalPage";
 import HomePage from "./pages/HomePage";
 import AuthPage from "./pages/AuthPage";
 import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
+import VaccineStatusPage from "./pages/VaccineStatusPage";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/staff-portal" element={<StaffPortalPage />} />
             <Route path="/StaffPortal" element={<StaffPortalPage />} />
             <Route path="/liff-patient-portal" element={<LiffPatientPortalPage />} />
+            <Route path="/vaccine-status" element={<VaccineStatusPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
