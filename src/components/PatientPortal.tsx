@@ -171,8 +171,14 @@ const PatientPortal = () => {
                 id="fullName"
                 placeholder="นาย/นาง/นางสาว ชื่อ นามสกุล"
                 value={patientData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                onChange={(e) => {
+                  console.log('Name input changed:', e.target.value);
+                  handleInputChange('fullName', e.target.value);
+                }}
+                onFocus={() => console.log('Name input focused')}
+                onBlur={() => console.log('Name input blurred')}
                 className="mt-1"
+                autoComplete="name"
               />
             </div>
 
