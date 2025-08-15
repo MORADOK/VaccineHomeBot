@@ -7,14 +7,155 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointment_notifications: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          id: string
+          message_content: string | null
+          notification_type: string
+          sent_at: string
+          sent_to: string
+          status: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          message_content?: string | null
+          notification_type: string
+          sent_at?: string
+          sent_to: string
+          status?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          id?: string
+          message_content?: string | null
+          notification_type?: string
+          sent_at?: string
+          sent_to?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_notifications_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_id: string
+          appointment_time: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          patient_id_number: string | null
+          patient_name: string
+          patient_phone: string | null
+          scheduled_by: string | null
+          status: string | null
+          updated_at: string
+          vaccine_type: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_id: string
+          appointment_time?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          patient_id_number?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          scheduled_by?: string | null
+          status?: string | null
+          updated_at?: string
+          vaccine_type: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_id?: string
+          appointment_time?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          patient_id_number?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          scheduled_by?: string | null
+          status?: string | null
+          updated_at?: string
+          vaccine_type?: string
+        }
+        Relationships: []
+      }
+      vaccine_logs: {
+        Row: {
+          administered_by: string
+          administered_date: string
+          appointment_id: string | null
+          batch_number: string | null
+          created_at: string
+          dose_number: number | null
+          id: string
+          notes: string | null
+          patient_name: string
+          side_effects: string | null
+          updated_at: string
+          vaccine_type: string
+        }
+        Insert: {
+          administered_by: string
+          administered_date: string
+          appointment_id?: string | null
+          batch_number?: string | null
+          created_at?: string
+          dose_number?: number | null
+          id?: string
+          notes?: string | null
+          patient_name: string
+          side_effects?: string | null
+          updated_at?: string
+          vaccine_type: string
+        }
+        Update: {
+          administered_by?: string
+          administered_date?: string
+          appointment_id?: string | null
+          batch_number?: string | null
+          created_at?: string
+          dose_number?: number | null
+          id?: string
+          notes?: string | null
+          patient_name?: string
+          side_effects?: string | null
+          updated_at?: string
+          vaccine_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccine_logs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
