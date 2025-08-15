@@ -688,8 +688,7 @@ const StaffPortal = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    );
 };
 
 export default StaffPortal;
