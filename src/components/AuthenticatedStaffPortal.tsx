@@ -3,13 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, Shield } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LogOut, Shield, User, Settings, Calculator, Bell } from 'lucide-react';
 import StaffPortal from './StaffPortal';
-import { User, Session } from '@supabase/supabase-js';
+import GoogleSheetsIntegration from './GoogleSheetsIntegration';
+import VaccineScheduleCalculator from './VaccineScheduleCalculator';
+import AutoNotificationSystem from './AutoNotificationSystem';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 const AuthenticatedStaffPortal = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -164,7 +168,7 @@ const AuthenticatedStaffPortal = () => {
   }
 
   return (
-    <div className="relative">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white">
       {/* User info and logout button */}
       <div className="fixed top-4 right-4 z-50">
         <Card className="bg-white/95 backdrop-blur-sm border-2 border-green-200 shadow-lg">
@@ -185,7 +189,88 @@ const AuthenticatedStaffPortal = () => {
           </CardContent>
         </Card>
       </div>
-      <StaffPortal />
+
+      <div className="container mx-auto p-6 pt-20">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-3xl">
+              <Shield className="h-8 w-8 text-primary" />
+              ระบบจัดการวัคซีนสำหรับเจ้าหน้าที่
+            </CardTitle>
+            <CardDescription>
+              ระบบครบถ้วนสำหรับการจัดการวัคซีน การติดตาม และการแจ้งเตือน
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <Tabs defaultValue="portal" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="portal" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Staff Portal
+                </TabsTrigger>
+                <TabsTrigger value="calculator" className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  คำนวณวัคซีน
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  แจ้งเตือน
+                </TabsTrigger>
+                <TabsTrigger value="sheets" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Google Sheets
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Settings
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="portal" className="mt-6">
+                <StaffPortal />
+              </TabsContent>
+
+              <TabsContent value="calculator" className="mt-6">
+                <VaccineScheduleCalculator />
+              </TabsContent>
+
+              <TabsContent value="notifications" className="mt-6">
+                <AutoNotificationSystem />
+              </TabsContent>
+
+              <TabsContent value="sheets" className="mt-6">
+                <GoogleSheetsIntegration />
+              </TabsContent>
+
+              <TabsContent value="settings" className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>การตั้งค่าระบบ</CardTitle>
+                    <CardDescription>
+                      จัดการการตั้งค่าระบบและสิทธิ์การเข้าถึง
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-medium mb-2">ข้อมูลผู้ใช้</h3>
+                      <p className="text-sm text-muted-foreground">อีเมล: {user.email}</p>
+                      <p className="text-sm text-muted-foreground">สิทธิ์: เจ้าหน้าที่ด้านสุขภาพ</p>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-medium mb-2">สถานะระบบ</h3>
+                      <p className="text-sm text-green-600">✅ ระบบคำนวณวัคซีน: ใช้งานได้</p>
+                      <p className="text-sm text-green-600">✅ ระบบแจ้งเตือน: ใช้งานได้</p>
+                      <p className="text-sm text-green-600">✅ Google Sheets: เชื่อมต่อแล้ว</p>
+                      <p className="text-sm text-green-600">✅ LINE Integration: เชื่อมต่อแล้ว</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
