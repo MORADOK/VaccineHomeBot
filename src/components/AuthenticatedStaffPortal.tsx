@@ -17,6 +17,7 @@ const AuthenticatedStaffPortal = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -34,11 +35,16 @@ const AuthenticatedStaffPortal = () => {
               const { data: roleCheck, error } = await supabase
                 .rpc('is_healthcare_staff', { _user_id: session.user.id });
               
-              if (error) {
-                console.error('Role check error:', error);
+              const { data: adminCheck, error: adminError } = await supabase
+                .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+              
+              if (error || adminError) {
+                console.error('Role check error:', error || adminError);
                 setIsAuthorized(false);
+                setIsAdmin(false);
               } else {
                 setIsAuthorized(roleCheck);
+                setIsAdmin(adminCheck);
                 if (!roleCheck) {
                   toast({
                     title: "ไม่มีสิทธิ์เข้าถึง",
@@ -50,10 +56,12 @@ const AuthenticatedStaffPortal = () => {
             } catch (error) {
               console.error('Authorization check failed:', error);
               setIsAuthorized(false);
+              setIsAdmin(false);
             }
           }, 0);
         } else {
           setIsAuthorized(false);
+          setIsAdmin(false);
         }
         setIsLoading(false);
       }
@@ -211,50 +219,56 @@ const AuthenticatedStaffPortal = () => {
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             <Tabs defaultValue="portal" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 h-auto">
+              <TabsList className={`grid w-full gap-1 h-auto ${isAdmin ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-1'}`}>
                 <TabsTrigger value="portal" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
                   <User className="h-4 w-4" />
                   <span className="hidden sm:inline">Staff Portal</span>
                   <span className="sm:hidden">Portal</span>
                 </TabsTrigger>
-                <TabsTrigger value="calculator" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                  <Calculator className="h-4 w-4" />
-                  <span className="hidden sm:inline">คำนวณวัคซีน</span>
-                  <span className="sm:hidden">คำนวณ</span>
-                </TabsTrigger>
-                <TabsTrigger value="notifications" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3 md:col-span-1 col-span-2">
-                  <Bell className="h-4 w-4" />
-                  <span>แจ้งเตือน</span>
-                </TabsTrigger>
-                <TabsTrigger value="sheets" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Google Sheets</span>
-                  <span className="sm:hidden">Sheets</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                  <Shield className="h-4 w-4" />
-                  <span className="hidden sm:inline">Settings</span>
-                  <span className="sm:hidden">ตั้งค่า</span>
-                </TabsTrigger>
+                {isAdmin && (
+                  <>
+                    <TabsTrigger value="calculator" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
+                      <Calculator className="h-4 w-4" />
+                      <span className="hidden sm:inline">คำนวณวัคซีน</span>
+                      <span className="sm:hidden">คำนวณ</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="notifications" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3 md:col-span-1 col-span-2">
+                      <Bell className="h-4 w-4" />
+                      <span>แจ้งเตือน</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="sheets" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
+                      <Settings className="h-4 w-4" />
+                      <span className="hidden sm:inline">Google Sheets</span>
+                      <span className="sm:hidden">Sheets</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="settings" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
+                      <Shield className="h-4 w-4" />
+                      <span className="hidden sm:inline">Settings</span>
+                      <span className="sm:hidden">ตั้งค่า</span>
+                    </TabsTrigger>
+                  </>
+                )}
               </TabsList>
 
               <TabsContent value="portal" className="mt-6">
                 <StaffPortal />
               </TabsContent>
 
-              <TabsContent value="calculator" className="mt-6">
-                <VaccineScheduleCalculator />
-              </TabsContent>
+              {isAdmin && (
+                <>
+                  <TabsContent value="calculator" className="mt-6">
+                    <VaccineScheduleCalculator />
+                  </TabsContent>
 
-              <TabsContent value="notifications" className="mt-6">
-                <AutoNotificationSystem />
-              </TabsContent>
+                  <TabsContent value="notifications" className="mt-6">
+                    <AutoNotificationSystem />
+                  </TabsContent>
 
-              <TabsContent value="sheets" className="mt-6">
-                <GoogleSheetsIntegration />
-              </TabsContent>
+                  <TabsContent value="sheets" className="mt-6">
+                    <GoogleSheetsIntegration />
+                  </TabsContent>
 
-              <TabsContent value="settings" className="mt-6">
+                  <TabsContent value="settings" className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>การตั้งค่าระบบ</CardTitle>
@@ -279,6 +293,8 @@ const AuthenticatedStaffPortal = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
+                </>
+              )}
             </Tabs>
           </CardContent>
         </Card>
