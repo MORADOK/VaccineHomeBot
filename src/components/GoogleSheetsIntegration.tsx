@@ -179,35 +179,29 @@ const GoogleSheetsIntegration = () => {
   }, []);
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold">Google Sheets Integration</h1>
-        <p className="text-muted-foreground mt-2">
-          จัดการข้อมูลผู้ป่วยและการนัดหมายผ่าน Google Sheets
-        </p>
-      </div>
-
+    <div className="space-y-4 md:space-y-6">
       {/* ข้อมูลผู้ป่วย */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            ข้อมูลผู้ป่วย
+        <CardHeader className="pb-3 md:pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <Users className="h-5 w-5 text-primary" />
+            ข้อมูลผู้ป่วยจาก Google Sheets
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Button onClick={loadPatients} disabled={isLoading} className="w-full">
+        <CardContent className="space-y-4 p-4 md:p-6">
+          <Button onClick={loadPatients} disabled={isLoading} className="w-full h-10 md:h-11">
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             {isLoading ? 'กำลังโหลด...' : 'โหลดข้อมูลจาก Google Sheets'}
           </Button>
           
           {patients.length > 0 && (
-            <div className="bg-muted p-4 rounded-lg">
-              <p className="text-sm font-medium mb-2">ผู้ป่วยทั้งหมด: {patients.length} คน</p>
-              <div className="max-h-32 overflow-y-auto space-y-1">
+            <div className="bg-muted/50 p-3 md:p-4 rounded-lg border">
+              <p className="text-sm md:text-base font-medium mb-3">ผู้ป่วยทั้งหมด: {patients.length} คน</p>
+              <div className="max-h-32 md:max-h-40 overflow-y-auto space-y-2">
                 {patients.map((patient) => (
-                  <div key={patient.id} className="text-xs bg-background p-2 rounded">
-                    {patient.name} - {patient.phone}
+                  <div key={patient.id} className="text-xs md:text-sm bg-background p-2 md:p-3 rounded border border-border/30">
+                    <div className="font-medium">{patient.name}</div>
+                    <div className="text-muted-foreground">{patient.phone}</div>
                   </div>
                 ))}
               </div>
@@ -218,18 +212,18 @@ const GoogleSheetsIntegration = () => {
 
       {/* การนัดหมาย */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <CardHeader className="pb-3 md:pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <Calendar className="h-5 w-5 text-primary" />
             บันทึกการนัดหมาย
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 md:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="patient">เลือกผู้ป่วย</Label>
+              <Label htmlFor="patient" className="text-sm md:text-base font-medium">เลือกผู้ป่วย</Label>
               <Select value={appointment.patientId} onValueChange={handlePatientSelect}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue placeholder="เลือกผู้ป่วย" />
                 </SelectTrigger>
                 <SelectContent>
@@ -243,11 +237,11 @@ const GoogleSheetsIntegration = () => {
             </div>
 
             <div>
-              <Label htmlFor="vaccine">ประเภทวัคซีน</Label>
+              <Label htmlFor="vaccine" className="text-sm md:text-base font-medium">ประเภทวัคซีน</Label>
               <Select value={appointment.vaccine} onValueChange={(value) => 
                 setAppointment(prev => ({ ...prev, vaccine: value }))
               }>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue placeholder="เลือกประเภทวัคซีน" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,37 +255,40 @@ const GoogleSheetsIntegration = () => {
             </div>
 
             <div>
-              <Label htmlFor="date">วันที่นัด</Label>
+              <Label htmlFor="date" className="text-sm md:text-base font-medium">วันที่นัด</Label>
               <Input
                 id="date"
                 type="date"
                 value={appointment.date}
                 onChange={(e) => setAppointment(prev => ({ ...prev, date: e.target.value }))}
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="time">เวลา</Label>
+              <Label htmlFor="time" className="text-sm md:text-base font-medium">เวลา</Label>
               <Input
                 id="time"
                 type="time"
                 value={appointment.time}
                 onChange={(e) => setAppointment(prev => ({ ...prev, time: e.target.value }))}
+                className="mt-1"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="notes">หมายเหตุ</Label>
+            <Label htmlFor="notes" className="text-sm md:text-base font-medium">หมายเหตุ</Label>
             <Textarea
               id="notes"
               placeholder="หมายเหตุเพิ่มเติม"
               value={appointment.notes}
               onChange={(e) => setAppointment(prev => ({ ...prev, notes: e.target.value }))}
+              className="mt-1 min-h-[80px] md:min-h-[100px]"
             />
           </div>
 
-          <Button onClick={saveAppointment} disabled={isLoading} className="w-full">
+          <Button onClick={saveAppointment} disabled={isLoading} className="w-full h-10 md:h-11">
             บันทึกการนัดหมาย
           </Button>
         </CardContent>
@@ -299,30 +296,32 @@ const GoogleSheetsIntegration = () => {
 
       {/* การแจ้งเตือน */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
+        <CardHeader className="pb-3 md:pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <Bell className="h-5 w-5 text-primary" />
             ตั้งค่าการแจ้งเตือน
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 md:p-6">
           <div>
-            <Label htmlFor="notificationDate">วันที่ต้องการแจ้งเตือน</Label>
+            <Label htmlFor="notificationDate" className="text-sm md:text-base font-medium">วันที่ต้องการแจ้งเตือน</Label>
             <Input
               id="notificationDate"
               type="date"
               value={appointment.notificationDate}
               onChange={(e) => setAppointment(prev => ({ ...prev, notificationDate: e.target.value }))}
+              className="mt-1"
             />
           </div>
 
           <Alert>
-            <AlertDescription>
+            <Bell className="h-4 w-4" />
+            <AlertDescription className="text-sm md:text-base">
               ระบบจะแจ้งเตือนผู้ป่วยผ่าน LINE ในวันที่กำหนด เพื่อเตือนเรื่องการนัดหมายฉีดวัคซีน
             </AlertDescription>
           </Alert>
 
-          <Button onClick={scheduleNotification} disabled={isLoading} className="w-full">
+          <Button onClick={scheduleNotification} disabled={isLoading} className="w-full h-10 md:h-11">
             ตั้งค่าการแจ้งเตือน
           </Button>
         </CardContent>
