@@ -8,61 +8,76 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Custom design tokens for n8n workflow analyzer */
-    --workflow-primary: 220 70% 50%;
-    --workflow-success: 142 76% 36%;
-    --workflow-warning: 38 92% 50%;
-    --workflow-error: 0 84% 60%;
-    --workflow-info: 217 91% 60%;
+    /* Modern green-themed medical design system */
+    --medical-primary: 150 50% 45%;
+    --medical-secondary: 160 35% 50%;
+    --medical-accent: 140 60% 50%;
+    --medical-success: 145 70% 40%;
+    --medical-warning: 45 90% 55%;
+    --medical-error: 0 85% 60%;
+    --medical-info: 200 80% 55%;
+    --medical-neutral: 150 5% 50%;
 
-    /* Node type colors */
-    --node-webhook: 280 100% 70%;
-    --node-switch: 195 100% 50%;
-    --node-ai: 260 100% 80%;
-    --node-http: 120 100% 40%;
-    --node-function: 30 100% 50%;
+    /* Soft green palette for comfort */
+    --green-50: 150 60% 97%;
+    --green-100: 150 55% 92%;
+    --green-200: 150 50% 85%;
+    --green-500: 150 50% 45%;
+    --green-600: 150 55% 35%;
+    --green-700: 150 60% 25%;
+    --green-800: 150 65% 15%;
 
-    /* Gradients */
-    --gradient-workflow: linear-gradient(135deg, hsl(var(--workflow-primary)), hsl(var(--workflow-info)));
-    --gradient-error: linear-gradient(135deg, hsl(var(--workflow-error)), hsl(var(--destructive)));
-    --gradient-success: linear-gradient(135deg, hsl(var(--workflow-success)), hsl(var(--primary)));
+    /* Status colors using green theme */
+    --status-scheduled: 45 90% 60%;
+    --status-completed: 145 70% 40%;
+    --status-cancelled: 0 70% 55%;
+    --status-pending: 35 85% 55%;
 
-    /* Shadows */
-    --shadow-workflow: 0 8px 32px hsl(var(--workflow-primary) / 0.15);
-    --shadow-error: 0 8px 32px hsl(var(--workflow-error) / 0.15);
+    /* Gradients for modern look */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--medical-primary)), hsl(var(--medical-secondary)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--medical-success)), hsl(var(--medical-accent)));
+    --gradient-soft: linear-gradient(180deg, hsl(var(--green-50)), hsl(0 0% 100%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(var(--green-50)));
 
-    /* Animations */
+    /* Modern shadows */
+    --shadow-soft: 0 2px 8px hsl(var(--medical-primary) / 0.08);
+    --shadow-medium: 0 4px 16px hsl(var(--medical-primary) / 0.12);
+    --shadow-large: 0 8px 32px hsl(var(--medical-primary) / 0.15);
+    --shadow-glow: 0 0 20px hsl(var(--medical-accent) / 0.3);
+
+    /* Smooth animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.15s ease-in-out;
+    --transition-spring: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-    /* Main shadcn color tokens */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Updated shadcn tokens for green theme */
+    --background: 150 30% 99%;
+    --foreground: 150 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 150 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 150 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 150 50% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 150 20% 95%;
+    --secondary-foreground: 150 15% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 150 15% 96%;
+    --muted-foreground: 150 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 150 30% 90%;
+    --accent-foreground: 150 15% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 150 20% 90%;
+    --input: 150 20% 95%;
+    --ring: 150 50% 45%;
 
     --radius: 0.5rem;
 
@@ -77,41 +92,41 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 150 15% 8%;
+    --foreground: 150 20% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 150 15% 10%;
+    --card-foreground: 150 20% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 150 15% 10%;
+    --popover-foreground: 150 20% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 150 50% 55%;
+    --primary-foreground: 150 15% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 150 10% 15%;
+    --secondary-foreground: 150 20% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 150 10% 15%;
+    --muted-foreground: 150 15% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 150 15% 20%;
+    --accent-foreground: 150 20% 95%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 150 20% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 150 10% 20%;
+    --input: 150 10% 15%;
+    --ring: 150 50% 55%;
+    --sidebar-background: 150 15% 8%;
+    --sidebar-foreground: 150 20% 95%;
+    --sidebar-primary: 150 50% 55%;
+    --sidebar-primary-foreground: 150 15% 8%;
+    --sidebar-accent: 150 10% 15%;
+    --sidebar-accent-foreground: 150 20% 95%;
+    --sidebar-border: 150 10% 20%;
+    --sidebar-ring: 150 50% 55%;
   }
 }
 

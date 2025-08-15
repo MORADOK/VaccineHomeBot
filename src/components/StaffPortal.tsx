@@ -210,12 +210,12 @@ const StaffPortal = () => {
 
   const getStatusColor = (status: string) => {
     const colorMap = {
-      scheduled: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-      no_show: 'bg-gray-100 text-gray-800'
+      scheduled: 'bg-status-scheduled/10 text-status-scheduled border-status-scheduled/20',
+      completed: 'bg-status-completed/10 text-status-completed border-status-completed/20',
+      cancelled: 'bg-status-cancelled/10 text-status-cancelled border-status-cancelled/20',
+      no_show: 'bg-muted text-muted-foreground border-border'
     };
-    return colorMap[status as keyof typeof colorMap] || 'bg-gray-100 text-gray-800';
+    return colorMap[status as keyof typeof colorMap] || 'bg-muted text-muted-foreground border-border';
   };
 
   const filteredAppointments = appointments.filter(apt => {
@@ -302,101 +302,126 @@ const StaffPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">ระบบจัดการเจ้าหน้าที่</h1>
-            <h2 className="text-xl text-muted-foreground">โรงพยาบาลโฮม</h2>
-            <p className="text-muted-foreground">จัดการการนัดหมายและการฉีดวัคซีน</p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={loadAppointments} variant="outline" disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              โหลดข้อมูลนัดหมาย
-            </Button>
-            <Button onClick={loadPatients} variant="outline" disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              โหลดข้อมูลคนไข้
-            </Button>
-            <Button onClick={exportData} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              ส่งออกข้อมูล
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Modern Header */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-soft border border-green-100">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-medical-secondary bg-clip-text text-transparent">
+                ระบบจัดการเจ้าหน้าที่
+              </h1>
+              <h2 className="text-xl text-medical-neutral font-medium">โรงพยาบาลโฮม</h2>
+              <p className="text-muted-foreground">จัดการการนัดหมายและการฉีดวัคซีนอย่างมีประสิทธิภาพ</p>
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                onClick={loadAppointments} 
+                variant="outline" 
+                disabled={isLoading}
+                className="hover:bg-green-50 hover:border-primary transition-all duration-300"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                โหลดนัดหมาย
+              </Button>
+              <Button 
+                onClick={loadPatients} 
+                variant="outline" 
+                disabled={isLoading}
+                className="hover:bg-green-50 hover:border-primary transition-all duration-300"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                โหลดคนไข้
+              </Button>
+              <Button 
+                onClick={exportData} 
+                className="bg-primary hover:bg-primary/90 shadow-medium hover:shadow-large transition-all duration-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                ส่งออกข้อมูล
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+        {/* Modern Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center">
-                <Users className="h-8 w-8 text-blue-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">ทั้งหมด</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-medical-info/20 to-medical-info/10 rounded-xl">
+                  <Users className="h-6 w-6 text-medical-info" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">ทั้งหมด</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center">
-                <Clock className="h-8 w-8 text-yellow-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">รอการยืนยัน</p>
-                  <p className="text-2xl font-bold">{stats.scheduled}</p>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-status-scheduled/20 to-status-scheduled/10 rounded-xl">
+                  <Clock className="h-6 w-6 text-status-scheduled" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">รอการยืนยัน</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.scheduled}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">เสร็จสิ้น</p>
-                  <p className="text-2xl font-bold">{stats.completed}</p>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-status-completed/20 to-status-completed/10 rounded-xl">
+                  <CheckCircle className="h-6 w-6 text-status-completed" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">เสร็จสิ้น</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.completed}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center">
-                <XCircle className="h-8 w-8 text-red-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">ยกเลิก</p>
-                  <p className="text-2xl font-bold">{stats.cancelled}</p>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-status-cancelled/20 to-status-cancelled/10 rounded-xl">
+                  <XCircle className="h-6 w-6 text-status-cancelled" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">ยกเลิก</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.cancelled}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search and Filter */}
-        <Card>
+        {/* Modern Search and Filter */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-soft">
           <CardContent className="p-6">
             <div className="flex gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรือ ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 py-3 rounded-xl border-green-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300"
                   />
                 </div>
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border rounded-md"
+                className="px-4 py-3 border border-green-200 rounded-xl bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300"
               >
                 <option value="all">ทุกสถานะ</option>
                 <option value="scheduled">รอการยืนยัน</option>
@@ -408,119 +433,122 @@ const StaffPortal = () => {
           </CardContent>
         </Card>
 
-        {/* Patient List */}
+        {/* Modern Patient List */}
         {searchTerm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>ผลการค้นหาคนไข้ ({filteredPatients.length})</CardTitle>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-soft">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-foreground">
+                ผลการค้นหาคนไข้ ({filteredPatients.length})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {filteredPatients.map((patient) => (
-                  <div key={patient.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
+                  <div key={patient.id} className="bg-gradient-card rounded-xl p-6 border border-green-100 shadow-soft hover:shadow-medium transition-all duration-300">
+                    <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="font-semibold text-lg">{patient.name}</h3>
+                        <h3 className="font-semibold text-lg text-foreground">{patient.name}</h3>
                         <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        <span>{patient.phone}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
+                        <Phone className="h-5 w-5 text-primary" />
+                        <span className="font-medium">{patient.phone}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">อีเมล: {patient.email}</span>
+                      <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
+                        <span className="text-sm font-medium">อีเมล: {patient.email}</span>
                       </div>
-                       <div className="flex items-center gap-2">
-                         <span className="text-sm">LINE ID: {patient.lineId}</span>
-                       </div>
-                     </div>
+                      <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
+                        <span className="text-sm font-medium">LINE ID: {patient.lineId}</span>
+                      </div>
+                    </div>
 
-                     <div className="mt-4 pt-4 border-t">
-                       <h4 className="text-sm font-medium mb-3">เลือกวัคซีนสำหรับคนไข้</h4>
-                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'flu')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนไข้หวัดใหญ่
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'hep_b')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนไวรัสตับอักเสบบี
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'tetanus')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนป้องกันบาดทะยัก
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'shingles')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนงูสวัด
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'hpv')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนป้องกันมะเร็งปากมดลูก
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'pneumonia')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนปอดอักเสบ
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'chickenpox')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนอีสุกอีใส
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => scheduleVaccine(patient, 'rabies')}
-                           className="text-xs"
-                           disabled={isLoading}
-                         >
-                           วัคซีนพิษสุนัขบ้า
-                         </Button>
-                       </div>
-                     </div>
-                   </div>
+                    <div className="border-t border-green-100 pt-4">
+                      <h4 className="text-sm font-semibold mb-4 text-foreground">เลือกวัคซีนสำหรับคนไข้</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'flu')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนไข้หวัดใหญ่
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'hep_b')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนไวรัสตับอักเสบบี
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'tetanus')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนป้องกันบาดทะยัก
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'shingles')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนงูสวัด
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'hpv')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนป้องกันมะเร็งปากมดลูก
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'pneumonia')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนปอดอักเสบ
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'chickenpox')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนอีสุกอีใส
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => scheduleVaccine(patient, 'rabies')}
+                          className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          disabled={isLoading}
+                        >
+                          วัคซีนพิษสุนัขบ้า
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
 
                 {filteredPatients.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    ไม่พบข้อมูลคนไข้ที่ตรงกับการค้นหา
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">ไม่พบข้อมูลคนไข้ที่ตรงกับการค้นหา</p>
                   </div>
                 )}
               </div>
@@ -528,52 +556,55 @@ const StaffPortal = () => {
           </Card>
         )}
 
-        {/* Appointments List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>รายการนัดหมาย ({filteredAppointments.length})</CardTitle>
+        {/* Modern Appointments List */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-soft">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-foreground">
+              รายการนัดหมาย ({filteredAppointments.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {filteredAppointments.map((appointment) => (
-                <div key={appointment.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
+                <div key={appointment.id} className="bg-gradient-card rounded-xl p-6 border border-green-100 shadow-soft hover:shadow-medium transition-all duration-300">
+                  <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-semibold text-lg">{appointment.patient_name}</h3>
+                      <h3 className="font-semibold text-lg text-foreground">{appointment.patient_name}</h3>
                       <p className="text-sm text-muted-foreground">ID: {appointment.appointment_id}</p>
                     </div>
-                    <Badge className={getStatusColor(appointment.status)}>
+                    <Badge className={`${getStatusColor(appointment.status)} border font-medium px-3 py-1`}>
                       {getStatusText(appointment.status)}
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span>{appointment.patient_phone}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
+                      <Phone className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{appointment.patient_phone}</span>
                       {appointment.line_user_id && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/20 font-medium">
                           LINE
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>{appointment.appointment_date} เวลา {appointment.appointment_time}</span>
+                    <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{appointment.appointment_date} เวลา {appointment.appointment_time}</span>
                     </div>
-                    <div>
-                      <span className="text-sm">วัคซีน: {appointment.vaccine_type}</span>
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <span className="text-sm font-medium">วัคซีน: {appointment.vaccine_type}</span>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-3 flex-wrap">
                     {appointment.status === 'scheduled' && (
                       <Button
                         size="sm"
                         onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
                         disabled={isLoading}
+                        className="bg-status-completed hover:bg-status-completed/90 text-white shadow-medium hover:shadow-large transition-all duration-300"
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" />
+                        <CheckCircle className="h-4 w-4 mr-2" />
                         เสร็จสิ้น
                       </Button>
                     )}
@@ -581,18 +612,20 @@ const StaffPortal = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => sendNotification(appointment, `🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน\n\nสวัสดีคุณ ${appointment.patient_name}\n\n📅 วันที่: ${appointment.appointment_date}\n⏰ เวลา: ${appointment.appointment_time}\n💉 วัคซีน: ${appointment.vaccine_type}\n🏥 สถานที่: โรงพยาบาลโฮม\n\nกรุณามาตามเวลานัดหมาย\nหากมีข้อสงสัยสามารถติดต่อโรงพยาบาลได้`)}
+                      className="hover:bg-primary hover:text-primary-foreground transition-all duration-300"
                     >
-                      <Send className="h-4 w-4 mr-1" />
+                      <Send className="h-4 w-4 mr-2" />
                       {appointment.line_user_id ? 'ส่ง LINE' : 'ส่งแจ้งเตือน'}
                     </Button>
                     {appointment.status === 'scheduled' && (
                       <Button
                         size="sm"
-                        variant="destructive"
+                        variant="outline"
                         onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
                         disabled={isLoading}
+                        className="border-status-cancelled text-status-cancelled hover:bg-status-cancelled hover:text-white transition-all duration-300"
                       >
-                        <XCircle className="h-4 w-4 mr-1" />
+                        <XCircle className="h-4 w-4 mr-2" />
                         ยกเลิก
                       </Button>
                     )}
@@ -601,8 +634,9 @@ const StaffPortal = () => {
               ))}
 
               {filteredAppointments.length === 0 && !searchTerm && (
-                <div className="text-center py-8 text-muted-foreground">
-                  ไม่พบข้อมูลการนัดหมาย
+                <div className="text-center py-12 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">ไม่พบข้อมูลการนัดหมาย</p>
                 </div>
               )}
             </div>
