@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { User, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PatientData {
   fullName: string;
@@ -13,8 +14,6 @@ interface PatientData {
 }
 
 const PatientPortal = () => {
-  // Webhook URL สำหรับ รพ.โฮม (ค่าคงที่สำหรับการใช้งานจริง)
-  const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL || 'https://your-n8n-webhook-url.com';
   
   const [patientData, setPatientData] = useState<PatientData>({
     fullName: '',
@@ -54,33 +53,30 @@ const PatientPortal = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'patient_registration',
-          data: {
-            ...patientData,
-            hospital: 'โรงพยาบาลโฮม',
-            registrationId: `HOM-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            source: 'web_portal'
-          }
-        }),
-      });
-
-      if (response.ok) {
-        setIsRegistered(true);
-        toast({
-          title: "ลงทะเบียนสำเร็จ",
-          description: "ลงทะเบียนรับบริการสำเร็จแล้ว",
+      const registrationId = `HOM-${Date.now()}`;
+      
+      const { error } = await supabase
+        .from('patient_registrations')
+        .insert({
+          full_name: patientData.fullName,
+          phone: patientData.phone,
+          hospital: 'โรงพยาบาลโฮม',
+          registration_id: registrationId,
+          source: 'web_portal',
+          status: 'pending'
         });
-      } else {
-        throw new Error('Registration failed');
+
+      if (error) {
+        throw error;
       }
+
+      setIsRegistered(true);
+      toast({
+        title: "ลงทะเบียนสำเร็จ",
+        description: "ลงทะเบียนรับบริการสำเร็จแล้ว",
+      });
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "ลงทะเบียนไม่สำเร็จ",
         description: "เกิดข้อผิดพลาดในการลงทะเบียน กรุณาลองใหม่อีกครั้ง",

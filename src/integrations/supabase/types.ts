@@ -153,6 +153,45 @@ export type Database = {
           },
         ]
       }
+      patient_registrations: {
+        Row: {
+          created_at: string
+          full_name: string
+          hospital: string
+          id: string
+          notes: string | null
+          phone: string
+          registration_id: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          hospital?: string
+          id?: string
+          notes?: string | null
+          phone: string
+          registration_id: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          hospital?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          registration_id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patient_vaccine_tracking: {
         Row: {
           auto_reminder_enabled: boolean | null
