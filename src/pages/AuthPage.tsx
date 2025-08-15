@@ -336,25 +336,99 @@ const AuthPage = () => {
           </div>
         </div>
 
-        <Card className="border-2 border-green-200 shadow-xl bg-white/95 backdrop-blur-sm animate-scale-in">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-center">
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-emerald-500 rounded-lg flex items-center justify-center">
-                    <LogIn className="h-4 w-4 text-white" />
+        {showResetPassword ? (
+          <Card className="border-2 border-blue-200 shadow-xl bg-white/95 backdrop-blur-sm animate-scale-in">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-center">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                      <LogIn className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                      ตั้งรหัสผ่านใหม่
+                    </span>
                   </div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">
-                    เข้าสู่ระบบ
-                  </span>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    กรุณาสร้างรหัสผ่านใหม่สำหรับบัญชีของคุณ
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">
-                  เลือกระหว่างเข้าสู่ระบบหรือสร้างบัญชีใหม่
-                </p>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">รหัสผ่านใหม่</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="border-2 border-blue-300 focus:border-blue-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="ยืนยันรหัสผ่านใหม่"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="border-2 border-blue-300 focus:border-blue-500"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-500/90 hover:to-purple-500/90 shadow-lg hover:shadow-xl transition-all duration-300" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  ) : null}
+                  อัปเดตรหัสผ่าน
+                </Button>
+                <div className="text-center">
+                  <Button 
+                    type="button"
+                    variant="link"
+                    onClick={() => {
+                      setShowResetPassword(false);
+                      window.history.replaceState({}, document.title, '/auth');
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground font-medium"
+                  >
+                    กลับไปเข้าสู่ระบบ
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-2 border-green-200 shadow-xl bg-white/95 backdrop-blur-sm animate-scale-in">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-center">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-emerald-500 rounded-lg flex items-center justify-center">
+                      <LogIn className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-2xl font-bold bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">
+                      เข้าสู่ระบบ
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    เลือกระหว่างเข้าสู่ระบบหรือสร้างบัญชีใหม่
+                  </p>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
             {!showForgotPassword ? (
               <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(value) => setIsSignUp(value === "signup")}>
                 <TabsList className="grid w-full grid-cols-2 bg-green-50 p-1 rounded-xl border border-green-200">
@@ -517,81 +591,22 @@ const AuthPage = () => {
                 </form>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {showResetPassword && (
-          <Card className="border-2 border-blue-200 shadow-xl bg-white/95 backdrop-blur-sm animate-scale-in mt-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-center">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                      <LogIn className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                      ตั้งรหัสผ่านใหม่
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    กรุณาสร้างรหัสผ่านใหม่สำหรับบัญชีของคุณ
-                  </p>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">รหัสผ่านใหม่</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="border-2 border-blue-300 focus:border-blue-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    placeholder="ยืนยันรหัสผ่านใหม่"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="border-2 border-blue-300 focus:border-blue-500"
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-500/90 hover:to-purple-500/90 shadow-lg hover:shadow-xl transition-all duration-300" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  ) : null}
-                  อัปเดตรหัสผ่าน
-                </Button>
-              </form>
             </CardContent>
           </Card>
         )}
 
-        <div className="text-center">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 border-2 border-green-200 hover:bg-green-50 hover:border-primary transition-all duration-300 font-medium"
-          >
-            <Home className="h-4 w-4" />
-            กลับหน้าหลัก
-          </Button>
-        </div>
+        {!showResetPassword && (
+          <div className="text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 border-2 border-green-200 hover:bg-green-50 hover:border-primary transition-all duration-300 font-medium"
+            >
+              <Home className="h-4 w-4" />
+              กลับหน้าหลัก
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
