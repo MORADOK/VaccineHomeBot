@@ -30,40 +30,38 @@ const VaccineStatusChecker = () => {
     setHasSearched(true);
 
     try {
-      const searchField = searchType === 'phone' ? 'patient_phone' : 'patient_id_number';
+      // Use secure Edge Function for vaccine status lookup
+      const SUPABASE_URL = "https://fljyjbrgfzervxofrilo.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsanlqYnJnZnplcnZ4b2ZyaWxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDE1MDUsImV4cCI6MjA2OTY3NzUwNX0.2_rGfy-3UA4cPnRsg8Lm8uvj9KBCOoz5IhwCbSWYIq4";
       
-      // Get appointments
-      const { data: appointmentData } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq(searchField, searchValue)
-        .order('appointment_date', { ascending: false });
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/secure-vaccine-status-lookup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          searchType: searchType === 'id' ? 'patient_id' : searchType,
+          searchValue
+        }),
+      });
 
-      // Get patient name for other queries
-      let patientName = '';
-      if (appointmentData && appointmentData.length > 0) {
-        patientName = appointmentData[0].patient_name;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'เกิดข้อผิดพลาดในการค้นหาข้อมูล');
       }
 
-      // Get vaccine logs
-      let logsData = [];
-      if (patientName) {
-        const { data: logs } = await supabase
-          .from('vaccine_logs')
-          .select('*')
-          .eq('patient_name', patientName)
-          .order('administered_date', { ascending: false });
-        
-        logsData = logs || [];
-      }
+      const data = await response.json();
+      
+      const patientName = data.appointments?.[0]?.patient_name || '';
 
       setResults({
-        appointments: appointmentData || [],
-        logs: logsData,
+        appointments: data.appointments || [],
+        logs: data.vaccineLogs || [],
         patientName: patientName
       });
 
-      if (!appointmentData || appointmentData.length === 0) {
+      if (!data.appointments?.length && !data.vaccineLogs?.length) {
         toast({
           title: "ไม่พบข้อมูล",
           description: "ไม่พบข้อมูลการลงทะเบียนในระบบ กรุณาตรวจสอบข้อมูลอีกครั้ง"
