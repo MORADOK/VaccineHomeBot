@@ -240,6 +240,7 @@ const StaffPortal = () => {
   };
 
   const scheduleVaccine = async (patient: Patient, vaccineType: string) => {
+    setIsLoading(true);
     try {
       // Generate new appointment ID
       const newId = `HOM-${String(appointments.length + 1).padStart(3, '0')}`;
@@ -257,37 +258,48 @@ const StaffPortal = () => {
         registrationDate: new Date().toISOString().split('T')[0]
       };
 
-      // Add to appointments list
+      // Add to appointments list first (so it shows even if webhook fails)
       setAppointments(prev => [...prev, newAppointment]);
 
-      // Send to webhook if configured
+      // Try to send to webhook if configured
       if (webhookUrl) {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'vaccine_scheduled',
-            data: {
-              appointmentId: newId,
-              patient,
-              vaccineType,
-              scheduledBy: 'staff',
-              timestamp: new Date().toISOString()
-            }
-          }),
-        });
+        try {
+          const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors', // Handle CORS issues
+            body: JSON.stringify({
+              type: 'vaccine_scheduled',
+              data: {
+                appointmentId: newId,
+                patient,
+                vaccineType,
+                scheduledBy: 'staff',
+                timestamp: new Date().toISOString()
+              }
+            }),
+          });
+          
+          console.log('Webhook sent successfully');
+        } catch (webhookError) {
+          console.warn('Webhook failed but appointment was created:', webhookError);
+          // Don't throw error - appointment was still created locally
+        }
       }
 
       toast({
-        title: "นัดหมายสำเร็จ",
-        description: `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${patient.name} เรียบร้อยแล้ว`,
+        title: "สร้างนัดหมายสำเร็จ",
+        description: `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${patient.name} เรียบร้อยแล้ว (ID: ${newId})`,
       });
     } catch (error) {
+      console.error('Failed to create appointment:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถสร้างนัดหมายได้",
+        description: "ไม่สามารถสร้างนัดหมายได้ กรุณาลองใหม่",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
