@@ -8,76 +8,79 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Modern green-themed medical design system */
-    --medical-primary: 150 50% 45%;
-    --medical-secondary: 160 35% 50%;
-    --medical-accent: 140 60% 50%;
-    --medical-success: 145 70% 40%;
-    --medical-warning: 45 90% 55%;
-    --medical-error: 0 85% 60%;
-    --medical-info: 200 80% 55%;
-    --medical-neutral: 150 5% 50%;
+    /* Enhanced medical design system with high contrast */
+    --medical-primary: 150 65% 40%;
+    --medical-secondary: 160 55% 45%;
+    --medical-accent: 140 75% 45%;
+    --medical-success: 145 85% 35%;
+    --medical-warning: 45 95% 50%;
+    --medical-error: 0 90% 55%;
+    --medical-info: 200 90% 50%;
+    --medical-neutral: 150 10% 40%;
 
-    /* Soft green palette for comfort */
-    --green-50: 150 60% 97%;
-    --green-100: 150 55% 92%;
-    --green-200: 150 50% 85%;
-    --green-500: 150 50% 45%;
-    --green-600: 150 55% 35%;
-    --green-700: 150 60% 25%;
-    --green-800: 150 65% 15%;
+    /* High contrast green palette */
+    --green-50: 150 80% 98%;
+    --green-100: 150 70% 95%;
+    --green-200: 150 60% 90%;
+    --green-300: 150 55% 80%;
+    --green-500: 150 65% 40%;
+    --green-600: 150 70% 30%;
+    --green-700: 150 75% 20%;
+    --green-800: 150 80% 15%;
 
-    /* Status colors using green theme */
-    --status-scheduled: 45 90% 60%;
-    --status-completed: 145 70% 40%;
-    --status-cancelled: 0 70% 55%;
-    --status-pending: 35 85% 55%;
+    /* High contrast status colors */
+    --status-scheduled: 45 100% 55%;
+    --status-completed: 145 85% 35%;
+    --status-cancelled: 0 85% 50%;
+    --status-pending: 35 90% 50%;
 
-    /* Gradients for modern look */
+    /* High contrast gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--medical-primary)), hsl(var(--medical-secondary)));
     --gradient-success: linear-gradient(135deg, hsl(var(--medical-success)), hsl(var(--medical-accent)));
     --gradient-soft: linear-gradient(180deg, hsl(var(--green-50)), hsl(0 0% 100%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(var(--green-50)));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(var(--green-100)));
+    --gradient-header: linear-gradient(135deg, hsl(0 0% 100%), hsl(var(--green-50)));
 
-    /* Modern shadows */
-    --shadow-soft: 0 2px 8px hsl(var(--medical-primary) / 0.08);
-    --shadow-medium: 0 4px 16px hsl(var(--medical-primary) / 0.12);
-    --shadow-large: 0 8px 32px hsl(var(--medical-primary) / 0.15);
-    --shadow-glow: 0 0 20px hsl(var(--medical-accent) / 0.3);
+    /* Enhanced shadows for clarity */
+    --shadow-soft: 0 4px 12px hsl(var(--medical-primary) / 0.15);
+    --shadow-medium: 0 8px 24px hsl(var(--medical-primary) / 0.20);
+    --shadow-large: 0 12px 40px hsl(var(--medical-primary) / 0.25);
+    --shadow-glow: 0 0 30px hsl(var(--medical-accent) / 0.4);
+    --shadow-crisp: 0 2px 8px hsl(0 0% 0% / 0.1), 0 1px 2px hsl(0 0% 0% / 0.06);
 
     /* Smooth animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.15s ease-in-out;
     --transition-spring: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-    /* Updated shadcn tokens for green theme */
-    --background: 150 30% 99%;
-    --foreground: 150 15% 15%;
+    /* High contrast shadcn tokens */
+    --background: 150 40% 98%;
+    --foreground: 150 25% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 150 15% 15%;
+    --card-foreground: 150 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 150 15% 15%;
+    --popover-foreground: 150 25% 10%;
 
-    --primary: 150 50% 45%;
+    --primary: 150 65% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 20% 95%;
-    --secondary-foreground: 150 15% 15%;
+    --secondary: 150 30% 92%;
+    --secondary-foreground: 150 25% 10%;
 
-    --muted: 150 15% 96%;
-    --muted-foreground: 150 10% 45%;
+    --muted: 150 25% 94%;
+    --muted-foreground: 150 15% 35%;
 
-    --accent: 150 30% 90%;
-    --accent-foreground: 150 15% 15%;
+    --accent: 150 40% 88%;
+    --accent-foreground: 150 25% 10%;
 
-    --destructive: 0 70% 55%;
+    --destructive: 0 85% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 20% 90%;
-    --input: 150 20% 95%;
-    --ring: 150 50% 45%;
+    --border: 150 30% 85%;
+    --input: 150 25% 92%;
+    --ring: 150 65% 40%;
 
     --radius: 0.5rem;
 

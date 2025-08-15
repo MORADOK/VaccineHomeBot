@@ -210,12 +210,12 @@ const StaffPortal = () => {
 
   const getStatusColor = (status: string) => {
     const colorMap = {
-      scheduled: 'bg-status-scheduled/10 text-status-scheduled border-status-scheduled/20',
-      completed: 'bg-status-completed/10 text-status-completed border-status-completed/20',
-      cancelled: 'bg-status-cancelled/10 text-status-cancelled border-status-cancelled/20',
-      no_show: 'bg-muted text-muted-foreground border-border'
+      scheduled: 'bg-status-scheduled/20 text-status-scheduled border-2 border-status-scheduled/40 font-bold',
+      completed: 'bg-status-completed/20 text-status-completed border-2 border-status-completed/40 font-bold',
+      cancelled: 'bg-status-cancelled/20 text-status-cancelled border-2 border-status-cancelled/40 font-bold',
+      no_show: 'bg-muted/50 text-muted-foreground border-2 border-border font-bold'
     };
-    return colorMap[status as keyof typeof colorMap] || 'bg-muted text-muted-foreground border-border';
+    return colorMap[status as keyof typeof colorMap] || 'bg-muted/50 text-muted-foreground border-2 border-border font-bold';
   };
 
   const filteredAppointments = appointments.filter(apt => {
@@ -302,132 +302,133 @@ const StaffPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Modern Header */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-soft border border-green-100">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white">
+      <div className="max-w-7xl mx-auto p-8 space-y-10">
+        {/* Enhanced Header with Clear Hierarchy */}
+        <div className="bg-gradient-header rounded-3xl p-8 shadow-crisp border-2 border-green-200/50">
           <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-medical-secondary bg-clip-text text-transparent">
+            <div className="space-y-3">
+              <h1 className="text-4xl font-black text-foreground tracking-tight">
                 ระบบจัดการเจ้าหน้าที่
               </h1>
-              <h2 className="text-xl text-medical-neutral font-medium">โรงพยาบาลโฮม</h2>
-              <p className="text-muted-foreground">จัดการการนัดหมายและการฉีดวัคซีนอย่างมีประสิทธิภาพ</p>
+              <h2 className="text-2xl text-primary font-bold">โรงพยาบาลโฮม</h2>
+              <p className="text-lg text-muted-foreground font-medium">จัดการการนัดหมายและการฉีดวัคซีนอย่างมีประสิทธิภาพ</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <Button 
                 onClick={loadAppointments} 
                 variant="outline" 
                 disabled={isLoading}
-                className="hover:bg-green-50 hover:border-primary transition-all duration-300"
+                className="h-12 px-6 text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-crisp transition-all duration-300"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-5 w-5 mr-3 ${isLoading ? 'animate-spin' : ''}`} />
                 โหลดนัดหมาย
               </Button>
               <Button 
                 onClick={loadPatients} 
                 variant="outline" 
                 disabled={isLoading}
-                className="hover:bg-green-50 hover:border-primary transition-all duration-300"
+                className="h-12 px-6 text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-crisp transition-all duration-300"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-5 w-5 mr-3 ${isLoading ? 'animate-spin' : ''}`} />
                 โหลดคนไข้
               </Button>
               <Button 
                 onClick={exportData} 
-                className="bg-primary hover:bg-primary/90 shadow-medium hover:shadow-large transition-all duration-300"
+                className="h-12 px-6 text-base font-bold bg-primary hover:bg-primary/90 shadow-medium hover:shadow-large transition-all duration-300"
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-5 w-5 mr-3" />
                 ส่งออกข้อมูล
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Modern Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-medical-info/20 to-medical-info/10 rounded-xl">
-                  <Users className="h-6 w-6 text-medical-info" />
+        {/* High Contrast Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-medical-info">
+            <CardContent className="p-8">
+              <div className="flex items-center space-x-5">
+                <div className="p-4 bg-gradient-to-br from-medical-info to-medical-info/80 rounded-2xl shadow-medium">
+                  <Users className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">ทั้งหมด</p>
-                  <p className="text-3xl font-bold text-foreground">{stats.total}</p>
+                  <p className="text-base font-bold text-muted-foreground mb-2">ทั้งหมด</p>
+                  <p className="text-4xl font-black text-foreground">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-status-scheduled/20 to-status-scheduled/10 rounded-xl">
-                  <Clock className="h-6 w-6 text-status-scheduled" />
+          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-status-scheduled">
+            <CardContent className="p-8">
+              <div className="flex items-center space-x-5">
+                <div className="p-4 bg-gradient-to-br from-status-scheduled to-status-scheduled/80 rounded-2xl shadow-medium">
+                  <Clock className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">รอการยืนยัน</p>
-                  <p className="text-3xl font-bold text-foreground">{stats.scheduled}</p>
+                  <p className="text-base font-bold text-muted-foreground mb-2">รอการยืนยัน</p>
+                  <p className="text-4xl font-black text-foreground">{stats.scheduled}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-status-completed/20 to-status-completed/10 rounded-xl">
-                  <CheckCircle className="h-6 w-6 text-status-completed" />
+          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-status-completed">
+            <CardContent className="p-8">
+              <div className="flex items-center space-x-5">
+                <div className="p-4 bg-gradient-to-br from-status-completed to-status-completed/80 rounded-2xl shadow-medium">
+                  <CheckCircle className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">เสร็จสิ้น</p>
-                  <p className="text-3xl font-bold text-foreground">{stats.completed}</p>
+                  <p className="text-base font-bold text-muted-foreground mb-2">เสร็จสิ้น</p>
+                  <p className="text-4xl font-black text-foreground">{stats.completed}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card border-0 shadow-soft hover:shadow-medium transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-status-cancelled/20 to-status-cancelled/10 rounded-xl">
-                  <XCircle className="h-6 w-6 text-status-cancelled" />
+          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-status-cancelled">
+            <CardContent className="p-8">
+              <div className="flex items-center space-x-5">
+                <div className="p-4 bg-gradient-to-br from-status-cancelled to-status-cancelled/80 rounded-2xl shadow-medium">
+                  <XCircle className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">ยกเลิก</p>
-                  <p className="text-3xl font-bold text-foreground">{stats.cancelled}</p>
+                  <p className="text-base font-bold text-muted-foreground mb-2">ยกเลิก</p>
+                  <p className="text-4xl font-black text-foreground">{stats.cancelled}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Modern Search and Filter */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-soft">
-          <CardContent className="p-6">
-            <div className="flex gap-4">
+        {/* Enhanced Search and Filter Section */}
+        <Card className="bg-white border-2 border-green-200 shadow-crisp">
+          <CardContent className="p-8">
+            <div className="flex gap-6">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
                   <Input
                     placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรือ ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 py-3 rounded-xl border-green-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300"
+                    className="pl-14 py-4 text-lg font-medium rounded-2xl border-2 border-green-300 focus:border-primary focus:ring-4 focus:ring-primary/20 bg-green-50 transition-all duration-300"
                   />
                 </div>
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-3 border border-green-200 rounded-xl bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300"
+                className="px-6 py-4 text-lg font-semibold border-2 border-green-300 rounded-2xl bg-green-50 focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all duration-300 z-50"
+                style={{ backgroundColor: 'hsl(var(--green-50))', zIndex: 50 }}
               >
-                <option value="all">ทุกสถานะ</option>
-                <option value="scheduled">รอการยืนยัน</option>
-                <option value="completed">เสร็จสิ้น</option>
-                <option value="cancelled">ยกเลิก</option>
-                <option value="no_show">ไม่มาตามนัด</option>
+                <option value="all" className="bg-white font-semibold p-2">ทุกสถานะ</option>
+                <option value="scheduled" className="bg-white font-semibold p-2">รอการยืนยัน</option>
+                <option value="completed" className="bg-white font-semibold p-2">เสร็จสิ้น</option>
+                <option value="cancelled" className="bg-white font-semibold p-2">ยกเลิก</option>
+                <option value="no_show" className="bg-white font-semibold p-2">ไม่มาตามนัด</option>
               </select>
             </div>
           </CardContent>
