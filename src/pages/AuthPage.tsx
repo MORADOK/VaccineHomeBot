@@ -27,12 +27,12 @@ const AuthPage = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to home page
+        // Redirect authenticated users to staff portal
         if (session?.user) {
-          navigate('/');
+          navigate('/staff-portal');
           toast({
             title: "เข้าสู่ระบบสำเร็จ",
-            description: "ยินดีต้อนรับเข้าสู่ระบบ",
+            description: "ยินดีต้อนรับเข้าสู่ระบบจัดการนัดหมาย",
           });
         }
       }
@@ -43,7 +43,7 @@ const AuthPage = () => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        navigate('/');
+        navigate('/staff-portal');
       }
     });
 

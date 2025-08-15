@@ -150,12 +150,12 @@ const AuthenticatedStaffPortal = () => {
                 <LogOut className="h-4 w-4 mr-2" />
                 ออกจากระบบ
               </Button>
-              <Button 
-                onClick={() => navigate('/')} 
-                className="flex-1"
-              >
-                กลับหน้าหลัก
-              </Button>
+            <Button 
+              onClick={() => navigate('/')} 
+              className="flex-1"
+            >
+              กลับหน้าแอดมิน
+            </Button>
             </div>
           </CardContent>
         </Card>
