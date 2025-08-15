@@ -312,134 +312,141 @@ const StaffPortal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white">
-      <div className="max-w-7xl mx-auto p-8 space-y-10">
-        {/* Enhanced Header with Clear Hierarchy */}
-        <div className="bg-gradient-header rounded-3xl p-8 shadow-crisp border-2 border-green-200/50">
-          <div className="flex justify-between items-center">
-            <div className="space-y-3">
-              <h1 className="text-4xl font-black text-foreground tracking-tight">
-                ระบบจัดการเจ้าหน้าที่
-              </h1>
-              <h2 className="text-2xl text-primary font-bold">โรงพยาบาลโฮม</h2>
-              <p className="text-lg text-muted-foreground font-medium">จัดการการนัดหมายและการฉีดวัคซีนอย่างมีประสิทธิภาพ</p>
-            </div>
-            <div className="flex gap-4">
-              <Button 
-                onClick={loadAppointments} 
-                variant="outline" 
-                disabled={isLoading}
-                className="h-12 px-6 text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-crisp transition-all duration-300"
-              >
-                <RefreshCw className={`h-5 w-5 mr-3 ${isLoading ? 'animate-spin' : ''}`} />
-                โหลดนัดหมาย
-              </Button>
-              <Button 
-                onClick={loadPatients} 
-                variant="outline" 
-                disabled={isLoading}
-                className="h-12 px-6 text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-crisp transition-all duration-300"
-              >
-                <RefreshCw className={`h-5 w-5 mr-3 ${isLoading ? 'animate-spin' : ''}`} />
-                โหลดคนไข้
-              </Button>
-              <Button 
-                onClick={exportData} 
-                className="h-12 px-6 text-base font-bold bg-primary hover:bg-primary/90 shadow-medium hover:shadow-large transition-all duration-300"
-              >
-                <Download className="h-5 w-5 mr-3" />
-                ส่งออกข้อมูล
-              </Button>
-            </div>
+    <div className="space-y-6 md:space-y-10">
+      {/* Mobile-optimized Header */}
+      <div className="bg-gradient-card rounded-xl md:rounded-3xl p-4 md:p-8 shadow-md border border-border/50">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div className="space-y-2 md:space-y-3">
+            <h1 className="text-2xl md:text-4xl font-black text-foreground tracking-tight">
+              ระบบจัดการเจ้าหน้าที่
+            </h1>
+            <h2 className="text-lg md:text-2xl text-primary font-bold">โรงพยาบาลโฮม</h2>
+            <p className="text-sm md:text-lg text-muted-foreground font-medium">จัดการการนัดหมายและการฉีดวัคซีนอย่างมีประสิทธิภาพ</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
+            <Button 
+              onClick={loadAppointments} 
+              variant="outline" 
+              disabled={isLoading}
+              className="h-10 md:h-12 px-3 md:px-6 text-sm md:text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-sm transition-all duration-300"
+            >
+              <RefreshCw className={`h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">โหลดนัดหมาย</span>
+              <span className="sm:hidden">นัดหมาย</span>
+            </Button>
+            <Button 
+              onClick={loadPatients} 
+              variant="outline" 
+              disabled={isLoading}
+              className="h-10 md:h-12 px-3 md:px-6 text-sm md:text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-sm transition-all duration-300"
+            >
+              <RefreshCw className={`h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">โหลดคนไข้</span>
+              <span className="sm:hidden">คนไข้</span>
+            </Button>
+            <Button 
+              onClick={exportData} 
+              className="h-10 md:h-12 px-3 md:px-6 text-sm md:text-base font-bold bg-primary hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-300"
+            >
+              <Download className="h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3" />
+              <span className="hidden sm:inline">ส่งออกข้อมูل</span>
+              <span className="sm:hidden">ส่งออก</span>
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* High Contrast Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-medical-info">
-            <CardContent className="p-8">
-              <div className="flex items-center space-x-5">
-                <div className="p-4 bg-gradient-to-br from-medical-info to-medical-info/80 rounded-2xl shadow-medium">
-                  <Users className="h-8 w-8 text-white" />
+      {/* Mobile-optimized Statistics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <Card className="bg-white border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-medical-info">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-4 space-y-2 lg:space-y-0">
+                <div className="p-2 md:p-3 bg-gradient-to-br from-medical-info to-medical-info/80 rounded-lg md:rounded-xl shadow-sm self-start lg:self-auto">
+                  <Users className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
                 </div>
-                <div>
-                  <p className="text-base font-bold text-muted-foreground mb-2">ทั้งหมด</p>
-                  <p className="text-4xl font-black text-foreground">{stats.total}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs md:text-sm lg:text-base font-bold text-muted-foreground mb-1">ทั้งหมด</p>
+                  <p className="text-xl md:text-2xl lg:text-4xl font-black text-foreground truncate">{stats.total}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-status-scheduled">
-            <CardContent className="p-8">
-              <div className="flex items-center space-x-5">
-                <div className="p-4 bg-gradient-to-br from-status-scheduled to-status-scheduled/80 rounded-2xl shadow-medium">
-                  <Clock className="h-8 w-8 text-white" />
+          <Card className="bg-white border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-status-scheduled">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-4 space-y-2 lg:space-y-0">
+                <div className="p-2 md:p-3 bg-gradient-to-br from-status-scheduled to-status-scheduled/80 rounded-lg md:rounded-xl shadow-sm self-start lg:self-auto">
+                  <Clock className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
                 </div>
-                <div>
-                  <p className="text-base font-bold text-muted-foreground mb-2">รอการยืนยัน</p>
-                  <p className="text-4xl font-black text-foreground">{stats.scheduled}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-status-completed">
-            <CardContent className="p-8">
-              <div className="flex items-center space-x-5">
-                <div className="p-4 bg-gradient-to-br from-status-completed to-status-completed/80 rounded-2xl shadow-medium">
-                  <CheckCircle className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <p className="text-base font-bold text-muted-foreground mb-2">เสร็จสิ้น</p>
-                  <p className="text-4xl font-black text-foreground">{stats.completed}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs md:text-sm lg:text-base font-bold text-muted-foreground mb-1">รอยืนยัน</p>
+                  <p className="text-xl md:text-2xl lg:text-4xl font-black text-foreground truncate">{stats.scheduled}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-2 border-green-200 shadow-crisp hover:shadow-medium transition-all duration-300 hover:border-status-cancelled">
-            <CardContent className="p-8">
-              <div className="flex items-center space-x-5">
-                <div className="p-4 bg-gradient-to-br from-status-cancelled to-status-cancelled/80 rounded-2xl shadow-medium">
-                  <XCircle className="h-8 w-8 text-white" />
+          <Card className="bg-white border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-status-completed">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-4 space-y-2 lg:space-y-0">
+                <div className="p-2 md:p-3 bg-gradient-to-br from-status-completed to-status-completed/80 rounded-lg md:rounded-xl shadow-sm self-start lg:self-auto">
+                  <CheckCircle className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
                 </div>
-                <div>
-                  <p className="text-base font-bold text-muted-foreground mb-2">ยกเลิก</p>
-                  <p className="text-4xl font-black text-foreground">{stats.cancelled}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs md:text-sm lg:text-base font-bold text-muted-foreground mb-1">เสร็จสิ้น</p>
+                  <p className="text-xl md:text-2xl lg:text-4xl font-black text-foreground truncate">{stats.completed}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-status-cancelled">
+            <CardContent className="p-3 md:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:space-x-4 space-y-2 lg:space-y-0">
+                <div className="p-2 md:p-3 bg-gradient-to-br from-status-cancelled to-status-cancelled/80 rounded-lg md:rounded-xl shadow-sm self-start lg:self-auto">
+                  <XCircle className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs md:text-sm lg:text-base font-bold text-muted-foreground mb-1">ยกเลิก</p>
+                  <p className="text-xl md:text-2xl lg:text-4xl font-black text-foreground truncate">{stats.cancelled}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Enhanced Search and Filter Section */}
-        <Card className="bg-white border-2 border-green-200 shadow-crisp">
-          <CardContent className="p-8">
-            <div className="flex gap-6">
+        {/* Mobile-optimized Search and Filter Section */}
+        <Card className="bg-white border border-border shadow-sm">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-primary" />
+                  <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-primary" />
                   <Input
                     placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรือ ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-14 py-4 text-lg font-medium rounded-2xl border-2 border-green-300 focus:border-primary focus:ring-4 focus:ring-primary/20 bg-green-50 transition-all duration-300"
+                    className="pl-10 md:pl-12 py-2 md:py-3 text-sm md:text-base font-medium rounded-lg md:rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-background transition-all duration-300"
                   />
                 </div>
               </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-6 py-4 text-lg font-semibold border-2 border-green-300 rounded-2xl bg-green-50 focus:border-primary focus:ring-4 focus:ring-primary/20 outline-none transition-all duration-300 z-50"
-                style={{ backgroundColor: 'hsl(var(--green-50))', zIndex: 50 }}
-              >
-                <option value="all" className="bg-white font-semibold p-2">ทุกสถานะ</option>
-                <option value="scheduled" className="bg-white font-semibold p-2">รอการยืนยัน</option>
-                <option value="completed" className="bg-white font-semibold p-2">เสร็จสิ้น</option>
-                <option value="cancelled" className="bg-white font-semibold p-2">ยกเลิก</option>
-                <option value="no_show" className="bg-white font-semibold p-2">ไม่มาตามนัด</option>
-              </select>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-fit">
+                <Label htmlFor="filter" className="text-sm md:text-base font-bold text-foreground whitespace-nowrap">
+                  สถานะ:
+                </Label>
+                <select
+                  id="filter"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold rounded-lg md:rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-background transition-all duration-300 min-w-[120px] md:min-w-[140px]"
+                >
+                  <option value="all">ทั้งหมด</option>
+                  <option value="scheduled">รอยืนยัน</option>
+                  <option value="completed">เสร็จสิ้น</option>
+                  <option value="cancelled">ยกเลิก</option>
+                  <option value="no_show">ไม่มาตามนัด</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>

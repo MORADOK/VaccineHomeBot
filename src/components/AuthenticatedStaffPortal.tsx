@@ -168,61 +168,73 @@ const AuthenticatedStaffPortal = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white">
-      {/* User info and logout button */}
-      <div className="fixed top-4 right-4 z-50">
-        <Card className="bg-white/95 backdrop-blur-sm border-2 border-green-200 shadow-lg">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="text-sm">
-              <p className="font-semibold text-foreground">{user.email}</p>
-              <p className="text-xs text-muted-foreground">เจ้าหน้าที่</p>
+    <div className="min-h-screen bg-gradient-hero">
+      {/* Mobile-optimized header */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-border/50 shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <div>
+                <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
+                  ระบบเจ้าหน้าที่
+                </h1>
+                <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
+                  {user.email}
+                </p>
+              </div>
             </div>
             <Button 
               onClick={handleSignOut} 
               variant="outline" 
               size="sm"
-              className="h-8 px-3"
+              className="h-8 px-2 md:h-9 md:px-3"
             >
-              <LogOut className="h-4 w-4 mr-1" />
-              ออกจากระบบ
+              <LogOut className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">ออกจากระบบ</span>
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      <div className="container mx-auto p-6 pt-20">
+      <div className="container mx-auto px-4 py-4 md:py-6">
         <Card className="w-full">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2 text-3xl">
-              <Shield className="h-8 w-8 text-primary" />
-              ระบบจัดการวัคซีนสำหรับเจ้าหน้าที่
+          <CardHeader className="text-center px-4 py-4 md:px-6 md:py-6">
+            <CardTitle className="flex items-center justify-center gap-2 text-xl md:text-3xl">
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <span className="hidden sm:inline">ระบบจัดการวัคซีนสำหรับเจ้าหน้าที่</span>
+              <span className="sm:hidden">ระบบจัดการวัคซีน</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm md:text-base">
               ระบบครบถ้วนสำหรับการจัดการวัคซีน การติดตาม และการแจ้งเตือน
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <Tabs defaultValue="portal" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="portal" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-1 h-auto">
+                <TabsTrigger value="portal" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
                   <User className="h-4 w-4" />
-                  Staff Portal
+                  <span className="hidden sm:inline">Staff Portal</span>
+                  <span className="sm:hidden">Portal</span>
                 </TabsTrigger>
-                <TabsTrigger value="calculator" className="flex items-center gap-2">
+                <TabsTrigger value="calculator" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
                   <Calculator className="h-4 w-4" />
-                  คำนวณวัคซีน
+                  <span className="hidden sm:inline">คำนวณวัคซีน</span>
+                  <span className="sm:hidden">คำนวณ</span>
                 </TabsTrigger>
-                <TabsTrigger value="notifications" className="flex items-center gap-2">
+                <TabsTrigger value="notifications" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3 md:col-span-1 col-span-2">
                   <Bell className="h-4 w-4" />
-                  แจ้งเตือน
+                  <span>แจ้งเตือน</span>
                 </TabsTrigger>
-                <TabsTrigger value="sheets" className="flex items-center gap-2">
+                <TabsTrigger value="sheets" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
                   <Settings className="h-4 w-4" />
-                  Google Sheets
+                  <span className="hidden sm:inline">Google Sheets</span>
+                  <span className="sm:hidden">Sheets</span>
                 </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-2">
+                <TabsTrigger value="settings" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
                   <Shield className="h-4 w-4" />
-                  Settings
+                  <span className="hidden sm:inline">Settings</span>
+                  <span className="sm:hidden">ตั้งค่า</span>
                 </TabsTrigger>
               </TabsList>
 
