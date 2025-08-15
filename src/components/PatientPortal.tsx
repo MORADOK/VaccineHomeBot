@@ -148,7 +148,7 @@ const PatientPortal = () => {
             <img 
               src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
               alt="โรงพยาบาลโฮม" 
-              className="mx-auto h-20 w-auto object-contain"
+              className="mx-auto h-24 w-auto object-contain"
             />
           </div>
           <h1 className="text-3xl font-bold">ลงทะเบียนรับบริการ</h1>
