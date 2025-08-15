@@ -27,33 +27,61 @@ const AuthPage = () => {
   useEffect(() => {
     // Check for password reset parameters in URL
     const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get('access_token');
-    const refreshToken = urlParams.get('refresh_token');
-    const type = urlParams.get('type');
+    const hash = window.location.hash;
+    
+    // Check for parameters in hash (Supabase often returns them in hash)
+    let accessToken = urlParams.get('access_token');
+    let refreshToken = urlParams.get('refresh_token');
+    let type = urlParams.get('type');
+    
+    if (!accessToken && hash) {
+      // Try to parse from hash
+      const hashParams = new URLSearchParams(hash.substring(1));
+      accessToken = hashParams.get('access_token');
+      refreshToken = hashParams.get('refresh_token');
+      type = hashParams.get('type');
+    }
+    
+    console.log('URL params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
     
     if (type === 'recovery' && accessToken && refreshToken) {
+      console.log('Setting up password recovery...');
       setShowResetPassword(true);
       // Set the session from the URL parameters
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
+      }).then(({ error }) => {
+        if (error) {
+          console.error('Session error:', error);
+          toast({
+            title: "เกิดข้อผิดพลาด",
+            description: "ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว",
+            variant: "destructive",
+          });
+          setShowResetPassword(false);
+        } else {
+          console.log('Session set successfully for password recovery');
+        }
       });
     }
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state change:', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         
         // Handle password recovery
         if (event === 'PASSWORD_RECOVERY') {
+          console.log('PASSWORD_RECOVERY event received');
           setShowResetPassword(true);
           return;
         }
         
         // Redirect authenticated users to staff portal (but not during password recovery)
-        if (session?.user && !showResetPassword) {
+        if (session?.user && !showResetPassword && type !== 'recovery') {
           navigate('/staff-portal');
           toast({
             title: "เข้าสู่ระบบสำเร็จ",
@@ -67,13 +95,13 @@ const AuthPage = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user && !showResetPassword) {
+      if (session?.user && !showResetPassword && type !== 'recovery') {
         navigate('/staff-portal');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, toast, showResetPassword]);
+  }, [navigate, toast]);
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -179,7 +207,7 @@ const AuthPage = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
       });
 
       if (error) {
