@@ -39,6 +39,7 @@ interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   scheduled_by?: string;
   notes?: string;
+  line_user_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -146,21 +147,47 @@ const StaffPortal = () => {
 
   const sendNotification = async (appointment: Appointment, message: string) => {
     try {
+      // ส่งผ่าน LINE Bot API ถ้ามี LINE User ID
+      if (appointment.line_user_id) {
+        const { error: lineError } = await supabase.functions.invoke('send-line-message', {
+          body: {
+            userId: appointment.line_user_id,
+            message: message,
+            type: 'template',
+            templateData: {
+              appointmentId: appointment.appointment_id,
+              patientName: appointment.patient_name,
+              vaccineType: appointment.vaccine_type,
+              appointmentDate: appointment.appointment_date
+            }
+          }
+        });
+
+        if (lineError) {
+          console.error('LINE API Error:', lineError);
+          // ยังคงสร้าง notification record แม้ว่า LINE message จะส่งไม่สำเร็จ
+        }
+      }
+
+      // บันทึก notification record ในฐานข้อมูล
       const { error } = await supabase
         .from('appointment_notifications')
         .insert({
           appointment_id: appointment.id,
           notification_type: 'reminder',
           sent_to: appointment.patient_phone || '',
+          line_user_id: appointment.line_user_id,
           message_content: message,
-          status: 'sent'
+          status: appointment.line_user_id ? 'sent' : 'pending'
         });
 
       if (error) throw error;
 
       toast({
         title: "ส่งแจ้งเตือนสำเร็จ",
-        description: `ส่งข้อความไปยัง ${appointment.patient_phone} แล้ว`,
+        description: appointment.line_user_id 
+          ? `ส่งข้อความ LINE ไปยัง ${appointment.patient_name} แล้ว`
+          : `บันทึกข้อความสำหรับ ${appointment.patient_name} แล้ว (ไม่มี LINE ID)`,
       });
     } catch (error: any) {
       toast({
@@ -524,6 +551,11 @@ const StaffPortal = () => {
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
                       <span>{appointment.patient_phone}</span>
+                      {appointment.line_user_id && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          LINE
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
@@ -548,10 +580,10 @@ const StaffPortal = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => sendNotification(appointment, `สวัสดีคุณ ${appointment.patient_name} นี่คือการแจ้งเตือนการนัดหมายฉีดวัคซีนของคุณ วันที่ ${appointment.appointment_date} เวลา ${appointment.appointment_time}`)}
+                      onClick={() => sendNotification(appointment, `🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน\n\nสวัสดีคุณ ${appointment.patient_name}\n\n📅 วันที่: ${appointment.appointment_date}\n⏰ เวลา: ${appointment.appointment_time}\n💉 วัคซีน: ${appointment.vaccine_type}\n🏥 สถานที่: โรงพยาบาลโฮม\n\nกรุณามาตามเวลานัดหมาย\nหากมีข้อสงสัยสามารถติดต่อโรงพยาบาลได้`)}
                     >
                       <Send className="h-4 w-4 mr-1" />
-                      ส่งแจ้งเตือน
+                      {appointment.line_user_id ? 'ส่ง LINE' : 'ส่งแจ้งเตือน'}
                     </Button>
                     {appointment.status === 'scheduled' && (
                       <Button

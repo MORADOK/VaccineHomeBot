@@ -19,6 +19,7 @@ export type Database = {
           appointment_id: string | null
           created_at: string
           id: string
+          line_user_id: string | null
           message_content: string | null
           notification_type: string
           sent_at: string
@@ -29,6 +30,7 @@ export type Database = {
           appointment_id?: string | null
           created_at?: string
           id?: string
+          line_user_id?: string | null
           message_content?: string | null
           notification_type: string
           sent_at?: string
@@ -39,6 +41,7 @@ export type Database = {
           appointment_id?: string | null
           created_at?: string
           id?: string
+          line_user_id?: string | null
           message_content?: string | null
           notification_type?: string
           sent_at?: string
@@ -62,6 +65,7 @@ export type Database = {
           appointment_time: string | null
           created_at: string
           id: string
+          line_user_id: string | null
           notes: string | null
           patient_id_number: string | null
           patient_name: string
@@ -77,6 +81,7 @@ export type Database = {
           appointment_time?: string | null
           created_at?: string
           id?: string
+          line_user_id?: string | null
           notes?: string | null
           patient_id_number?: string | null
           patient_name: string
@@ -92,6 +97,7 @@ export type Database = {
           appointment_time?: string | null
           created_at?: string
           id?: string
+          line_user_id?: string | null
           notes?: string | null
           patient_id_number?: string | null
           patient_name?: string

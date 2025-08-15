@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, CheckCircle, Smartphone, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, CheckCircle, Smartphone, AlertCircle, Syringe } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // LIFF Type Definitions
@@ -17,6 +19,7 @@ declare global {
 interface PatientData {
   fullName: string;
   phone: string;
+  selectedVaccine: string;
   lineUserId?: string;
   lineDisplayName?: string;
   linePictureUrl?: string;
@@ -35,7 +38,8 @@ const LiffPatientPortal = () => {
   
   const [patientData, setPatientData] = useState<PatientData>({
     fullName: '',
-    phone: ''
+    phone: '',
+    selectedVaccine: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -136,7 +140,7 @@ const LiffPatientPortal = () => {
   };
 
   const submitRegistration = async () => {
-    if (!patientData.fullName || !patientData.phone) {
+    if (!patientData.fullName || !patientData.phone || !patientData.selectedVaccine) {
       toast({
         title: "ข้อผิดพลาด",
         description: "กรุณากรอกข้อมูลให้ครบถ้วน",
@@ -158,54 +162,84 @@ const LiffPatientPortal = () => {
 
     setIsLoading(true);
     try {
-      const registrationData = {
-        type: 'patient_registration_liff',
-        data: {
-          ...patientData,
-          hospital: 'โรงพยาบาลโฮม',
-          registrationId: `HOM-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          source: 'liff_portal',
-          liff: {
-            isInLineApp: inLineApp,
-            liffReady: liffReady,
-            hasProfile: !!liffProfile
-          }
-        }
-      };
+      // Save to Supabase database instead of webhook
+      const appointmentId = `HOM-${Date.now().toString().slice(-6)}`;
+      const appointmentDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      console.log('Sending registration data:', registrationData);
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert({
+          appointment_id: appointmentId,
+          patient_name: patientData.fullName,
+          patient_phone: patientData.phone,
+          patient_id_number: patientData.lineUserId,
+          vaccine_type: patientData.selectedVaccine,
+          appointment_date: appointmentDate,
+          appointment_time: '09:00',
+          status: 'scheduled',
+          scheduled_by: 'patient_liff',
+          line_user_id: patientData.lineUserId,
+          notes: `ลงทะเบียนผ่าน LINE LIFF - ${patientData.lineDisplayName}`
+        })
+        .select()
+        .single();
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationData),
+      if (error) throw error;
+
+      setIsRegistered(true);
+      toast({
+        title: "ลงทะเบียนสำเร็จ",
+        description: `นัดหมายฉีดวัคซีน ${patientData.selectedVaccine} สำเร็จแล้ว (ID: ${appointmentId})`,
       });
 
-      if (response.ok) {
-        setIsRegistered(true);
-        toast({
-          title: "ลงทะเบียนสำเร็จ",
-          description: "ลงทะเบียนฉีดวัคซีนสำเร็จแล้ว",
-        });
-
-        // ส่งข้อความยืนยันกลับไปที่ LINE Chat (ถ้าอยู่ใน LINE App)
-        if (inLineApp && window.liff) {
-          try {
-            await window.liff.sendMessages([
-              {
-                type: 'text',
-                text: `✅ ลงทะเบียนฉีดวัคซีนสำเร็จ\n\nชื่อ: ${patientData.fullName}\nเบอร์: ${patientData.phone}\nโรงพยาบาล: โรงพยาบาลโฮม\n\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`
+      // ส่งข้อความยืนยันผ่าน LINE Bot API (ถ้ามี LINE User ID)
+      if (patientData.lineUserId) {
+        try {
+          const vaccineOptions = [
+            { value: 'flu', label: 'วัคซีนไข้หวัดใหญ่' },
+            { value: 'hep_b', label: 'วัคซีนไวรัสตับอักเสบบี' },
+            { value: 'tetanus', label: 'วัคซีนป้องกันบาดทะยัก' },
+            { value: 'shingles', label: 'วัคซีนงูสวัด' },
+            { value: 'hpv', label: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
+            { value: 'pneumonia', label: 'วัคซีนปอดอักเสบ' },
+            { value: 'chickenpox', label: 'วัคซีนอีสุกอีใส' },
+            { value: 'rabies', label: 'วัคซีนพิษสุนัขบ้า' },
+            { value: 'other', label: 'อื่นๆ (แจ้งเจ้าหน้าที่)' }
+          ];
+          
+          const selectedVaccineLabel = vaccineOptions.find(v => v.value === patientData.selectedVaccine)?.label || patientData.selectedVaccine;
+          
+          await supabase.functions.invoke('send-line-message', {
+            body: {
+              userId: patientData.lineUserId,
+              message: `✅ ลงทะเบียนฉีดวัคซีนสำเร็จ\n\n📋 รายละเอียด:\n• ชื่อ: ${patientData.fullName}\n• เบอร์โทร: ${patientData.phone}\n• วัคซีน: ${selectedVaccineLabel}\n• วันที่: ${appointmentDate}\n• รหัสนัดหมาย: ${appointmentId}\n\n🏥 โรงพยาบาลโฮม\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`,
+              type: 'template',
+              templateData: {
+                appointmentId,
+                patientName: patientData.fullName,
+                vaccineType: selectedVaccineLabel,
+                appointmentDate
               }
-            ]);
-          } catch (messageError) {
-            console.error('Error sending LINE message:', messageError);
-          }
+            }
+          });
+        } catch (messageError) {
+          console.error('Error sending LINE message:', messageError);
+          // ไม่ต้อง throw error เพราะการลงทะเบียนสำเร็จแล้ว
         }
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // ส่งข้อความใน LINE Chat (ถ้าอยู่ใน LINE App)
+      if (inLineApp && window.liff) {
+        try {
+          await window.liff.sendMessages([
+            {
+              type: 'text',
+              text: `✅ ลงทะเบียนฉีดวัคซีนสำเร็จ\n\nชื่อ: ${patientData.fullName}\nเบอร์: ${patientData.phone}\nวัคซีน: ${patientData.selectedVaccine}\nรหัส: ${appointmentId}\n\nโรงพยาบาลโฮม\nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`
+            }
+          ]);
+        } catch (messageError) {
+          console.error('Error sending LINE chat message:', messageError);
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -223,6 +257,7 @@ const LiffPatientPortal = () => {
     setPatientData({
       fullName: liffProfile?.displayName || '',
       phone: '',
+      selectedVaccine: '',
       lineUserId: liffProfile?.userId,
       lineDisplayName: liffProfile?.displayName,
       linePictureUrl: liffProfile?.pictureUrl
@@ -255,7 +290,20 @@ const LiffPatientPortal = () => {
                 <h3 className="font-semibold mb-2">ข้อมูลที่ลงทะเบียน:</h3>
                 <div className="space-y-1 text-sm">
                   <p><strong>ชื่อ:</strong> {patientData.fullName}</p>
-                  <p><strong>เบอร์โทร:</strong> {patientData.phone}</p>
+                  <p><strong>วัคซีน:</strong> {(() => {
+                    const vaccineOptions = [
+                      { value: 'flu', label: 'วัคซีนไข้หวัดใหญ่' },
+                      { value: 'hep_b', label: 'วัคซีนไวรัสตับอักเสบบี' },
+                      { value: 'tetanus', label: 'วัคซีนป้องกันบาดทะยัก' },
+                      { value: 'shingles', label: 'วัคซีนงูสวัด' },
+                      { value: 'hpv', label: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
+                      { value: 'pneumonia', label: 'วัคซีนปอดอักเสบ' },
+                      { value: 'chickenpox', label: 'วัคซีนอีสุกอีใส' },
+                      { value: 'rabies', label: 'วัคซีนพิษสุนัขบ้า' },
+                      { value: 'other', label: 'อื่นๆ (แจ้งเจ้าหน้าที่)' }
+                    ];
+                    return vaccineOptions.find(v => v.value === patientData.selectedVaccine)?.label || patientData.selectedVaccine;
+                  })()}</p>
                   <p><strong>สถานที่:</strong> โรงพยาบาลโฮม</p>
                   {patientData.lineUserId && (
                     <p><strong>LINE ID:</strong> {patientData.lineUserId}</p>
@@ -383,6 +431,37 @@ const LiffPatientPortal = () => {
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 className="mt-1"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Vaccine Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Syringe className="h-5 w-5" />
+              เลือกประเภทวัคซีน
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <Label htmlFor="vaccine">ประเภทวัคซีนที่ต้องการ</Label>
+              <Select value={patientData.selectedVaccine} onValueChange={(value) => handleInputChange('selectedVaccine', value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="เลือกประเภทวัคซีน" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border border-border rounded-md shadow-lg z-50">
+                  <SelectItem value="flu">วัคซีนไข้หวัดใหญ่</SelectItem>
+                  <SelectItem value="hep_b">วัคซีนไวรัสตับอักเสบบี</SelectItem>
+                  <SelectItem value="tetanus">วัคซีนป้องกันบาดทะยัก</SelectItem>
+                  <SelectItem value="shingles">วัคซีนงูสวัด</SelectItem>
+                  <SelectItem value="hpv">วัคซีนป้องกันมะเร็งปากมดลูก</SelectItem>
+                  <SelectItem value="pneumonia">วัคซีนปอดอักเสบ</SelectItem>
+                  <SelectItem value="chickenpox">วัคซีนอีสุกอีใส</SelectItem>
+                  <SelectItem value="rabies">วัคซีนพิษสุนัขบ้า</SelectItem>
+                  <SelectItem value="other">อื่นๆ (แจ้งเจ้าหน้าที่)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
