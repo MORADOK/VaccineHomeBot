@@ -18,18 +18,42 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check for password reset parameters in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const accessToken = urlParams.get('access_token');
+    const refreshToken = urlParams.get('refresh_token');
+    const type = urlParams.get('type');
+    
+    if (type === 'recovery' && accessToken && refreshToken) {
+      setShowResetPassword(true);
+      // Set the session from the URL parameters
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to staff portal
-        if (session?.user) {
+        // Handle password recovery
+        if (event === 'PASSWORD_RECOVERY') {
+          setShowResetPassword(true);
+          return;
+        }
+        
+        // Redirect authenticated users to staff portal (but not during password recovery)
+        if (session?.user && !showResetPassword) {
           navigate('/staff-portal');
           toast({
             title: "เข้าสู่ระบบสำเร็จ",
@@ -43,13 +67,13 @@ const AuthPage = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && !showResetPassword) {
         navigate('/staff-portal');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, toast]);
+  }, [navigate, toast, showResetPassword]);
 
   const handleSignIn = async () => {
     setIsLoading(true);
@@ -182,9 +206,73 @@ const AuthPage = () => {
     }
   };
 
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "กรุณากรอกรหัสผ่าน",
+        description: "กรุณากรอกรหัสผ่านใหม่และยืนยันรหัสผ่าน",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "รหัสผ่านไม่ตรงกัน",
+        description: "รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "รหัสผ่านสั้นเกินไป",
+        description: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "เปลี่ยนรหัสผ่านสำเร็จ",
+          description: "รหัสผ่านของคุณได้รับการอัปเดตแล้ว กำลังนำคุณเข้าสู่ระบบ",
+        });
+        // Clear the URL parameters
+        window.history.replaceState({}, document.title, '/auth');
+        setTimeout(() => {
+          navigate('/staff-portal');
+        }, 2000);
+      }
+    } catch (error: any) {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองใหม่",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (showForgotPassword) {
+    if (showResetPassword) {
+      handleUpdatePassword();
+    } else if (showForgotPassword) {
       handleForgotPassword();
     } else if (isSignUp) {
       handleSignUp();
@@ -403,6 +491,68 @@ const AuthPage = () => {
             )}
           </CardContent>
         </Card>
+
+        {showResetPassword && (
+          <Card className="border-2 border-blue-200 shadow-xl bg-white/95 backdrop-blur-sm animate-scale-in mt-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-center">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                      <LogIn className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                      ตั้งรหัสผ่านใหม่
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    กรุณาสร้างรหัสผ่านใหม่สำหรับบัญชีของคุณ
+                  </p>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">รหัสผ่านใหม่</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="border-2 border-blue-300 focus:border-blue-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="ยืนยันรหัสผ่านใหม่"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="border-2 border-blue-300 focus:border-blue-500"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-500/90 hover:to-purple-500/90 shadow-lg hover:shadow-xl transition-all duration-300" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  ) : null}
+                  อัปเดตรหัสผ่าน
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="text-center">
           <Button 
