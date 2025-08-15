@@ -17,6 +17,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -141,9 +142,51 @@ const AuthPage = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "กรุณากรอกอีเมล",
+        description: "กรุณากรอกอีเมลของคุณเพื่อรีเซ็ตรหัสผ่าน",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "ส่งอีเมลรีเซ็ตรหัสผ่านแล้ว",
+          description: "กรุณาตรวจสอบอีเมลของคุณและคลิกลิงก์เพื่อรีเซ็ตรหัสผ่าน",
+        });
+        setShowForgotPassword(false);
+      }
+    } catch (error: any) {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้ กรุณาลองใหม่",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSignUp) {
+    if (showForgotPassword) {
+      handleForgotPassword();
+    } else if (isSignUp) {
       handleSignUp();
     } else {
       handleSignIn();
@@ -196,23 +239,24 @@ const AuthPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(value) => setIsSignUp(value === "signup")}>
-              <TabsList className="grid w-full grid-cols-2 bg-green-50 p-1 rounded-xl border border-green-200">
-                <TabsTrigger 
-                  value="signin" 
-                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
-                >
-                  <LogIn className="h-4 w-4" />
-                  เข้าสู่ระบบ
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="signup" 
-                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  ลงทะเบียน
-                </TabsTrigger>
-              </TabsList>
+            {!showForgotPassword ? (
+              <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(value) => setIsSignUp(value === "signup")}>
+                <TabsList className="grid w-full grid-cols-2 bg-green-50 p-1 rounded-xl border border-green-200">
+                  <TabsTrigger 
+                    value="signin" 
+                    className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    เข้าสู่ระบบ
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="signup" 
+                    className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    ลงทะเบียน
+                  </TabsTrigger>
+                </TabsList>
               
               <TabsContent value="signin" className="mt-8 animate-fade-in">
                 <div className="mb-6 text-center">
@@ -256,6 +300,16 @@ const AuthPage = () => {
                     )}
                     เข้าสู่ระบบ
                   </Button>
+                  <div className="text-center mt-4">
+                    <Button 
+                      type="button"
+                      variant="link"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary hover:text-primary/80 font-medium"
+                    >
+                      ลืมรหัสผ่าน?
+                    </Button>
+                  </div>
                 </form>
               </TabsContent>
               
@@ -305,6 +359,48 @@ const AuthPage = () => {
                 </form>
               </TabsContent>
             </Tabs>
+            ) : (
+              <div className="mt-8 animate-fade-in">
+                <div className="mb-6 text-center">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">รีเซ็ตรหัสผ่าน</h3>
+                  <p className="text-sm text-muted-foreground">กรอกอีเมลของคุณเพื่อรับลิงก์รีเซ็ตรหัสผ่าน</p>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">อีเมล</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="example@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="border-2 border-green-300 focus:border-primary"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-500/90 hover:to-purple-500/90 shadow-lg hover:shadow-xl transition-all duration-300" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                    ) : null}
+                    ส่งลิงก์รีเซ็ตรหัสผ่าน
+                  </Button>
+                  <div className="text-center">
+                    <Button 
+                      type="button"
+                      variant="link"
+                      onClick={() => setShowForgotPassword(false)}
+                      className="text-sm text-muted-foreground hover:text-foreground font-medium"
+                    >
+                      กลับไปเข้าสู่ระบบ
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
           </CardContent>
         </Card>
 
