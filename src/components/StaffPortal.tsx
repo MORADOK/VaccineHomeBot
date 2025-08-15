@@ -210,12 +210,22 @@ const StaffPortal = () => {
 
   const getStatusColor = (status: string) => {
     const colorMap = {
-      scheduled: 'bg-status-scheduled/20 text-status-scheduled border-2 border-status-scheduled/40 font-bold',
-      completed: 'bg-status-completed/20 text-status-completed border-2 border-status-completed/40 font-bold',
-      cancelled: 'bg-status-cancelled/20 text-status-cancelled border-2 border-status-cancelled/40 font-bold',
-      no_show: 'bg-muted/50 text-muted-foreground border-2 border-border font-bold'
+      scheduled: 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border-2 border-amber-200 font-semibold shadow-sm',
+      completed: 'bg-gradient-to-r from-emerald-50 to-green-50 text-emerald-700 border-2 border-emerald-200 font-semibold shadow-sm',
+      cancelled: 'bg-gradient-to-r from-rose-50 to-red-50 text-rose-700 border-2 border-rose-200 font-semibold shadow-sm',
+      no_show: 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-600 border-2 border-slate-200 font-semibold shadow-sm'
     };
-    return colorMap[status as keyof typeof colorMap] || 'bg-muted/50 text-muted-foreground border-2 border-border font-bold';
+    return colorMap[status as keyof typeof colorMap] || 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-600 border-2 border-slate-200 font-semibold shadow-sm';
+  };
+
+  const getStatusIcon = (status: string) => {
+    const iconMap = {
+      scheduled: Clock,
+      completed: CheckCircle,
+      cancelled: XCircle,
+      no_show: Calendar
+    };
+    return iconMap[status as keyof typeof iconMap] || Clock;
   };
 
   const filteredAppointments = appointments.filter(apt => {
@@ -557,87 +567,114 @@ const StaffPortal = () => {
           </Card>
         )}
 
-        {/* Modern Appointments List */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-soft">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-foreground">
+        {/* Enhanced Appointments List */}
+        <Card className="bg-white border-2 border-green-200 shadow-crisp">
+          <CardHeader className="pb-6 border-b border-green-100">
+            <CardTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
+              <Calendar className="h-7 w-7 text-primary" />
               รายการนัดหมาย ({filteredAppointments.length})
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredAppointments.map((appointment) => (
-                <div key={appointment.id} className="bg-gradient-card rounded-xl p-6 border border-green-100 shadow-soft hover:shadow-medium transition-all duration-300">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg text-foreground">{appointment.patient_name}</h3>
-                      <p className="text-sm text-muted-foreground">ID: {appointment.appointment_id}</p>
+          <CardContent className="p-8">
+            <div className="space-y-6">
+              {filteredAppointments.map((appointment) => {
+                const StatusIcon = getStatusIcon(appointment.status);
+                return (
+                  <div key={appointment.id} className="bg-gradient-to-r from-white to-green-50/30 rounded-2xl p-8 border-2 border-green-100 shadow-crisp hover:shadow-medium hover:border-green-200 transition-all duration-300">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="space-y-2">
+                        <h3 className="font-bold text-2xl text-foreground">{appointment.patient_name}</h3>
+                        <p className="text-base text-muted-foreground font-medium">รหัสนัดหมาย: {appointment.appointment_id}</p>
+                      </div>
+                      <Badge className={`${getStatusColor(appointment.status)} px-4 py-2 rounded-xl text-base flex items-center gap-2 min-w-[140px] justify-center`}>
+                        <StatusIcon className="h-4 w-4" />
+                        {getStatusText(appointment.status)}
+                      </Badge>
                     </div>
-                    <Badge className={`${getStatusColor(appointment.status)} border font-medium px-3 py-1`}>
-                      {getStatusText(appointment.status)}
-                    </Badge>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
-                      <Phone className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{appointment.patient_phone}</span>
-                      {appointment.line_user_id && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/20 font-medium">
-                          LINE
-                        </span>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="flex items-center gap-4 bg-white rounded-xl p-4 border border-green-200 shadow-sm">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Phone className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">เบอร์โทร</p>
+                          <p className="font-bold text-foreground">{appointment.patient_phone}</p>
+                        </div>
+                        {appointment.line_user_id && (
+                          <div className="ml-auto">
+                            <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-300 font-bold">
+                              LINE
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-4 bg-white rounded-xl p-4 border border-green-200 shadow-sm">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <Calendar className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">วันที่และเวลา</p>
+                          <p className="font-bold text-foreground">{appointment.appointment_date}</p>
+                          <p className="text-sm text-primary font-semibold">{appointment.appointment_time}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 bg-white rounded-xl p-4 border border-green-200 shadow-sm">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <div className="h-5 w-5 bg-primary rounded-full"></div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">ประเภทวัคซีน</p>
+                          <p className="font-bold text-foreground">{appointment.vaccine_type}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 flex-wrap pt-6 border-t border-green-100">
+                      {appointment.status === 'scheduled' && (
+                        <Button
+                          size="lg"
+                          onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                          disabled={isLoading}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-medium hover:shadow-large transition-all duration-300 px-6 py-3 font-bold"
+                        >
+                          <CheckCircle className="h-5 w-5 mr-3" />
+                          ยืนยันเสร็จสิ้น
+                        </Button>
+                      )}
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={() => sendNotification(appointment, `🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน\n\nสวัสดีคุณ ${appointment.patient_name}\n\n📅 วันที่: ${appointment.appointment_date}\n⏰ เวลา: ${appointment.appointment_time}\n💉 วัคซีน: ${appointment.vaccine_type}\n🏥 สถานที่: โรงพยาบาลโฮม\n\nกรุณามาตามเวลานัดหมาย\nหากมีข้อสงสัยสามารถติดต่อโรงพยาบาลได้`)}
+                        className="border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 px-6 py-3 font-bold shadow-sm hover:shadow-medium"
+                      >
+                        <Send className="h-5 w-5 mr-3" />
+                        {appointment.line_user_id ? 'ส่งข้อความ LINE' : 'ส่งแจ้งเตือน'}
+                      </Button>
+                      {appointment.status === 'scheduled' && (
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+                          disabled={isLoading}
+                          className="border-2 border-rose-500 text-rose-600 hover:bg-rose-500 hover:text-white transition-all duration-300 px-6 py-3 font-bold shadow-sm hover:shadow-medium"
+                        >
+                          <XCircle className="h-5 w-5 mr-3" />
+                          ยกเลิกนัดหมาย
+                        </Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{appointment.appointment_date} เวลา {appointment.appointment_time}</span>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <span className="text-sm font-medium">วัคซีน: {appointment.vaccine_type}</span>
-                    </div>
                   </div>
-
-                  <div className="flex gap-3 flex-wrap">
-                    {appointment.status === 'scheduled' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
-                        disabled={isLoading}
-                        className="bg-status-completed hover:bg-status-completed/90 text-white shadow-medium hover:shadow-large transition-all duration-300"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        เสร็จสิ้น
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => sendNotification(appointment, `🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน\n\nสวัสดีคุณ ${appointment.patient_name}\n\n📅 วันที่: ${appointment.appointment_date}\n⏰ เวลา: ${appointment.appointment_time}\n💉 วัคซีน: ${appointment.vaccine_type}\n🏥 สถานที่: โรงพยาบาลโฮม\n\nกรุณามาตามเวลานัดหมาย\nหากมีข้อสงสัยสามารถติดต่อโรงพยาบาลได้`)}
-                      className="hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      {appointment.line_user_id ? 'ส่ง LINE' : 'ส่งแจ้งเตือน'}
-                    </Button>
-                    {appointment.status === 'scheduled' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
-                        disabled={isLoading}
-                        className="border-status-cancelled text-status-cancelled hover:bg-status-cancelled hover:text-white transition-all duration-300"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        ยกเลิก
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {filteredAppointments.length === 0 && !searchTerm && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">ไม่พบข้อมูลการนัดหมาย</p>
+                <div className="text-center py-16 text-muted-foreground">
+                  <Calendar className="h-16 w-16 mx-auto mb-6 opacity-50" />
+                  <p className="text-xl font-semibold">ไม่พบข้อมูลการนัดหมาย</p>
+                  <p className="text-base mt-2">ลองโหลดข้อมูลใหม่หรือตรวจสอบการเชื่อมต่อ</p>
                 </div>
               )}
             </div>
