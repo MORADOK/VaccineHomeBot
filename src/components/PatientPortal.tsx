@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, CheckCircle } from 'lucide-react';
+import { User, CheckCircle, Syringe } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PatientData {
   fullName: string;
   phone: string;
+  selectedVaccine: string;
 }
 
 const PatientPortal = () => {
@@ -18,11 +20,24 @@ const PatientPortal = () => {
   
   const [patientData, setPatientData] = useState<PatientData>({
     fullName: '',
-    phone: ''
+    phone: '',
+    selectedVaccine: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const { toast } = useToast();
+
+  const vaccineOptions = [
+    { value: 'flu', label: 'วัคซีนไข้หวัดใหญ่' },
+    { value: 'hep_b', label: 'วัคซีนไวรัสตับอักเสบบี' },
+    { value: 'tetanus', label: 'วัคซีนป้องกันบาดทะยัก' },
+    { value: 'shingles', label: 'วัคซีนงูสวัด' },
+    { value: 'hpv', label: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
+    { value: 'pneumonia', label: 'วัคซีนปอดอักเสบ' },
+    { value: 'chickenpox', label: 'วัคซีนอีสุกอีใส' },
+    { value: 'rabies', label: 'วัคซีนพิษสุนัขบ้า' },
+    { value: 'other', label: 'อื่นๆ (แจ้งเจ้าหน้าที่)' }
+  ];
 
   const handleInputChange = (field: keyof PatientData, value: string) => {
     setPatientData(prev => ({
@@ -32,7 +47,7 @@ const PatientPortal = () => {
   };
 
   const submitRegistration = async () => {
-    if (!patientData.fullName || !patientData.phone) {
+    if (!patientData.fullName || !patientData.phone || !patientData.selectedVaccine) {
       toast({
         title: "ข้อผิดพลาด",
         description: "กรุณากรอกข้อมูลให้ครบถ้วน",
@@ -54,6 +69,8 @@ const PatientPortal = () => {
 
     setIsLoading(true);
     try {
+      const selectedVaccineLabel = vaccineOptions.find(v => v.value === patientData.selectedVaccine)?.label || patientData.selectedVaccine;
+      
       const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: {
@@ -63,6 +80,7 @@ const PatientPortal = () => {
           type: 'patient_registration',
           data: {
             ...patientData,
+            selectedVaccineLabel,
             hospital: 'โรงพยาบาลโฮม',
             registrationId: `HOM-${Date.now()}`,
             timestamp: new Date().toISOString(),
@@ -94,17 +112,27 @@ const PatientPortal = () => {
   const resetForm = () => {
     setPatientData({
       fullName: '',
-      phone: ''
+      phone: '',
+      selectedVaccine: ''
     });
     setIsRegistered(false);
   };
 
   if (isRegistered) {
+    const selectedVaccineLabel = vaccineOptions.find(v => v.value === patientData.selectedVaccine)?.label || patientData.selectedVaccine;
+    
     return (
       <div className="min-h-screen bg-background p-6">
         <div className="max-w-md mx-auto">
           <Card className="border-green-200 bg-green-50">
             <CardContent className="p-8 text-center">
+              <div className="mb-4">
+                <img 
+                  src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+                  alt="โรงพยาบาลโฮม" 
+                  className="mx-auto h-16 w-auto object-contain mb-4"
+                />
+              </div>
               <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-green-800 mb-2">
                 ลงทะเบียนสำเร็จ!
@@ -118,6 +146,7 @@ const PatientPortal = () => {
                 <div className="space-y-1 text-sm">
                   <p><strong>ชื่อ:</strong> {patientData.fullName}</p>
                   <p><strong>เบอร์โทร:</strong> {patientData.phone}</p>
+                  <p><strong>วัคซีนที่ต้องการ:</strong> {selectedVaccineLabel}</p>
                   <p><strong>สถานที่:</strong> โรงพยาบาลโฮม</p>
                 </div>
               </div>
@@ -135,8 +164,15 @@ const PatientPortal = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
+        {/* Header with Logo */}
         <div className="text-center">
+          <div className="mb-4">
+            <img 
+              src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+              alt="โรงพยาบาลโฮม" 
+              className="mx-auto h-20 w-auto object-contain"
+            />
+          </div>
           <h1 className="text-3xl font-bold">ลงทะเบียนฉีดวัคซีน</h1>
           <h2 className="text-xl text-muted-foreground mt-2 font-semibold">
             โรงพยาบาลโฮม
@@ -179,6 +215,33 @@ const PatientPortal = () => {
           </CardContent>
         </Card>
 
+        {/* Vaccine Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Syringe className="h-5 w-5" />
+              เลือกประเภทวัคซีน
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <Label htmlFor="vaccine">ประเภทวัคซีนที่ต้องการ</Label>
+              <Select value={patientData.selectedVaccine} onValueChange={(value) => handleInputChange('selectedVaccine', value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="เลือกประเภทวัคซีน" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border border-border rounded-md shadow-lg z-50">
+                  {vaccineOptions.map((vaccine) => (
+                    <SelectItem key={vaccine.value} value={vaccine.value}>
+                      {vaccine.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Submit Button */}
         <Button 
           onClick={submitRegistration}
@@ -192,7 +255,7 @@ const PatientPortal = () => {
         <Alert>
           <AlertDescription>
             หลังจากลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
-            และแจ้งประเภทวัคซีนที่เหมาะสมกับคุณ
+            และตรวจสอบความเหมาะสมของวัคซีนที่เลือก
           </AlertDescription>
         </Alert>
       </div>

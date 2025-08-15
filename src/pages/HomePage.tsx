@@ -8,6 +8,13 @@ const HomePage = () => {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
+          <div className="mb-6">
+            <img 
+              src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+              alt="โรงพยาบาลโฮม" 
+              className="mx-auto h-32 w-auto object-contain"
+            />
+          </div>
           <h1 className="text-4xl font-bold mb-4">ระบบจัดการวัคซีน</h1>
           <h2 className="text-2xl text-muted-foreground mb-2">โรงพยาบาลโฮม</h2>
           <p className="text-muted-foreground">เลือกระบบที่ต้องการใช้งาน</p>
