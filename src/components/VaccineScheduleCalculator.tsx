@@ -306,54 +306,60 @@ const VaccineScheduleCalculator: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center space-x-2">
-        <Target className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">ระบบคำนวณและติดตามวัคซีน</h1>
-      </div>
-
+    <div className="space-y-4 md:space-y-6">
       <Tabs defaultValue="calculator" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="calculator">คำนวณตารางวัคซีน</TabsTrigger>
-          <TabsTrigger value="tracking">ติดตามผู้ป่วย</TabsTrigger>
-          <TabsTrigger value="schedules">ตารางวัคซีน</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 gap-1 md:gap-0 h-auto md:h-10">
+          <TabsTrigger value="calculator" className="flex items-center gap-2 text-sm md:text-base p-3 md:p-2">
+            <Target className="h-4 w-4" />
+            <span>คำนวณตารางวัคซีน</span>
+          </TabsTrigger>
+          <TabsTrigger value="tracking" className="flex items-center gap-2 text-sm md:text-base p-3 md:p-2">
+            <TrendingUp className="h-4 w-4" />
+            <span>ติดตามผู้ป่วย</span>
+          </TabsTrigger>
+          <TabsTrigger value="schedules" className="flex items-center gap-2 text-sm md:text-base p-3 md:p-2">
+            <FileText className="h-4 w-4" />
+            <span>ตารางวัคซีน</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="calculator" className="space-y-6">
+        <TabsContent value="calculator" className="space-y-4 md:space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Syringe className="h-5 w-5" />
+            <CardHeader className="pb-3 md:pb-4">
+              <CardTitle className="flex items-center space-x-2 text-lg md:text-xl">
+                <Syringe className="h-5 w-5 text-primary" />
                 <span>คำนวณตารางวัคซีนสำหรับผู้ป่วย</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm md:text-base">
                 เลือกวัคซีนและระบุข้อมูลผู้ป่วยเพื่อคำนวณตารางการฉีดและตรวจสอบข้อห้าม
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 md:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="patient-id">รหัสผู้ป่วย/LINE User ID</Label>
+                  <Label htmlFor="patient-id" className="text-sm md:text-base font-medium">รหัสผู้ป่วย/LINE User ID</Label>
                   <Input
                     id="patient-id"
                     value={selectedPatientId}
                     onChange={(e) => setSelectedPatientId(e.target.value)}
                     placeholder="ระบุรหัสผู้ป่วย"
+                    className="text-sm md:text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="patient-name">ชื่อผู้ป่วย</Label>
+                  <Label htmlFor="patient-name" className="text-sm md:text-base font-medium">ชื่อผู้ป่วย</Label>
                   <Input
                     id="patient-name"
                     value={patientName}
                     onChange={(e) => setPatientName(e.target.value)}
                     placeholder="ระบุชื่อผู้ป่วย"
+                    className="text-sm md:text-base"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vaccine-select">เลือกวัคซีน</Label>
+                <Label htmlFor="vaccine-select" className="text-sm md:text-base font-medium">เลือกวัคซีน</Label>
                 <Select
                   value={selectedSchedule?.id || ''}
                   onValueChange={(value) => {
@@ -362,12 +368,12 @@ const VaccineScheduleCalculator: React.FC = () => {
                     setContraindicationResult(null);
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm md:text-base">
                     <SelectValue placeholder="เลือกวัคซีนที่ต้องการ" />
                   </SelectTrigger>
                   <SelectContent>
                     {schedules.map((schedule) => (
-                      <SelectItem key={schedule.id} value={schedule.id}>
+                      <SelectItem key={schedule.id} value={schedule.id} className="text-sm md:text-base">
                         {schedule.vaccine_name} ({schedule.total_doses} โดส)
                       </SelectItem>
                     ))}
@@ -376,34 +382,36 @@ const VaccineScheduleCalculator: React.FC = () => {
               </div>
 
               {selectedSchedule && (
-                <Card className="border-primary/20">
-                  <CardHeader>
-                    <CardTitle className="text-lg">ข้อมูลวัคซีน: {selectedSchedule.vaccine_name}</CardTitle>
+                <Card className="border-primary/20 mt-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base md:text-lg text-primary">
+                      ข้อมูลวัคซีน: {selectedSchedule.vaccine_name}
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">จำนวนโดส:</span>
-                        <p>{selectedSchedule.total_doses} โดส</p>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm md:text-base">
+                      <div className="bg-background/50 p-3 rounded-lg">
+                        <span className="font-medium text-muted-foreground block mb-1">จำนวนโดส:</span>
+                        <p className="font-semibold">{selectedSchedule.total_doses} โดส</p>
                       </div>
-                      <div>
-                        <span className="font-medium">ระยะห่าง:</span>
-                        <p>{selectedSchedule.dose_intervals.join(', ')} วัน</p>
+                      <div className="bg-background/50 p-3 rounded-lg">
+                        <span className="font-medium text-muted-foreground block mb-1">ระยะห่าง:</span>
+                        <p className="font-semibold">{selectedSchedule.dose_intervals.join(', ')} วัน</p>
                       </div>
-                      <div>
-                        <span className="font-medium">ระยะเวลาคุ้มกัน:</span>
-                        <p>{Math.round(selectedSchedule.efficacy_duration / 365)} ปี</p>
+                      <div className="bg-background/50 p-3 rounded-lg">
+                        <span className="font-medium text-muted-foreground block mb-1">ระยะเวลาคุ้มกัน:</span>
+                        <p className="font-semibold">{Math.round(selectedSchedule.efficacy_duration / 365)} ปี</p>
                       </div>
-                      <div>
-                        <span className="font-medium">โดสเสริม:</span>
-                        <p>{selectedSchedule.booster_required ? 'ต้องการ' : 'ไม่ต้องการ'}</p>
+                      <div className="bg-background/50 p-3 rounded-lg">
+                        <span className="font-medium text-muted-foreground block mb-1">โดสเสริม:</span>
+                        <p className="font-semibold">{selectedSchedule.booster_required ? 'ต้องการ' : 'ไม่ต้องการ'}</p>
                       </div>
                     </div>
 
                     {selectedSchedule.age_restrictions && (
-                      <div>
-                        <span className="font-medium">ข้อจำกัดอายุ:</span>
-                        <p>
+                      <div className="bg-background/50 p-3 rounded-lg">
+                        <span className="font-medium text-muted-foreground block mb-2">ข้อจำกัดอายุ:</span>
+                        <p className="text-sm md:text-base">
                           {selectedSchedule.age_restrictions.min_age && `อายุขั้นต่ำ ${selectedSchedule.age_restrictions.min_age} ปี`}
                           {selectedSchedule.age_restrictions.min_age && selectedSchedule.age_restrictions.max_age && ' - '}
                           {selectedSchedule.age_restrictions.max_age && `อายุสูงสุด ${selectedSchedule.age_restrictions.max_age} ปี`}
@@ -411,22 +419,22 @@ const VaccineScheduleCalculator: React.FC = () => {
                       </div>
                     )}
 
-                    <div>
-                      <span className="font-medium">ข้อบ่งชี้:</span>
+                    <div className="space-y-2">
+                      <span className="font-medium text-muted-foreground">ข้อบ่งชี้:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {selectedSchedule.indications.map((indication, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                          <Badge key={index} variant="secondary" className="text-xs md:text-sm">
                             {indication}
                           </Badge>
                         ))}
                       </div>
                     </div>
 
-                    <div>
-                      <span className="font-medium">ข้อห้าม:</span>
+                    <div className="space-y-2">
+                      <span className="font-medium text-muted-foreground">ข้อห้าม:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {selectedSchedule.contraindications.map((contraindication, index) => (
-                          <Badge key={index} variant="destructive" className="text-xs">
+                          <Badge key={index} variant="destructive" className="text-xs md:text-sm">
                             {contraindication}
                           </Badge>
                         ))}
