@@ -153,33 +153,73 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">โรงพยาบาลโฮม</h1>
-          <p className="text-muted-foreground">ระบบจัดการการนัดหมายและวัคซีน</p>
+        {/* Modern Header with Gradient */}
+        <div className="text-center space-y-6">
+          <div className="relative">
+            {/* Gradient Background Circle */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-32 h-32 bg-gradient-to-br from-primary/20 via-green-400/10 to-emerald-500/20 rounded-full blur-2xl animate-pulse"></div>
+            </div>
+            
+            {/* Main Title with Gradient Text */}
+            <div className="relative z-10 space-y-3">
+              <h1 className="text-5xl font-black bg-gradient-to-r from-primary via-green-600 to-emerald-600 bg-clip-text text-transparent animate-fade-in">
+                โรงพยาบาลโฮม
+              </h1>
+              <div className="w-24 h-1 bg-gradient-to-r from-primary to-emerald-500 mx-auto rounded-full"></div>
+            </div>
+          </div>
+          
+          {/* Subtitle with Enhanced Typography */}
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-foreground/90">ระบบจัดการการนัดหมายและวัคซีน</p>
+            <p className="text-sm text-muted-foreground font-medium">เข้าสู่ระบบเพื่อจัดการข้อมูลอย่างปลอดภัย</p>
+          </div>
         </div>
 
-        <Card className="border-2 border-green-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-center text-xl">
-              เข้าสู่ระบบ / ลงทะเบียน
+        <Card className="border-2 border-green-200 shadow-xl bg-white/95 backdrop-blur-sm animate-scale-in">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-center">
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-emerald-500 rounded-lg flex items-center justify-center">
+                    <LogIn className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-primary to-emerald-600 bg-clip-text text-transparent">
+                    เข้าสู่ระบบ
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground font-medium">
+                  เลือกระหว่างเข้าสู่ระบบหรือสร้างบัญชีใหม่
+                </p>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(value) => setIsSignUp(value === "signup")}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-2 bg-green-50 p-1 rounded-xl border border-green-200">
+                <TabsTrigger 
+                  value="signin" 
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
+                >
                   <LogIn className="h-4 w-4" />
                   เข้าสู่ระบบ
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="signup" 
+                  className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
+                >
                   <UserPlus className="h-4 w-4" />
                   ลงทะเบียน
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="signin" className="mt-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
+              <TabsContent value="signin" className="mt-8 animate-fade-in">
+                <div className="mb-6 text-center">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">ยินดีต้อนรับกลับ</h3>
+                  <p className="text-sm text-muted-foreground">กรอกข้อมูลเพื่อเข้าสู่ระบบ</p>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="email">อีเมล</Label>
                     <Input
@@ -206,21 +246,25 @@ const AuthPage = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 shadow-lg hover:shadow-xl transition-all duration-300" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                     ) : (
-                      <LogIn className="h-4 w-4 mr-2" />
+                      <LogIn className="h-5 w-5 mr-3" />
                     )}
                     เข้าสู่ระบบ
                   </Button>
                 </form>
               </TabsContent>
               
-              <TabsContent value="signup" className="mt-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
+              <TabsContent value="signup" className="mt-8 animate-fade-in">
+                <div className="mb-6 text-center">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">สร้างบัญชีใหม่</h3>
+                  <p className="text-sm text-muted-foreground">เริ่มต้นใช้งานระบบจัดการการนัดหมาย</p>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">อีเมล</Label>
                     <Input
@@ -248,13 +292,13 @@ const AuthPage = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-500/90 hover:to-green-500/90 shadow-lg hover:shadow-xl transition-all duration-300" 
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                     ) : (
-                      <UserPlus className="h-4 w-4 mr-2" />
+                      <UserPlus className="h-5 w-5 mr-3" />
                     )}
                     ลงทะเบียน
                   </Button>
@@ -268,7 +312,7 @@ const AuthPage = () => {
           <Button 
             variant="outline" 
             onClick={() => navigate('/')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 border-2 border-green-200 hover:bg-green-50 hover:border-primary transition-all duration-300 font-medium"
           >
             <Home className="h-4 w-4" />
             กลับหน้าหลัก
