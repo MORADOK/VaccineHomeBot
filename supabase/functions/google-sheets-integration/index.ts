@@ -42,14 +42,16 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Action requested:', action);
     
     // Get environment variables
-    const serviceAccountKey = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_KEY");
+    const clientEmail = Deno.env.get("GOOGLE_CLIENT_EMAIL");
+    const privateKey = Deno.env.get("GOOGLE_PRIVATE_KEY");
     const spreadsheetId = "1ASjl_kZrQ4InVWmCS2qzf_ofT4Uj0gEo_Oy-fqwCc7Q";
     
-    console.log('Service account key exists:', !!serviceAccountKey);
+    console.log('Client email exists:', !!clientEmail);
+    console.log('Private key exists:', !!privateKey);
     console.log('Spreadsheet ID exists:', !!spreadsheetId);
     
-    if (!serviceAccountKey) {
-      console.error('Missing GOOGLE_SERVICE_ACCOUNT_KEY');
+    if (!clientEmail || !privateKey) {
+      console.error('Missing Google credentials');
       return new Response(
         JSON.stringify({ error: 'Google Service Account credentials not configured' }),
         {
@@ -70,51 +72,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Parse service account
-    let serviceAccount;
-    try {
-      // Clean up the service account key - remove any extra whitespace and handle newlines
-      let cleanedKey = serviceAccountKey.trim();
-      
-      // If the key doesn't start with {, it might be base64 encoded or corrupted
-      if (!cleanedKey.startsWith('{')) {
-        console.error('Service account key does not appear to be JSON, first 50 chars:', cleanedKey.substring(0, 50));
-        return new Response(
-          JSON.stringify({ error: 'Google Service Account key must be valid JSON format' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      serviceAccount = JSON.parse(cleanedKey);
-      console.log('Service account parsed successfully, client_email:', serviceAccount.client_email);
-    } catch (parseError) {
-      console.error('Service account parsing error:', parseError);
-      console.error('Service account key first 100 characters:', serviceAccountKey?.substring(0, 100));
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid Google Service Account JSON format', 
-          details: parseError.message 
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    // Create service account object
+    const serviceAccount = {
+      client_email: clientEmail,
+      private_key: privateKey
+    };
     
-    if (!serviceAccount.client_email || !serviceAccount.private_key) {
-      console.error('Missing required fields in service account');
-      return new Response(
-        JSON.stringify({ error: 'Google Service Account credentials incomplete' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+    console.log('Service account configured, client_email:', serviceAccount.client_email);
 
     switch (action) {
       case 'readPatients':
