@@ -27,6 +27,19 @@ interface Patient {
   lineId: string;
 }
 
+interface PatientRegistration {
+  id: string;
+  full_name: string;
+  phone: string;
+  hospital: string;
+  registration_id: string;
+  source: string;
+  status: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Appointment {
   id: string;
   appointment_id: string;
@@ -47,6 +60,7 @@ interface Appointment {
 const StaffPortal = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [registrations, setRegistrations] = useState<PatientRegistration[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -109,10 +123,40 @@ const StaffPortal = () => {
     }
   };
 
+  // Load patient registrations from Supabase
+  const loadRegistrations = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('patient_registrations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setRegistrations(data as PatientRegistration[]);
+        toast({
+          title: "โหลดข้อมูลสำเร็จ",
+          description: `โหลดข้อมูลการลงทะเบียน ${data.length} รายการ`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "ข้อผิดพลาด",
+        description: error.message || "ไม่สามารถโหลดข้อมูลการลงทะเบียนได้",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadAppointments();
     loadPatients();
+    loadRegistrations();
   }, []);
 
   const updateAppointmentStatus = async (id: string, newStatus: Appointment['status']) => {
@@ -243,6 +287,13 @@ const StaffPortal = () => {
     return matchesSearch;
   });
 
+  const filteredRegistrations = registrations.filter(registration => {
+    const matchesSearch = registration.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         registration.phone.includes(searchTerm) ||
+                         registration.registration_id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
   const stats = {
     total: appointments.length,
     scheduled: appointments.filter(apt => apt.status === 'scheduled').length,
@@ -282,6 +333,63 @@ const StaffPortal = () => {
         toast({
           title: "สร้างนัดหมายสำเร็จ",
           description: `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${patient.name} เรียบร้อยแล้ว (ID: ${appointmentId})`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to create appointment:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error.message || "ไม่สามารถสร้างนัดหมายได้ กรุณาลองใหม่",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const scheduleVaccineFromRegistration = async (registration: PatientRegistration, vaccineType: string) => {
+    setIsLoading(true);
+    try {
+      const appointmentId = `HOM-${Date.now().toString().slice(-6)}`;
+      const appointmentDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert({
+          appointment_id: appointmentId,
+          patient_name: registration.full_name,
+          patient_phone: registration.phone,
+          patient_id_number: registration.registration_id,
+          vaccine_type: vaccineType,
+          appointment_date: appointmentDate,
+          appointment_time: '09:00',
+          status: 'scheduled',
+          scheduled_by: 'staff',
+          notes: `นัดหมายจากการลงทะเบียน: ${registration.registration_id}`
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Add to local state
+        setAppointments(prev => [data as Appointment, ...prev]);
+
+        // Update registration status to completed
+        await supabase
+          .from('patient_registrations')
+          .update({ status: 'scheduled' })
+          .eq('id', registration.id);
+
+        // Update local registration state
+        setRegistrations(prev => 
+          prev.map(reg => reg.id === registration.id ? { ...reg, status: 'scheduled' } : reg)
+        );
+
+        toast({
+          title: "สร้างนัดหมายสำเร็จ",
+          description: `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${registration.full_name} เรียบร้อยแล้ว (ID: ${appointmentId})`,
         });
       }
     } catch (error: any) {
@@ -343,6 +451,16 @@ const StaffPortal = () => {
               <RefreshCw className={`h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">โหลดคนไข้</span>
               <span className="sm:hidden">คนไข้</span>
+            </Button>
+            <Button 
+              onClick={loadRegistrations} 
+              variant="outline" 
+              disabled={isLoading}
+              className="h-10 md:h-12 px-3 md:px-6 text-sm md:text-base font-semibold border-2 border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary shadow-sm transition-all duration-300"
+            >
+              <RefreshCw className={`h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">ลงทะเบียน</span>
+              <span className="sm:hidden">ลงทะเบียน</span>
             </Button>
             <Button 
               onClick={exportData} 
@@ -569,6 +687,132 @@ const StaffPortal = () => {
                     <p className="text-lg">ไม่พบข้อมูลคนไข้ที่ตรงกับการค้นหา</p>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Patient Registrations Section */}
+        {filteredRegistrations.length > 0 && (
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-soft">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-foreground">
+                ผู้ลงทะเบียนรอการนัดหมาย ({filteredRegistrations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredRegistrations.map((registration) => (
+                  <div key={registration.id} className="bg-gradient-card rounded-xl p-6 border border-blue-100 shadow-soft hover:shadow-medium transition-all duration-300">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg text-foreground">{registration.full_name}</h3>
+                        <p className="text-sm text-muted-foreground">รหัสลงทะเบียน: {registration.registration_id}</p>
+                        <p className="text-xs text-muted-foreground">ลงทะเบียนเมื่อ: {new Date(registration.created_at).toLocaleDateString('th-TH')}</p>
+                      </div>
+                      <Badge variant={registration.status === 'pending' ? 'secondary' : 'default'}>
+                        {registration.status === 'pending' ? 'รอการนัดหมาย' : 
+                         registration.status === 'scheduled' ? 'นัดหมายแล้ว' : registration.status}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                        <Phone className="h-5 w-5 text-primary" />
+                        <span className="font-medium">{registration.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                        <span className="text-sm font-medium">โรงพยาบาล: {registration.hospital}</span>
+                      </div>
+                    </div>
+
+                    {registration.notes && (
+                      <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p className="text-sm text-yellow-800"><strong>หมายเหตุ:</strong> {registration.notes}</p>
+                      </div>
+                    )}
+
+                    {registration.status === 'pending' && (
+                      <div className="border-t border-blue-100 pt-4">
+                        <h4 className="text-sm font-semibold mb-4 text-foreground">สร้างนัดหมายวัคซีน</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'flu')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนไข้หวัดใหญ่
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'hep_b')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนไวรัสตับอักเสบบี
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'tetanus')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนป้องกันบาดทะยัก
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'shingles')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนงูสวัด
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'hpv')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนป้องกันมะเร็งปากมดลูก
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'pneumonia')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนปอดอักเสบ
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'chickenpox')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนอีสุกอีใส
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => scheduleVaccineFromRegistration(registration, 'rabies')}
+                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                            disabled={isLoading}
+                          >
+                            วัคซีนพิษสุนัขบ้า
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
