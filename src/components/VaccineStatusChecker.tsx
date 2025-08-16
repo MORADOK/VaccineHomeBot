@@ -53,15 +53,17 @@ const VaccineStatusChecker = () => {
 
       const data = await response.json();
       
-      const patientName = data.appointments?.[0]?.patient_name || '';
+      const patientName = data.appointments?.[0]?.patient_name || 
+                         data.registrations?.[0]?.full_name || '';
 
       setResults({
         appointments: data.appointments || [],
         logs: data.vaccineLogs || [],
+        registrations: data.registrations || [],
         patientName: patientName
       });
 
-      if (!data.appointments?.length && !data.vaccineLogs?.length) {
+      if (!data.appointments?.length && !data.vaccineLogs?.length && !data.registrations?.length) {
         toast({
           title: "ไม่พบข้อมูล",
           description: "ไม่พบข้อมูลการลงทะเบียนในระบบ กรุณาตรวจสอบข้อมูลอีกครั้ง"
@@ -158,6 +160,54 @@ const VaccineStatusChecker = () => {
                 </div>
               )}
 
+              {/* Patient Registrations */}
+              {results.registrations && results.registrations.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">ข้อมูลการลงทะเบียน</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {results.registrations.map((registration) => (
+                        <div key={registration.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h3 className="font-semibold">{registration.full_name}</h3>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                <User className="h-4 w-4" />
+                                {registration.phone}
+                                <Clock className="h-4 w-4 ml-2" />
+                                {formatDate(registration.created_at)}
+                              </div>
+                            </div>
+                            <Badge variant={registration.status === 'pending' ? 'secondary' : 'default'}>
+                              {registration.status === 'pending' ? 'รอการนัดหมาย' : registration.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">โรงพยาบาล:</span>
+                            <span className="ml-2">{registration.hospital}</span>
+                          </div>
+                          
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">รหัสลงทะเบียน:</span>
+                            <span className="ml-2">{registration.registration_id}</span>
+                          </div>
+                          
+                          {registration.notes && (
+                            <div className="mt-2">
+                              <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
+                              <p className="text-sm mt-1">{registration.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Appointments */}
               {results.appointments && results.appointments.length > 0 && (
                 <Card>
@@ -238,7 +288,8 @@ const VaccineStatusChecker = () => {
 
               {hasSearched && results && 
                (!results.appointments || results.appointments.length === 0) && 
-               (!results.logs || results.logs.length === 0) && (
+               (!results.logs || results.logs.length === 0) &&
+               (!results.registrations || results.registrations.length === 0) && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>

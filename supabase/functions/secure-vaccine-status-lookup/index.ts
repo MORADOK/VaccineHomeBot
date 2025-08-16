@@ -40,6 +40,7 @@ serve(async (req) => {
     let appointmentsQuery;
     let logsQuery;
     let trackingQuery;
+    let registrationsQuery;
 
     // Build queries based on search type
     if (searchType === 'phone') {
@@ -48,6 +49,12 @@ serve(async (req) => {
         .select('*')
         .eq('patient_phone', searchValue)
         .order('appointment_date', { ascending: false })
+
+      registrationsQuery = supabase
+        .from('patient_registrations')
+        .select('*')
+        .eq('phone', searchValue)
+        .order('created_at', { ascending: false })
 
       logsQuery = supabase
         .from('vaccine_logs')
@@ -68,7 +75,13 @@ serve(async (req) => {
         `)
         .eq('patient_id', searchValue) // This will need to be improved to properly match by phone
     } else {
-      // Search by patient_id
+      // Search by patient_id - first check if it's in registrations
+      registrationsQuery = supabase
+        .from('patient_registrations')
+        .select('*')
+        .eq('registration_id', searchValue)
+        .order('created_at', { ascending: false })
+
       appointmentsQuery = supabase
         .from('appointments')
         .select('*')
@@ -99,10 +112,11 @@ serve(async (req) => {
     }
 
     // Execute queries
-    const [appointmentsResult, logsResult, trackingResult] = await Promise.all([
+    const [appointmentsResult, logsResult, trackingResult, registrationsResult] = await Promise.all([
       appointmentsQuery,
       logsQuery,
-      trackingQuery
+      trackingQuery,
+      registrationsQuery
     ])
 
     // Check for errors
@@ -139,12 +153,24 @@ serve(async (req) => {
       )
     }
 
+    if (registrationsResult.error) {
+      console.error('Registrations query error:', registrationsResult.error)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch patient registrations' }), 
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     // Return filtered results
     return new Response(
       JSON.stringify({
         appointments: appointmentsResult.data || [],
         vaccineLogs: logsResult.data || [],
-        tracking: trackingResult.data || []
+        tracking: trackingResult.data || [],
+        registrations: registrationsResult.data || []
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
