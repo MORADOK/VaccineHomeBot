@@ -223,6 +223,13 @@ const LiffPatientPortal = () => {
           console.error('Error sending LINE chat message:', messageError);
         }
       }
+
+      // ตั้งเวลาปิดหน้าจออัตโนมัติ (8 วินาที)
+      setTimeout(() => {
+        if (inLineApp && window.liff) {
+          window.liff.closeWindow();
+        }
+      }, 8000);
     } catch (error) {
       console.error('Registration error:', error);
       toast({
@@ -265,6 +272,11 @@ const LiffPatientPortal = () => {
               </h2>
               <p className="text-green-700 mb-6">
                 ขอบคุณที่ลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
+                {inLineApp && (
+                  <span className="block mt-2 text-sm font-medium">
+                    ⏰ หน้าต่างจะปิดอัตโนมัติใน 8 วินาที
+                  </span>
+                )}
               </p>
               
               <div className="bg-white p-4 rounded-lg border mb-6 text-left">
@@ -280,11 +292,13 @@ const LiffPatientPortal = () => {
               </div>
 
               <div className="space-y-2">
-                <Button onClick={resetForm} className="w-full">
-                  ลงทะเบียนใหม่
-                </Button>
+                {!inLineApp && (
+                  <Button onClick={resetForm} variant="outline" className="w-full">
+                    ลงทะเบียนใหม่
+                  </Button>
+                )}
                 {inLineApp && (
-                  <Button onClick={closeLiff} variant="outline" className="w-full">
+                  <Button onClick={closeLiff} className="w-full">
                     ปิดหน้าต่าง
                   </Button>
                 )}

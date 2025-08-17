@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface PatientData {
   fullName: string;
   phone: string;
+  lineUserId?: string;
 }
 
 const PatientPortal = () => {
@@ -21,6 +22,7 @@ const PatientPortal = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [autoCloseTimer, setAutoCloseTimer] = useState<number>(0);
   const { toast } = useToast();
 
   const handleInputChange = (field: keyof PatientData, value: string) => {
@@ -55,6 +57,18 @@ const PatientPortal = () => {
     try {
       const registrationId = `HOM-${Date.now()}`;
       
+      // ดึง LINE User ID หากเป็นไปได้
+      let lineUserId = null;
+      try {
+        if (window.liff && window.liff.isLoggedIn()) {
+          const profile = await window.liff.getProfile();
+          lineUserId = profile.userId;
+          setPatientData(prev => ({ ...prev, lineUserId }));
+        }
+      } catch (error) {
+        console.log('LINE profile not available:', error);
+      }
+
       const { error } = await supabase
         .from('patient_registrations')
         .insert({
@@ -62,7 +76,7 @@ const PatientPortal = () => {
           phone: patientData.phone,
           hospital: 'โรงพยาบาลโฮม',
           registration_id: registrationId,
-          source: 'web_portal',
+          source: lineUserId ? 'line_liff' : 'web_portal',
           status: 'pending'
         });
 
@@ -75,6 +89,36 @@ const PatientPortal = () => {
         title: "ลงทะเบียนสำเร็จ",
         description: "ลงทะเบียนรับบริการสำเร็จแล้ว",
       });
+
+      // ส่งข้อความแจ้งเตือนผ่าน LINE หากมี LINE User ID
+      if (lineUserId) {
+        try {
+          await supabase.functions.invoke('send-line-message', {
+            body: {
+              userId: lineUserId,
+              message: `✅ ลงทะเบียนรับบริการสำเร็จ
+
+📋 รายละเอียด:
+• ชื่อ: ${patientData.fullName}
+• เบอร์โทร: ${patientData.phone}
+• รหัสลงทะเบียน: ${registrationId}
+
+🏥 โรงพยาบาลโฮม
+เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย`
+            }
+          });
+        } catch (messageError) {
+          console.error('Error sending LINE message:', messageError);
+        }
+      }
+
+      // ตั้งเวลาปิดหน้าจออัตโนมัติ (10 วินาที)
+      const timer = window.setTimeout(() => {
+        if (window.liff && window.liff.isInClient()) {
+          window.liff.closeWindow();
+        }
+      }, 10000);
+      setAutoCloseTimer(timer);
     } catch (error) {
       console.error('Registration error:', error);
       toast({
@@ -88,6 +132,10 @@ const PatientPortal = () => {
   };
 
   const resetForm = () => {
+    if (autoCloseTimer) {
+      window.clearTimeout(autoCloseTimer);
+      setAutoCloseTimer(0);
+    }
     setPatientData({
       fullName: '',
       phone: ''
@@ -114,6 +162,16 @@ const PatientPortal = () => {
               </h2>
               <p className="text-green-700 mb-6">
                 ขอบคุณที่ลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมายและแจ้งข้อมูลบริการ
+                {patientData.lineUserId && (
+                  <span className="block mt-2 text-sm">
+                    📱 ข้อความยืนยันได้ส่งไปที่ LINE แล้ว
+                  </span>
+                )}
+                {window.liff && window.liff.isInClient() && (
+                  <span className="block mt-2 text-sm">
+                    ⏰ หน้าต่างจะปิดอัตโนมัติใน 10 วินาที
+                  </span>
+                )}
               </p>
               
               <div className="bg-white p-4 rounded-lg border mb-6 text-left">
@@ -122,12 +180,25 @@ const PatientPortal = () => {
                   <p><strong>ชื่อ:</strong> {patientData.fullName}</p>
                   <p><strong>เบอร์โทร:</strong> {patientData.phone}</p>
                   <p><strong>สถานที่:</strong> โรงพยาบาลโฮม</p>
+                  {patientData.lineUserId && (
+                    <p><strong>LINE ID:</strong> {patientData.lineUserId}</p>
+                  )}
                 </div>
               </div>
 
-              <Button onClick={resetForm} className="w-full">
-                ลงทะเบียนใหม่
-              </Button>
+              <div className="space-y-2">
+                <Button onClick={resetForm} variant="outline" className="w-full">
+                  ลงทะเบียนใหม่
+                </Button>
+                {window.liff && window.liff.isInClient() && (
+                  <Button 
+                    onClick={() => window.liff.closeWindow()} 
+                    className="w-full"
+                  >
+                    ปิดหน้าต่าง
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
