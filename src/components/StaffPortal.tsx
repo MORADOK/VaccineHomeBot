@@ -64,17 +64,6 @@ const StaffPortal = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Same-day registration form state
-  const [sameDayForm, setSameDayForm] = useState({
-    fullName: '',
-    phone: '',
-    idNumber: '',
-    vaccineType: 'flu',
-    notes: ''
-  });
-  const [showSameDayForm, setShowSameDayForm] = useState(false);
-  
   const { toast } = useToast();
 
   // Load appointments from Supabase
@@ -415,121 +404,6 @@ const StaffPortal = () => {
     }
   };
 
-  // Same-day registration and vaccination
-  const handleSameDayRegistration = async () => {
-    if (!sameDayForm.fullName || !sameDayForm.phone || !sameDayForm.idNumber) {
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "กรุณากรอกข้อมูลให้ครบถ้วน",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate phone number format
-    const phoneRegex = /^[0-9]{9,10}$/;
-    if (!phoneRegex.test(sameDayForm.phone.replace(/[-\s]/g, ''))) {
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "กรุณากรอกหมายเลขโทรศัพท์ให้ถูกต้อง",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const appointmentId = `HOM-${Date.now().toString().slice(-6)}`;
-      const registrationId = `HOM-SD-${Date.now()}`;
-
-      // Create both registration and appointment for same day
-      const [registrationResult, appointmentResult] = await Promise.all([
-        // Create patient registration
-        supabase
-          .from('patient_registrations')
-          .insert({
-            full_name: sameDayForm.fullName,
-            phone: sameDayForm.phone,
-            hospital: 'โรงพยาบาลโฮม',
-            registration_id: registrationId,
-            source: 'same_day_staff',
-            status: 'completed',
-            notes: `ลงทะเบียนและฉีดวันเดียวกัน - ${sameDayForm.notes || 'ไม่มีหมายเหตุ'}`
-          })
-          .select()
-          .single(),
-
-        // Create appointment for today
-        supabase
-          .from('appointments')
-          .insert({
-            appointment_id: appointmentId,
-            patient_name: sameDayForm.fullName,
-            patient_phone: sameDayForm.phone,
-            patient_id_number: sameDayForm.idNumber,
-            vaccine_type: sameDayForm.vaccineType,
-            appointment_date: today,
-            appointment_time: '09:00',
-            status: 'completed',
-            scheduled_by: 'same_day_staff',
-            notes: `ลงทะเบียนและฉีดวันเดียวกัน - ${sameDayForm.notes || 'ไม่มีหมายเหตุ'}`
-          })
-          .select()
-          .single()
-      ]);
-
-      if (registrationResult.error) throw registrationResult.error;
-      if (appointmentResult.error) throw appointmentResult.error;
-
-      // Create vaccine log entry
-      await supabase
-        .from('vaccine_logs')
-        .insert({
-          patient_name: sameDayForm.fullName,
-          vaccine_type: sameDayForm.vaccineType,
-          dose_number: 1,
-          administered_date: today,
-          administered_by: 'เจ้าหน้าที่',
-          appointment_id: appointmentResult.data.id,
-          notes: `ลงทะเบียนและฉีดวันเดียวกัน - ${sameDayForm.notes || 'ไม่มีหมายเหตุ'}`
-        });
-
-      // Update local states
-      if (registrationResult.data) {
-        setRegistrations(prev => [registrationResult.data as PatientRegistration, ...prev]);
-      }
-      if (appointmentResult.data) {
-        setAppointments(prev => [appointmentResult.data as Appointment, ...prev]);
-      }
-
-      // Reset form
-      setSameDayForm({
-        fullName: '',
-        phone: '',
-        idNumber: '',
-        vaccineType: 'flu',
-        notes: ''
-      });
-      setShowSameDayForm(false);
-
-      toast({
-        title: "ลงทะเบียนและฉีดวัคซีนสำเร็จ",
-        description: `บันทึกการฉีดวัคซีน ${sameDayForm.vaccineType} สำหรับ ${sameDayForm.fullName} เรียบร้อยแล้ว`,
-      });
-
-    } catch (error: any) {
-      console.error('Same-day registration failed:', error);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: error.message || "ไม่สามารถลงทะเบียนและฉีดวัคซีนได้",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const exportData = () => {
     const csv = [
       'ID,ชื่อผู้ป่วย,เบอร์โทร,วัคซีน,วันที่,เวลา,สถานะ,วันที่สร้าง',
@@ -667,7 +541,7 @@ const StaffPortal = () => {
                 <div className="relative">
                   <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-primary" />
                   <Input
-                    placeholder="ค้นหาด้วยชื่อ, เบอר์โทร, หรือ ID..."
+                    placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรือ ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 md:pl-12 py-2 md:py-3 text-sm md:text-base font-medium rounded-lg md:rounded-xl border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-background transition-all duration-300"
@@ -693,123 +567,6 @@ const StaffPortal = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* Same-Day Registration Form */}
-        <Card className="bg-white border-2 border-primary/20 shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                ลงทะเบียนวันปัจจุบัน
-              </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowSameDayForm(!showSameDayForm)}
-                className="text-primary border-primary hover:bg-primary hover:text-primary-foreground"
-              >
-                {showSameDayForm ? 'ปิดฟอร์ม' : 'เปิดฟอร์ม'}
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              สำหรับคนไข้ที่ลงทะเบียนและฉีดวัคซีนในวันเดียวกัน
-            </p>
-          </CardHeader>
-          
-          {showSameDayForm && (
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="sameDayFullName" className="text-sm font-medium">ชื่อ-นามสกุล</Label>
-                  <Input
-                    id="sameDayFullName"
-                    placeholder="นาย/นาง/นางสาว ชื่อ นามสกุล"
-                    value={sameDayForm.fullName}
-                    onChange={(e) => setSameDayForm(prev => ({ ...prev, fullName: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="sameDayPhone" className="text-sm font-medium">หมายเลขโทรศัพท์</Label>
-                  <Input
-                    id="sameDayPhone"
-                    placeholder="08x-xxx-xxxx"
-                    value={sameDayForm.phone}
-                    onChange={(e) => setSameDayForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="sameDayIdNumber" className="text-sm font-medium">เลขประจำตัวประชาชน</Label>
-                  <Input
-                    id="sameDayIdNumber"
-                    placeholder="1-xxxx-xxxxx-xx-x"
-                    value={sameDayForm.idNumber}
-                    onChange={(e) => setSameDayForm(prev => ({ ...prev, idNumber: e.target.value }))}
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="sameDayVaccineType" className="text-sm font-medium">ประเภทวัคซีน</Label>
-                  <select
-                    id="sameDayVaccineType"
-                    value={sameDayForm.vaccineType}
-                    onChange={(e) => setSameDayForm(prev => ({ ...prev, vaccineType: e.target.value }))}
-                    className="w-full mt-1 px-3 py-2 text-sm rounded-lg border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-background"
-                  >
-                    <option value="flu">วัคซีนไข้หวัดใหญ่</option>
-                    <option value="hep_b">วัคซีนไวรัสตับอักเสบบี</option>
-                    <option value="tetanus">วัคซีนป้องกันบาดทะยัก</option>
-                    <option value="shingles">วัคซีนงูสวัด</option>
-                    <option value="hpv">วัคซีนป้องกันมะเร็งปากมดลูก</option>
-                    <option value="pneumonia">วัคซีนปอดอักเสบ</option>
-                    <option value="chickenpox">วัคซีนอีสุกอีใส</option>
-                    <option value="rabies">วัคซีนพิษสุนัขบ้า</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="sameDayNotes" className="text-sm font-medium">หมายเหตุ (ถ้ามี)</Label>
-                <Input
-                  id="sameDayNotes"
-                  placeholder="หมายเหตุเพิ่มเติม..."
-                  value={sameDayForm.notes}
-                  onChange={(e) => setSameDayForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="mt-1"
-                />
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  onClick={handleSameDayRegistration}
-                  disabled={isLoading}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-                >
-                  {isLoading ? 'กำลังบันทึก...' : 'ลงทะเบียนและฉีดวัคซีน'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSameDayForm({
-                      fullName: '',
-                      phone: '',
-                      idNumber: '',
-                      vaccineType: 'flu',
-                      notes: ''
-                    });
-                  }}
-                  className="px-6"
-                >
-                  ล้างข้อมูล
-                </Button>
-              </div>
-            </CardContent>
-          )}
         </Card>
 
         {/* Modern Patient List */}
