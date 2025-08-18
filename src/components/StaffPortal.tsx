@@ -36,6 +36,7 @@ interface PatientRegistration {
   source: string;
   status: string;
   notes?: string;
+  line_user_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -65,6 +66,18 @@ const StaffPortal = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Add states for same-day vaccination form
+  const [showSameDayForm, setShowSameDayForm] = useState(false);
+  const [sameDayForm, setSameDayForm] = useState({
+    name: '',
+    phone: '',
+    idNumber: '',
+    vaccineType: 'flu',
+    notes: ''
+  });
+  const [selectedRegistration, setSelectedRegistration] = useState<PatientRegistration | null>(null);
+  const [appointmentDate, setAppointmentDate] = useState('');
 
   // Load appointments from Supabase
   const loadAppointments = async () => {
@@ -191,9 +204,20 @@ const StaffPortal = () => {
 
   const sendNotification = async (appointment: Appointment, message: string) => {
     try {
+      console.log('=== LINE Notification Debug ===');
+      console.log('Appointment data:', {
+        id: appointment.id,
+        line_user_id: appointment.line_user_id,
+        patient_name: appointment.patient_name,
+        patient_phone: appointment.patient_phone
+      });
+      console.log('Message to send:', message);
+
       // ส่งผ่าน LINE Bot API ถ้ามี LINE User ID
       if (appointment.line_user_id) {
-        const { error: lineError } = await supabase.functions.invoke('send-line-message', {
+        console.log('Attempting to send LINE message...');
+        
+        const { data: lineResult, error: lineError } = await supabase.functions.invoke('send-line-message', {
           body: {
             userId: appointment.line_user_id,
             message: message,
@@ -207,14 +231,27 @@ const StaffPortal = () => {
           }
         });
 
+        console.log('LINE API Response:', { data: lineResult, error: lineError });
+
         if (lineError) {
-          console.error('LINE API Error:', lineError);
-          // ยังคงสร้าง notification record แม้ว่า LINE message จะส่งไม่สำเร็จ
+          console.error('LINE API Error Details:', {
+            error: lineError,
+            status: lineError.status,
+            message: lineError.message,
+            details: lineError.details || 'No additional details'
+          });
+          
+          throw new Error(`LINE API Error: ${lineError.message || 'Unknown error'}`);
         }
+
+        console.log('LINE message sent successfully:', lineResult);
+      } else {
+        console.log('No LINE User ID found, skipping LINE message');
       }
 
       // บันทึก notification record ในฐานข้อมูล
-      const { error } = await supabase
+      console.log('Creating notification record...');
+      const { error: dbError } = await supabase
         .from('appointment_notifications')
         .insert({
           appointment_id: appointment.id,
@@ -225,7 +262,12 @@ const StaffPortal = () => {
           status: appointment.line_user_id ? 'sent' : 'pending'
         });
 
-      if (error) throw error;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
+
+      console.log('Notification record created successfully');
 
       toast({
         title: "ส่งแจ้งเตือนสำเร็จ",
@@ -234,9 +276,18 @@ const StaffPortal = () => {
           : `บันทึกข้อความสำหรับ ${appointment.patient_name} แล้ว (ไม่มี LINE ID)`,
       });
     } catch (error: any) {
+      console.error('=== Notification Error ===');
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        appointment_id: appointment.id,
+        line_user_id: appointment.line_user_id
+      });
+      
       toast({
         title: "ส่งแจ้งเตือนไม่สำเร็จ",
-        description: error.message || "เกิดข้อผิดพลาดในการส่งข้อความ",
+        description: `เกิดข้อผิดพลาด: ${error.message}. กรุณาตรวจสอบ Console สำหรับรายละเอียด`,
         variant: "destructive",
       });
     }
@@ -347,11 +398,15 @@ const StaffPortal = () => {
     }
   };
 
-  const scheduleVaccineFromRegistration = async (registration: PatientRegistration, vaccineType: string) => {
+  const scheduleVaccineFromRegistration = async (registration: PatientRegistration & { line_user_id?: string }, vaccineType: string, isToday: boolean = false, customDate?: string) => {
     setIsLoading(true);
     try {
       const appointmentId = `HOM-${Date.now().toString().slice(-6)}`;
-      const appointmentDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const appointmentDate = isToday ? 
+        new Date().toISOString().split('T')[0] : 
+        (customDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      
+      const appointmentStatus = isToday ? 'completed' : 'scheduled';
 
       const { data, error } = await supabase
         .from('appointments')
@@ -362,10 +417,13 @@ const StaffPortal = () => {
           patient_id_number: registration.registration_id,
           vaccine_type: vaccineType,
           appointment_date: appointmentDate,
-          appointment_time: '09:00',
-          status: 'scheduled',
+          appointment_time: isToday ? new Date().toTimeString().slice(0, 5) : '09:00',
+          status: appointmentStatus,
           scheduled_by: 'staff',
-          notes: `นัดหมายจากการลงทะเบียน: ${registration.registration_id}`
+          line_user_id: registration.line_user_id,
+          notes: isToday ? 
+            `ฉีดวัคซีนวันนี้: ${registration.registration_id}` : 
+            `นัดหมายจากการลงทะเบียน: ${registration.registration_id}`
         })
         .select()
         .single();
@@ -376,27 +434,142 @@ const StaffPortal = () => {
         // Add to local state
         setAppointments(prev => [data as Appointment, ...prev]);
 
-        // Update registration status to completed
+        // If vaccinated today, also create vaccine log entry
+        if (isToday) {
+          await supabase
+            .from('vaccine_logs')
+            .insert({
+              patient_name: registration.full_name,
+              vaccine_type: vaccineType,
+              administered_date: appointmentDate,
+              dose_number: 1,
+              appointment_id: data.id,
+              administered_by: 'เจ้าหน้าที่',
+              notes: `ฉีดวัคซีนวันเดียวกันกับการลงทะเบียน`
+            });
+        }
+
+        // Update registration status
         await supabase
           .from('patient_registrations')
-          .update({ status: 'scheduled' })
+          .update({ status: isToday ? 'completed' : 'scheduled' })
           .eq('id', registration.id);
 
         // Update local registration state
         setRegistrations(prev => 
-          prev.map(reg => reg.id === registration.id ? { ...reg, status: 'scheduled' } : reg)
+          prev.map(reg => reg.id === registration.id ? { 
+            ...reg, 
+            status: isToday ? 'completed' : 'scheduled' 
+          } : reg)
         );
 
+        // Send LINE notification if line_user_id exists
+        if (registration.line_user_id) {
+          const message = isToday ? 
+            `✅ ฉีดวัคซีนสำเร็จ!\n\n🏥 โรงพยาบาลโฮม\n💉 วัคซีน: ${vaccineType}\n📅 วันที่: ${appointmentDate}\n\nขอบคุณที่มาใช้บริการครับ/ค่ะ` :
+            `📅 การนัดหมายฉีดวัคซีน\n\n🏥 โรงพยาบาลโฮม\n👤 ชื่อ: ${registration.full_name}\n💉 วัคซีน: ${vaccineType}\n📅 วันที่: ${appointmentDate}\n⏰ เวลา: 09:00\n\nกรุณามาตรงเวลาค่ะ`;
+          
+          try {
+            await sendNotification(data as Appointment, message);
+          } catch (lineError) {
+            console.error('LINE notification failed:', lineError);
+            toast({
+              title: "แจ้งเตือน",
+              description: `${isToday ? 'ฉีด' : 'นัด'}วัคซีนสำเร็จ แต่ไม่สามารถส่งข้อความ LINE ได้`,
+              variant: "default",
+            });
+          }
+        }
+
         toast({
-          title: "สร้างนัดหมายสำเร็จ",
-          description: `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${registration.full_name} เรียบร้อยแล้ว (ID: ${appointmentId})`,
+          title: isToday ? "บันทึกการฉีดวัคซีนสำเร็จ" : "สร้างนัดหมายสำเร็จ",
+          description: isToday ? 
+            `บันทึกการฉีดวัคซีน ${vaccineType} สำหรับ ${registration.full_name} เรียบร้อยแล้ว` :
+            `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${registration.full_name} เรียบร้อยแล้ว (ID: ${appointmentId})`,
         });
       }
     } catch (error: any) {
       console.error('Failed to create appointment:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: error.message || "ไม่สามารถสร้างนัดหมายได้ กรุณาลองใหม่",
+        description: error.message || "ไม่สามารถดำเนินการได้ กรุณาลองใหม่",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createSameDayVaccination = async (patientData: { name: string, phone: string, idNumber: string, vaccineType: string, notes?: string }) => {
+    setIsLoading(true);
+    try {
+      const appointmentId = `HOM-${Date.now().toString().slice(-6)}`;
+      const registrationId = `REG-${Date.now().toString().slice(-6)}`;
+      const today = new Date().toISOString().split('T')[0];
+      const currentTime = new Date().toTimeString().slice(0, 5);
+
+      // Create registration record first
+      const { data: regData, error: regError } = await supabase
+        .from('patient_registrations')
+        .insert({
+          registration_id: registrationId,
+          full_name: patientData.name,
+          phone: patientData.phone,
+          source: 'walk_in',
+          status: 'completed',
+          notes: patientData.notes || 'Walk-in วันนี้'
+        })
+        .select()
+        .single();
+
+      if (regError) throw regError;
+
+      // Create completed appointment
+      const { data: aptData, error: aptError } = await supabase
+        .from('appointments')
+        .insert({
+          appointment_id: appointmentId,
+          patient_name: patientData.name,
+          patient_phone: patientData.phone,
+          patient_id_number: patientData.idNumber,
+          vaccine_type: patientData.vaccineType,
+          appointment_date: today,
+          appointment_time: currentTime,
+          status: 'completed',
+          scheduled_by: 'staff',
+          notes: `Walk-in ฉีดวันนี้: ${registrationId}`
+        })
+        .select()
+        .single();
+
+      if (aptError) throw aptError;
+
+      // Create vaccine log
+      await supabase
+        .from('vaccine_logs')
+        .insert({
+          patient_name: patientData.name,
+          vaccine_type: patientData.vaccineType,
+          administered_date: today,
+          dose_number: 1,
+          appointment_id: aptData.id,
+          administered_by: 'เจ้าหน้าที่',
+          notes: patientData.notes || 'Walk-in วันนี้'
+        });
+
+      // Update local states
+      setRegistrations(prev => [regData as PatientRegistration, ...prev]);
+      setAppointments(prev => [aptData as Appointment, ...prev]);
+
+      toast({
+        title: "บันทึกการฉีดวัคซีนสำเร็จ",
+        description: `บันทึกการฉีดวัคซีน ${patientData.vaccineType} สำหรับ ${patientData.name} เรียบร้อยแล้ว`,
+      });
+    } catch (error: any) {
+      console.error('Failed to create same day vaccination:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error.message || "ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่",
         variant: "destructive",
       });
     } finally {
@@ -734,81 +907,194 @@ const StaffPortal = () => {
 
                     {registration.status === 'pending' && (
                       <div className="border-t border-blue-100 pt-4">
-                        <h4 className="text-sm font-semibold mb-4 text-foreground">สร้างนัดหมายวัคซีน</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'flu')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนไข้หวัดใหญ่
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'hep_b')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนไวรัสตับอักเสบบี
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'tetanus')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนป้องกันบาดทะยัก
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'shingles')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนงูสวัด
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'hpv')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนป้องกันมะเร็งปากมดลูก
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'pneumonia')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนปอดอักเสบ
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'chickenpox')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนอีสุกอีใส
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => scheduleVaccineFromRegistration(registration, 'rabies')}
-                            className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
-                            disabled={isLoading}
-                          >
-                            วัคซีนพิษสุนัขบ้า
-                          </Button>
+                        <h4 className="text-sm font-semibold mb-4 text-foreground">ตัวเลือกการฉีดวัคซีน</h4>
+                        
+                        {/* Date Selection */}
+                        <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                          <h5 className="text-sm font-medium mb-3">เลือกวันที่ฉีดวัคซีน:</h5>
+                          <div className="flex gap-3 mb-3">
+                            <Button
+                              size="sm"
+                              variant={selectedRegistration?.id === registration.id && appointmentDate === 'today' ? 'default' : 'outline'}
+                              onClick={() => {
+                                setSelectedRegistration(registration);
+                                setAppointmentDate('today');
+                              }}
+                              className="text-xs"
+                            >
+                              ฉีดวันนี้
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={selectedRegistration?.id === registration.id && appointmentDate === 'future' ? 'default' : 'outline'}
+                              onClick={() => {
+                                setSelectedRegistration(registration);
+                                setAppointmentDate('future');
+                              }}
+                              className="text-xs"
+                            >
+                              นัดวันอื่น
+                            </Button>
+                          </div>
+                          
+                          {selectedRegistration?.id === registration.id && appointmentDate === 'future' && (
+                            <div className="mb-3">
+                              <Label htmlFor={`date-${registration.id}`} className="text-xs">เลือกวันที่นัดหมาย:</Label>
+                              <Input
+                                id={`date-${registration.id}`}
+                                type="date"
+                                min={new Date().toISOString().split('T')[0]}
+                                className="mt-1"
+                                onChange={(e) => setAppointmentDate(e.target.value)}
+                              />
+                            </div>
+                          )}
                         </div>
+
+                        {/* Vaccine Selection */}
+                        {selectedRegistration?.id === registration.id && appointmentDate && (
+                          <div>
+                            <h5 className="text-sm font-medium mb-3">เลือกประเภทวัคซีน:</h5>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'flu', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'flu', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนไข้หวัดใหญ่
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'hep_b', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'hep_b', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนไวรัสตับอักเสบบี
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'tetanus', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'tetanus', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนป้องกันบาดทะยัก
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'shingles', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'shingles', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนงูสวัด
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'hpv', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'hpv', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนป้องกันมะเร็งปากมดลูก
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'pneumonia', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'pneumonia', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนปอดอักเสบ
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'chickenpox', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'chickenpox', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนอีสุกอีใส
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (appointmentDate === 'today') {
+                                    scheduleVaccineFromRegistration(registration, 'rabies', true);
+                                  } else {
+                                    scheduleVaccineFromRegistration(registration, 'rabies', false, appointmentDate);
+                                  }
+                                  setSelectedRegistration(null);
+                                  setAppointmentDate('');
+                                }}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                                disabled={isLoading}
+                              >
+                                วัคซีนพิษสุนัขบ้า
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -817,6 +1103,147 @@ const StaffPortal = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Same-Day Vaccination Form */}
+        <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200 shadow-crisp">
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                <Send className="h-6 w-6 text-orange-600" />
+                ลงทะเบียนฉีดวัคซีนวันนี้
+              </CardTitle>
+              <Button
+                variant="outline"
+                onClick={() => setShowSameDayForm(!showSameDayForm)}
+                className="border-orange-300 hover:bg-orange-100"
+              >
+                {showSameDayForm ? 'ซ่อนแบบฟอร์ม' : 'แสดงแบบฟอร์ม'}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">สำหรับคนไข้ที่มาฉีดวัคซีนโดยไม่ได้นัดหมายล่วงหน้า</p>
+          </CardHeader>
+          
+          {showSameDayForm && (
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="same-day-name">ชื่อ-นามสกุล *</Label>
+                    <Input
+                      id="same-day-name"
+                      value={sameDayForm.name}
+                      onChange={(e) => setSameDayForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="กรุณากรอกชื่อ-นามสกุล"
+                      className="border-orange-300 focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="same-day-phone">เบอร์โทรศัพท์ *</Label>
+                    <Input
+                      id="same-day-phone"
+                      value={sameDayForm.phone}
+                      onChange={(e) => setSameDayForm(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="081-234-5678"
+                      className="border-orange-300 focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="same-day-id">เลขประจำตัว/เลขบัตรประชาชน</Label>
+                    <Input
+                      id="same-day-id"
+                      value={sameDayForm.idNumber}
+                      onChange={(e) => setSameDayForm(prev => ({ ...prev, idNumber: e.target.value }))}
+                      placeholder="1234567890123"
+                      className="border-orange-300 focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="same-day-vaccine">ประเภทวัคซีน *</Label>
+                    <select
+                      id="same-day-vaccine"
+                      value={sameDayForm.vaccineType}
+                      onChange={(e) => setSameDayForm(prev => ({ ...prev, vaccineType: e.target.value }))}
+                      className="w-full px-3 py-2 border border-orange-300 rounded-md focus:border-orange-500 focus:outline-none"
+                    >
+                      <option value="flu">วัคซีนไข้หวัดใหญ่</option>
+                      <option value="hep_b">วัคซีนไวรัสตับอักเสบบี</option>
+                      <option value="tetanus">วัคซีนป้องกันบาดทะยัก</option>
+                      <option value="shingles">วัคซีนงูสวัด</option>
+                      <option value="hpv">วัคซีนป้องกันมะเร็งปากมดลูก</option>
+                      <option value="pneumonia">วัคซีนปอดอักเสบ</option>
+                      <option value="chickenpox">วัคซีนอีสุกอีใส</option>
+                      <option value="rabies">วัคซีนพิษสุนัขบ้า</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="same-day-notes">หมายเหตุ</Label>
+                  <Input
+                    id="same-day-notes"
+                    value={sameDayForm.notes}
+                    onChange={(e) => setSameDayForm(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+                    className="border-orange-300 focus:border-orange-500"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    onClick={() => {
+                      if (!sameDayForm.name || !sameDayForm.phone) {
+                        toast({
+                          title: "ข้อมูลไม่ครบถ้วน",
+                          description: "กรุณากรอกชื่อและเบอร์โทรศัพท์",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      createSameDayVaccination({
+                        name: sameDayForm.name,
+                        phone: sameDayForm.phone,
+                        idNumber: sameDayForm.idNumber,
+                        vaccineType: sameDayForm.vaccineType,
+                        notes: sameDayForm.notes
+                      });
+                      // Reset form
+                      setSameDayForm({
+                        name: '',
+                        phone: '',
+                        idNumber: '',
+                        vaccineType: 'flu',
+                        notes: ''
+                      });
+                    }}
+                    disabled={isLoading || !sameDayForm.name || !sameDayForm.phone}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {isLoading ? 'กำลังบันทึก...' : 'บันทึกการฉีดวัคซีน'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSameDayForm({
+                        name: '',
+                        phone: '',
+                        idNumber: '',
+                        vaccineType: 'flu',
+                        notes: ''
+                      });
+                    }}
+                    className="border-orange-300 hover:bg-orange-100"
+                  >
+                    เคลียร์ข้อมูล
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </Card>
 
         {/* Enhanced Appointments List */}
         <Card className="bg-white border-2 border-green-200 shadow-crisp">
