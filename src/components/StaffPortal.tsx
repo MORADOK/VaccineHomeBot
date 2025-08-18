@@ -18,6 +18,7 @@ import {
   Send,
   RefreshCw
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Patient {
   id: string;
@@ -78,6 +79,8 @@ const StaffPortal = () => {
   });
   const [selectedRegistration, setSelectedRegistration] = useState<PatientRegistration | null>(null);
   const [appointmentDate, setAppointmentDate] = useState('');
+  const [selectedVaccineType, setSelectedVaccineType] = useState('flu');
+  const [selectedPatientId, setSelectedPatientId] = useState('');
 
   // Load appointments from Supabase
   const loadAppointments = async () => {
@@ -739,6 +742,92 @@ const StaffPortal = () => {
                 </select>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Patient Selection and Vaccination Form */}
+        <Card className="bg-white border border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-foreground">
+              เลือกคนไข้และนัดหมายการฉีดวัคซีน
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Patient Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-foreground">เลือกคนไข้จากรายชื่อที่ลงทะเบียน</Label>
+              <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
+                <SelectTrigger className="w-full py-3 text-sm font-medium border border-border focus:border-primary">
+                  <SelectValue placeholder="เลือกคนไข้..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {registrations.map((registration) => (
+                    <SelectItem key={registration.id} value={registration.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{registration.full_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {registration.phone} • {registration.registration_id}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedPatientId && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Vaccine Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-foreground">ประเภทวัคซีน</Label>
+                  <Select value={selectedVaccineType} onValueChange={setSelectedVaccineType}>
+                    <SelectTrigger className="py-3 text-sm font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="flu">วัคซีนไข้หวัดใหญ่</SelectItem>
+                      <SelectItem value="hep_b">วัคซีนไวรัสตับอักเสบบี</SelectItem>
+                      <SelectItem value="tetanus">วัคซีนบาดทะยัก</SelectItem>
+                      <SelectItem value="covid">วัคซีนโควิด-19</SelectItem>
+                      <SelectItem value="pneumonia">วัคซีนปอดบวม</SelectItem>
+                      <SelectItem value="shingles">วัคซีนงูสวัด</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Vaccination Date */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-bold text-foreground">วันที่ฉีดวัคซีน</Label>
+                  <Input
+                    type="date"
+                    value={appointmentDate}
+                    onChange={(e) => setAppointmentDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="py-3 text-sm font-medium"
+                  />
+                </div>
+
+                {/* Action Button */}
+                <div className="space-y-2 flex items-end">
+                  <Button
+                    onClick={async () => {
+                      const selectedReg = registrations.find(r => r.id === selectedPatientId);
+                      if (selectedReg && appointmentDate) {
+                        const isToday = appointmentDate === new Date().toISOString().split('T')[0];
+                        await scheduleVaccineFromRegistration(selectedReg, selectedVaccineType, isToday, appointmentDate);
+                        setSelectedPatientId('');
+                        setAppointmentDate('');
+                        setSelectedVaccineType('flu');
+                      }
+                    }}
+                    disabled={!selectedPatientId || !appointmentDate || isLoading}
+                    className="w-full py-3 text-sm font-bold bg-primary hover:bg-primary/90"
+                  >
+                    {appointmentDate === new Date().toISOString().split('T')[0] ? 'บันทึกการฉีดวันนี้' : 'สร้างนัดหมาย'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
