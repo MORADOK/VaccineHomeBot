@@ -68,50 +68,315 @@ serve(async (req) => {
       throw new Error("Invalid input: userId and message (max 2000 chars) required");
     }
     
-    const channelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
-    if (!channelAccessToken) {
-      throw new Error("LINE Channel Access Token not configured");
-    }
+  const channelAccessToken = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN");
+  if (!channelAccessToken) {
+    throw new Error("LINE Channel Access Token not configured");
+  }
+
+  // Helper function to convert vaccine type to Thai name
+  function getVaccineNameThai(vaccineType: string): string {
+    const vaccineMap: { [key: string]: string } = {
+      'flu': 'วัคซีนไข้หวัดใหญ่',
+      'hep_b': 'วัคซีนไวรัสตับอักเสบบี',
+      'hep_a': 'วัคซีนไวรัสตับอักเสบเอ',
+      'hpv': 'วัคซีน HPV',
+      'tetanus': 'วัคซีนบาดทะยัก',
+      'rabies': 'วัคซีนพิษสุนัขบ้า',
+      'pneumonia': 'วัคซีนปอดบวม',
+      'covid19': 'วัคซีน COVID-19'
+    };
+    return vaccineMap[vaccineType] || vaccineType;
+  }
 
     let messageBody;
 
     if (type === 'template' && templateData) {
-      // Template message for appointment notifications
+      // Modern Flex Message Card for appointment notifications
       messageBody = {
         to: userId,
         messages: [{
-          type: "template",
+          type: "flex",
           altText: message,
-          template: {
-            type: "buttons",
-            thumbnailImageUrl: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
-            imageAspectRatio: "rectangle",
-            imageSize: "cover",
-            imageBackgroundColor: "#FFFFFF",
-            title: "โรงพยาบาลโฮม",
-            text: message,
-            actions: [
-              {
-                type: "uri",
-                label: "ดูรายละเอียด",
-                uri: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com"
-              },
-              {
-                type: "uri", 
-                label: "แผนที่โรงพยาบาล",
-                uri: "https://maps.google.com/?q=โรงพยาบาลโฮม"
+          contents: {
+            type: "bubble",
+            hero: {
+              type: "image",
+              url: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+              size: "full",
+              aspectRatio: "20:13",
+              aspectMode: "cover"
+            },
+            body: {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "โรงพยาบาลโฮม",
+                      weight: "bold",
+                      size: "xl",
+                      color: "#1E40AF",
+                      align: "center"
+                    },
+                    {
+                      type: "text",
+                      text: "การนัดหมายฉีดวัคซีน",
+                      size: "md",
+                      color: "#6B7280",
+                      align: "center",
+                      margin: "sm"
+                    }
+                  ],
+                  paddingBottom: "lg"
+                },
+                {
+                  type: "separator",
+                  margin: "md"
+                },
+                {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "box",
+                      layout: "baseline",
+                      spacing: "sm",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "👤",
+                          color: "#1E40AF",
+                          size: "sm",
+                          flex: 1
+                        },
+                        {
+                          type: "text",
+                          text: templateData.patientName || "ไม่ระบุ",
+                          wrap: true,
+                          color: "#374151",
+                          size: "sm",
+                          flex: 4,
+                          weight: "bold"
+                        }
+                      ]
+                    },
+                    {
+                      type: "box",
+                      layout: "baseline",
+                      spacing: "sm",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "📅",
+                          color: "#1E40AF",
+                          size: "sm",
+                          flex: 1
+                        },
+                        {
+                          type: "text",
+                          text: new Date(templateData.appointmentDate).toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }),
+                          wrap: true,
+                          color: "#374151",
+                          size: "sm",
+                          flex: 4,
+                          weight: "bold"
+                        }
+                      ]
+                    },
+                    {
+                      type: "box",
+                      layout: "baseline",
+                      spacing: "sm",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "⏰",
+                          color: "#1E40AF",
+                          size: "sm",
+                          flex: 1
+                        },
+                        {
+                          type: "text",
+                          text: "09:00 น.",
+                          wrap: true,
+                          color: "#374151",
+                          size: "sm",
+                          flex: 4,
+                          weight: "bold"
+                        }
+                      ]
+                    },
+                    {
+                      type: "box",
+                      layout: "baseline",
+                      spacing: "sm",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "💉",
+                          color: "#1E40AF",
+                          size: "sm",
+                          flex: 1
+                        },
+                        {
+                          type: "text",
+                          text: getVaccineNameThai(templateData.vaccineType),
+                          wrap: true,
+                          color: "#374151",
+                          size: "sm",
+                          flex: 4,
+                          weight: "bold"
+                        }
+                      ]
+                    },
+                    {
+                      type: "box",
+                      layout: "baseline",
+                      spacing: "sm",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "🏥",
+                          color: "#1E40AF",
+                          size: "sm",
+                          flex: 1
+                        },
+                        {
+                          type: "text",
+                          text: "รพ.โฮม",
+                          wrap: true,
+                          color: "#374151",
+                          size: "sm",
+                          flex: 4,
+                          weight: "bold"
+                        }
+                      ]
+                    }
+                  ],
+                  spacing: "md",
+                  margin: "lg"
+                }
+              ]
+            },
+            footer: {
+              type: "box",
+              layout: "vertical",
+              spacing: "sm",
+              contents: [
+                {
+                  type: "button",
+                  style: "primary",
+                  height: "sm",
+                  action: {
+                    type: "uri",
+                    label: "ดูรายละเอียด",
+                    uri: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com"
+                  },
+                  color: "#1E40AF"
+                },
+                {
+                  type: "button",
+                  style: "secondary",
+                  height: "sm",
+                  action: {
+                    type: "uri",
+                    label: "แผนที่โรงพยาบาล",
+                    uri: "https://maps.google.com/?q=โรงพยาบาลโฮม"
+                  }
+                },
+                {
+                  type: "spacer",
+                  size: "sm"
+                }
+              ],
+              flex: 0
+            },
+            styles: {
+              footer: {
+                separator: true
               }
-            ]
+            }
           }
         }]
       };
     } else {
-      // Simple text message
+      // Enhanced Text Message with better formatting
       messageBody = {
         to: userId,
         messages: [{
-          type: "text",
-          text: message
+          type: "flex",
+          altText: message,
+          contents: {
+            type: "bubble",
+            body: {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "box",
+                  layout: "horizontal",
+                  contents: [
+                    {
+                      type: "image",
+                      url: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+                      size: "40px",
+                      aspectRatio: "1:1",
+                      aspectMode: "cover",
+                      flex: 0
+                    },
+                    {
+                      type: "box",
+                      layout: "vertical",
+                      contents: [
+                        {
+                          type: "text",
+                          text: "โรงพยาบาลโฮม",
+                          weight: "bold",
+                          size: "lg",
+                          color: "#1E40AF"
+                        },
+                        {
+                          type: "text",
+                          text: "แจ้งเตือนระบบ",
+                          size: "xs",
+                          color: "#6B7280"
+                        }
+                      ],
+                      flex: 1,
+                      paddingStart: "md"
+                    }
+                  ],
+                  paddingBottom: "md"
+                },
+                {
+                  type: "separator",
+                  margin: "md"
+                },
+                {
+                  type: "text",
+                  text: message,
+                  wrap: true,
+                  size: "md",
+                  color: "#374151",
+                  margin: "lg"
+                }
+              ],
+              paddingAll: "lg"
+            },
+            styles: {
+              body: {
+                backgroundColor: "#F8FAFC"
+              }
+            }
+          }
         }]
       };
     }

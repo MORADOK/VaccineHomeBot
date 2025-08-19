@@ -518,15 +518,9 @@ const StaffPortal = () => {
         // Send LINE notification if line_user_id exists
         if (registration.line_user_id && createdAppointments.length > 0) {
           const vaccineNames = vaccines.map(v => v.name).join(', ');
-          const dateFormatted = new Date(appointmentDate).toLocaleDateString('th-TH', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          
           const message = isToday ? 
-            `${registration.full_name}\n${dateFormatted} เวลา ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}\n${vaccineNames}\nรพ.โฮม` :
-            `${registration.full_name}\n${dateFormatted} เวลา 09:00\n${vaccineNames}\nรพ.โฮม`;
+            `การฉีดวัคซีนเสร็จสิ้น` :
+            `การนัดหมายฉีดวัคซีน`;
           
           try {
             await sendNotification(createdAppointments[0] as Appointment, message);
