@@ -16,7 +16,9 @@ import {
   Search,
   Download,
   Send,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -59,6 +61,11 @@ interface Appointment {
   updated_at: string;
 }
 
+interface VaccineOption {
+  type: string;
+  name: string;
+}
+
 const StaffPortal = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -79,8 +86,41 @@ const StaffPortal = () => {
   });
   const [selectedRegistration, setSelectedRegistration] = useState<PatientRegistration | null>(null);
   const [appointmentDate, setAppointmentDate] = useState('');
-  const [selectedVaccineType, setSelectedVaccineType] = useState('flu');
+  const [selectedVaccines, setSelectedVaccines] = useState<VaccineOption[]>([{ type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' }]);
   const [selectedPatientId, setSelectedPatientId] = useState('');
+
+  // Add functions for vaccine management
+  const vaccineOptions = [
+    { type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' },
+    { type: 'hep_b', name: 'วัคซีนไวรัสตับอักเสบบี' },
+    { type: 'hep_a', name: 'วัคซีนไวรัสตับอักเสบเอ' },
+    { type: 'hpv', name: 'วัคซีน HPV' },
+    { type: 'tetanus', name: 'วัคซีนบาดทะยัก' },
+    { type: 'rabies', name: 'วัคซีนพิษสุนัขบ้า' },
+    { type: 'pneumonia', name: 'วัคซีนปอดบวม' },
+    { type: 'covid19', name: 'วัคซีน COVID-19' }
+  ];
+
+  const addVaccine = () => {
+    if (selectedVaccines.length < 3) {
+      setSelectedVaccines([...selectedVaccines, { type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' }]);
+    }
+  };
+
+  const removeVaccine = (index: number) => {
+    if (selectedVaccines.length > 1) {
+      setSelectedVaccines(selectedVaccines.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateVaccine = (index: number, type: string) => {
+    const vaccine = vaccineOptions.find(v => v.type === type);
+    if (vaccine) {
+      const newVaccines = [...selectedVaccines];
+      newVaccines[index] = vaccine;
+      setSelectedVaccines(newVaccines);
+    }
+  };
 
   // Load appointments from Supabase
   const loadAppointments = async () => {
@@ -401,56 +441,65 @@ const StaffPortal = () => {
     }
   };
 
-  const scheduleVaccineFromRegistration = async (registration: PatientRegistration & { line_user_id?: string }, vaccineType: string, isToday: boolean = false, customDate?: string) => {
+  const scheduleVaccineFromRegistration = async (registration: PatientRegistration & { line_user_id?: string }, vaccines: VaccineOption[], isToday: boolean = false, customDate?: string) => {
     setIsLoading(true);
     try {
-      const appointmentId = `HOM-${Date.now().toString().slice(-6)}`;
       const appointmentDate = isToday ? 
         new Date().toISOString().split('T')[0] : 
         (customDate || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
       
       const appointmentStatus = isToday ? 'completed' : 'scheduled';
+      const createdAppointments = [];
 
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert({
-          appointment_id: appointmentId,
-          patient_name: registration.full_name,
-          patient_phone: registration.phone,
-          patient_id_number: registration.registration_id,
-          vaccine_type: vaccineType,
-          appointment_date: appointmentDate,
-          appointment_time: isToday ? new Date().toTimeString().slice(0, 5) : '09:00',
-          status: appointmentStatus,
-          scheduled_by: 'staff',
-          line_user_id: registration.line_user_id,
-          notes: isToday ? 
-            `ฉีดวัคซีนวันนี้: ${registration.registration_id}` : 
-            `นัดหมายจากการลงทะเบียน: ${registration.registration_id}`
-        })
-        .select()
-        .single();
+      // Create appointments for each selected vaccine
+      for (const vaccine of vaccines) {
+        const appointmentId = `HOM-${Date.now().toString().slice(-6)}-${vaccine.type}`;
+        
+        const { data, error } = await supabase
+          .from('appointments')
+          .insert({
+            appointment_id: appointmentId,
+            patient_name: registration.full_name,
+            patient_phone: registration.phone,
+            patient_id_number: registration.registration_id,
+            vaccine_type: vaccine.type,
+            appointment_date: appointmentDate,
+            appointment_time: isToday ? new Date().toTimeString().slice(0, 5) : '09:00',
+            status: appointmentStatus,
+            scheduled_by: 'staff',
+            line_user_id: registration.line_user_id,
+            notes: isToday ? 
+              `ฉีดวัคซีนวันนี้: ${registration.registration_id}` : 
+              `นัดหมายจากการลงทะเบียน: ${registration.registration_id}`
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        if (data) {
+          createdAppointments.push(data);
+        }
+      }
 
-      if (data) {
-        // Add to local state
-        setAppointments(prev => [data as Appointment, ...prev]);
+      // Add to local state
+      setAppointments(prev => [...createdAppointments as Appointment[], ...prev]);
 
-        // If vaccinated today, also create vaccine log entry
-        if (isToday) {
+      // If vaccinated today, also create vaccine log entries
+      if (isToday) {
+        for (const [index, appointment] of createdAppointments.entries()) {
           await supabase
             .from('vaccine_logs')
             .insert({
               patient_name: registration.full_name,
-              vaccine_type: vaccineType,
+              vaccine_type: vaccines[index].type,
               administered_date: appointmentDate,
               dose_number: 1,
-              appointment_id: data.id,
+              appointment_id: appointment.id,
               administered_by: 'เจ้าหน้าที่',
               notes: `ฉีดวัคซีนวันเดียวกันกับการลงทะเบียน`
             });
         }
+      }
 
         // Update registration status
         await supabase
@@ -467,13 +516,20 @@ const StaffPortal = () => {
         );
 
         // Send LINE notification if line_user_id exists
-        if (registration.line_user_id) {
+        if (registration.line_user_id && createdAppointments.length > 0) {
+          const vaccineNames = vaccines.map(v => v.name).join(', ');
+          const dateFormatted = new Date(appointmentDate).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          
           const message = isToday ? 
-            `✅ ฉีดวัคซีนสำเร็จ!\n\n🏥 โรงพยาบาลโฮม\n💉 วัคซีน: ${vaccineType}\n📅 วันที่: ${appointmentDate}\n\nขอบคุณที่มาใช้บริการครับ/ค่ะ` :
-            `📅 การนัดหมายฉีดวัคซีน\n\n🏥 โรงพยาบาลโฮม\n👤 ชื่อ: ${registration.full_name}\n💉 วัคซีน: ${vaccineType}\n📅 วันที่: ${appointmentDate}\n⏰ เวลา: 09:00\n\nกรุณามาตรงเวลาค่ะ`;
+            `${registration.full_name}\n${dateFormatted} เวลา ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}\n${vaccineNames}\nรพ.โฮม` :
+            `${registration.full_name}\n${dateFormatted} เวลา 09:00\n${vaccineNames}\nรพ.โฮม`;
           
           try {
-            await sendNotification(data as Appointment, message);
+            await sendNotification(createdAppointments[0] as Appointment, message);
           } catch (lineError) {
             console.error('LINE notification failed:', lineError);
             toast({
@@ -484,13 +540,13 @@ const StaffPortal = () => {
           }
         }
 
+        const vaccineList = vaccines.map(v => v.name).join(', ');
         toast({
           title: isToday ? "บันทึกการฉีดวัคซีนสำเร็จ" : "สร้างนัดหมายสำเร็จ",
-          description: isToday ? 
-            `บันทึกการฉีดวัคซีน ${vaccineType} สำหรับ ${registration.full_name} เรียบร้อยแล้ว` :
-            `นัดหมายฉีดวัคซีน ${vaccineType} สำหรับ ${registration.full_name} เรียบร้อยแล้ว (ID: ${appointmentId})`,
+          description: isToday ?
+            `บันทึกการฉีดวัคซีน ${vaccineList} สำหรับ ${registration.full_name} เรียบร้อยแล้ว` :
+            `นัดหมายฉีดวัคซีน ${vaccineList} สำหรับ ${registration.full_name} เรียบร้อยแล้ว (วันที่: ${appointmentDate})`,
         });
-      }
     } catch (error: any) {
       console.error('Failed to create appointment:', error);
       toast({
@@ -643,7 +699,7 @@ const StaffPortal = () => {
               className="h-10 md:h-12 px-3 md:px-6 text-sm md:text-base font-bold bg-primary hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <Download className="h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3" />
-              <span className="hidden sm:inline">ส่งออกข้อมูل</span>
+              <span className="hidden sm:inline">ส่งออกข้อมูล</span>
               <span className="sm:hidden">ส่งออก</span>
             </Button>
           </div>
@@ -776,26 +832,55 @@ const StaffPortal = () => {
             </div>
 
             {selectedPatientId && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Vaccine Type Selection */}
+              <div className="space-y-4">
+                {/* Vaccine Selection */}
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-foreground">ประเภทวัคซีน</Label>
-                  <Select value={selectedVaccineType} onValueChange={setSelectedVaccineType}>
-                    <SelectTrigger className="py-3 text-sm font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="flu">วัคซีนไข้หวัดใหญ่</SelectItem>
-                      <SelectItem value="hep_b">วัคซีนไวรัสตับอักเสบบี</SelectItem>
-                      <SelectItem value="tetanus">วัคซีนบาดทะยัก</SelectItem>
-                      <SelectItem value="covid">วัคซีนโควิด-19</SelectItem>
-                      <SelectItem value="pneumonia">วัคซีนปอดบวม</SelectItem>
-                      <SelectItem value="shingles">วัคซีนงูสวัด</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {selectedVaccines.map((vaccine, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Select 
+                        value={vaccine.type} 
+                        onValueChange={(value) => updateVaccine(index, value)}
+                      >
+                        <SelectTrigger className="py-3 text-sm font-medium flex-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vaccineOptions.map(option => (
+                            <SelectItem key={option.type} value={option.type}>
+                              {option.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedVaccines.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeVaccine(index)}
+                          className="px-3"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {selectedVaccines.length < 3 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addVaccine}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      เพิ่มวัคซีน ({selectedVaccines.length}/3)
+                    </Button>
+                  )}
                 </div>
 
-                {/* Vaccination Date */}
+                {/* Date Selection */}
                 <div className="space-y-2">
                   <Label className="text-sm font-bold text-foreground">วันที่ฉีดวัคซีน</Label>
                   <Input
@@ -808,19 +893,19 @@ const StaffPortal = () => {
                 </div>
 
                 {/* Action Button */}
-                <div className="space-y-2 flex items-end">
+                <div className="space-y-2">
                   <Button
                     onClick={async () => {
                       const selectedReg = registrations.find(r => r.id === selectedPatientId);
-                      if (selectedReg && appointmentDate) {
+                      if (selectedReg && appointmentDate && selectedVaccines.length > 0) {
                         const isToday = appointmentDate === new Date().toISOString().split('T')[0];
-                        await scheduleVaccineFromRegistration(selectedReg, selectedVaccineType, isToday, appointmentDate);
+                        await scheduleVaccineFromRegistration(selectedReg, selectedVaccines, isToday, appointmentDate);
                         setSelectedPatientId('');
                         setAppointmentDate('');
-                        setSelectedVaccineType('flu');
+                        setSelectedVaccines([{ type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' }]);
                       }
                     }}
-                    disabled={!selectedPatientId || !appointmentDate || isLoading}
+                    disabled={!selectedPatientId || !appointmentDate || selectedVaccines.length === 0 || isLoading}
                     className="w-full py-3 text-sm font-bold bg-primary hover:bg-primary/90"
                   >
                     {appointmentDate === new Date().toISOString().split('T')[0] ? 'บันทึกการฉีดวันนี้' : 'สร้างนัดหมาย'}
@@ -1050,9 +1135,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'flu', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'flu', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1067,9 +1152,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'hep_b', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'hep_b', name: 'วัคซีนไวรัสตับอักเสบบี' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'hep_b', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'hep_b', name: 'วัคซีนไวรัสตับอักเสบบี' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1084,9 +1169,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'tetanus', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'tetanus', name: 'วัคซีนบาดทะยัก' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'tetanus', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'tetanus', name: 'วัคซีนบาดทะยัก' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1101,9 +1186,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'shingles', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'shingles', name: 'วัคซีนงูสวัด' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'shingles', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'shingles', name: 'วัคซีนงูสวัด' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1118,9 +1203,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'hpv', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'hpv', name: 'วัคซีน HPV' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'hpv', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'hpv', name: 'วัคซีน HPV' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1135,9 +1220,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'pneumonia', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'pneumonia', name: 'วัคซีนปอดบวม' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'pneumonia', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'pneumonia', name: 'วัคซีนปอดบวม' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1152,9 +1237,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'chickenpox', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'chickenpox', name: 'วัคซีนอีสุกอีใส' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'chickenpox', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'chickenpox', name: 'วัคซีนอีสุกอีใส' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
@@ -1169,9 +1254,9 @@ const StaffPortal = () => {
                                 variant="outline"
                                 onClick={() => {
                                   if (appointmentDate === 'today') {
-                                    scheduleVaccineFromRegistration(registration, 'rabies', true);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'rabies', name: 'วัคซีนพิษสุนัขบ้า' }], true);
                                   } else {
-                                    scheduleVaccineFromRegistration(registration, 'rabies', false, appointmentDate);
+                                    scheduleVaccineFromRegistration(registration, [{ type: 'rabies', name: 'วัคซีนพิษสุนัขบ้า' }], false, appointmentDate);
                                   }
                                   setSelectedRegistration(null);
                                   setAppointmentDate('');
