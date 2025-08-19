@@ -93,12 +93,12 @@ const StaffPortal = () => {
   const vaccineOptions = [
     { type: 'flu', name: 'วัคซีนไข้หวัดใหญ่' },
     { type: 'hep_b', name: 'วัคซีนไวรัสตับอักเสบบี' },
-    { type: 'hep_a', name: 'วัคซีนไวรัสตับอักเสบเอ' },
-    { type: 'hpv', name: 'วัคซีน HPV' },
-    { type: 'tetanus', name: 'วัคซีนบาดทะยัก' },
     { type: 'rabies', name: 'วัคซีนพิษสุนัขบ้า' },
-    { type: 'pneumonia', name: 'วัคซีนปอดบวม' },
-    { type: 'covid19', name: 'วัคซีน COVID-19' }
+    { type: 'hpv', name: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
+    { type: 'tetanus', name: 'วัคซีนบาดทะยัก' },
+    { type: 'chickenpox', name: 'วัคซีนอีสุกอีใส' },
+    { type: 'pneumonia', name: 'วัคซีนปอดอักเสบ' },
+    { type: 'shingles', name: 'วัคซีนงูสวัด' }
   ];
 
   const addVaccine = () => {
