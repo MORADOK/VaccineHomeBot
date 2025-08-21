@@ -66,10 +66,36 @@ interface VaccineOption {
   name: string;
 }
 
+interface NextAppointment {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  vaccine_name: string;
+  vaccine_type: string;
+  current_dose: number;
+  total_doses: number;
+  next_dose_due: string;
+  last_dose_date: string;
+  completion_status: string;
+  line_user_id?: string;
+}
+
+interface NotificationSchedule {
+  id: string;
+  patient_tracking_id: string;
+  notification_type: string;
+  scheduled_date: string;
+  message_content: string;
+  sent: boolean;
+  line_user_id?: string;
+}
+
 const StaffPortal = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [registrations, setRegistrations] = useState<PatientRegistration[]>([]);
+  const [nextAppointments, setNextAppointments] = useState<NextAppointment[]>([]);
+  const [notificationSchedules, setNotificationSchedules] = useState<NotificationSchedule[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -208,11 +234,69 @@ const StaffPortal = () => {
     }
   };
 
+  // Load next appointments (patient tracking)
+  const loadNextAppointments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('patient_vaccine_tracking')
+        .select(`
+          *,
+          vaccine_schedules(vaccine_name, vaccine_type)
+        `)
+        .eq('completion_status', 'in_progress')
+        .not('next_dose_due', 'is', null)
+        .order('next_dose_due', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedData = data.map(item => ({
+          id: item.id,
+          patient_id: item.patient_id,
+          patient_name: item.patient_name,
+          vaccine_name: item.vaccine_schedules?.vaccine_name || 'ไม่ระบุ',
+          vaccine_type: item.vaccine_schedules?.vaccine_type || 'ไม่ระบุ',
+          current_dose: item.current_dose,
+          total_doses: item.total_doses,
+          next_dose_due: item.next_dose_due,
+          last_dose_date: item.last_dose_date,
+          completion_status: item.completion_status,
+          line_user_id: undefined // ไม่มีใน patient_vaccine_tracking
+        }));
+        setNextAppointments(formattedData);
+      }
+    } catch (error: any) {
+      console.error('Error loading next appointments:', error);
+    }
+  };
+
+  // Load notification schedules
+  const loadNotificationSchedules = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notification_schedules')
+        .select('*')
+        .eq('sent', false)
+        .gte('scheduled_date', new Date().toISOString().split('T')[0])
+        .order('scheduled_date', { ascending: true });
+
+      if (error) throw error;
+
+      if (data) {
+        setNotificationSchedules(data as NotificationSchedule[]);
+      }
+    } catch (error: any) {
+      console.error('Error loading notification schedules:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadAppointments();
     loadPatients();
     loadRegistrations();
+    loadNextAppointments();
+    loadNotificationSchedules();
   }, []);
 
   const updateAppointmentStatus = async (id: string, newStatus: Appointment['status']) => {
@@ -231,6 +315,9 @@ const StaffPortal = () => {
       // ถ้าสถานะเป็น completed ให้สร้าง patient tracking และคำนวนนัดครั้งถัดไป
       if (newStatus === 'completed') {
         await createPatientTracking(appointment);
+        // โหลดข้อมูลนัดครั้งถัดไปใหม่
+        await loadNextAppointments();
+        await loadNotificationSchedules();
       }
 
       // Update local state
@@ -1387,6 +1474,144 @@ const StaffPortal = () => {
                         )}
                       </div>
                     )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Next Appointments Section */}
+        {nextAppointments.length > 0 && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-crisp">
+            <CardHeader className="pb-6 border-b border-blue-100">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
+                  <Clock className="h-7 w-7 text-blue-600" />
+                  นัดครั้งถัดไปที่ครบกำหนด ({nextAppointments.length})
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    loadNextAppointments();
+                    loadNotificationSchedules();
+                  }}
+                  className="border-blue-300 hover:bg-blue-100"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  รีเฟรช
+                </Button>
+              </div>
+              <p className="text-sm text-blue-700 mt-2">ผู้ป่วยที่ควรมาฉีดวัคซีนเข็มถัดไป</p>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="space-y-6">
+                {nextAppointments.map((nextAppt) => (
+                  <div key={nextAppt.id} className="bg-white rounded-2xl p-6 border-2 border-blue-100 shadow-soft hover:shadow-medium hover:border-blue-200 transition-all duration-300">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="space-y-2">
+                        <h3 className="font-bold text-xl text-foreground">{nextAppt.patient_name}</h3>
+                        <p className="text-sm text-muted-foreground">ID: {nextAppt.patient_id}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge className="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-semibold">
+                          เข็มที่ {nextAppt.current_dose + 1} / {nextAppt.total_doses}
+                        </Badge>
+                        {new Date(nextAppt.next_dose_due) <= new Date() && (
+                          <div className="mt-2">
+                            <Badge className="bg-red-100 text-red-800 px-3 py-1 rounded-lg font-semibold">
+                              ครบกำหนดแล้ว
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Calendar className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">วันที่ควรมา</p>
+                          <p className="font-semibold text-sm">{new Date(nextAppt.next_dose_due).toLocaleDateString('th-TH')}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <div className="h-4 w-4 bg-blue-600 rounded-full"></div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">วัคซีน</p>
+                          <p className="font-semibold text-sm">{nextAppt.vaccine_name}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <CheckCircle className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">เข็มล่าสุด</p>
+                          <p className="font-semibold text-sm">{new Date(nextAppt.last_dose_date).toLocaleDateString('th-TH')}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-blue-100">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          // สร้างนัดหมายใหม่สำหรับเข็มถัดไป
+                          const appointmentId = `${nextAppt.patient_id}-${Date.now()}`;
+                          scheduleVaccine(
+                            {
+                              id: nextAppt.patient_id,
+                              name: nextAppt.patient_name,
+                              phone: nextAppt.patient_id, // ใช้ patient_id แทนเบอร์โทร
+                              email: '',
+                              lineId: ''
+                            },
+                            nextAppt.vaccine_type
+                          );
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        สร้างนัดหมาย
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // ส่งข้อความแจ้งเตือนถึงเวลา
+                          if (nextAppt.line_user_id) {
+                            const message = `🔔 แจ้งเตือนนัดฉีดวัคซีน\n\nคุณ ${nextAppt.patient_name}\nได้เวลาฉีดวัคซีน ${nextAppt.vaccine_name} เข็มที่ ${nextAppt.current_dose + 1}\nวันที่ครบกำหนด: ${new Date(nextAppt.next_dose_due).toLocaleDateString('th-TH')}\n\nกรุณาติดต่อโรงพยาบาลเพื่อนัดหมาย`;
+                            // ใช้ฟังก์ชัน sendNotification แต่ต้องสร้าง fake appointment object
+                            const fakeAppointment: Appointment = {
+                              id: nextAppt.id,
+                              appointment_id: `next-${nextAppt.id}`,
+                              patient_name: nextAppt.patient_name,
+                              patient_phone: nextAppt.patient_id,
+                              vaccine_type: nextAppt.vaccine_type,
+                              appointment_date: nextAppt.next_dose_due,
+                              status: 'scheduled',
+                              line_user_id: nextAppt.line_user_id,
+                              created_at: '',
+                              updated_at: ''
+                            };
+                            sendNotification(fakeAppointment, message);
+                          }
+                        }}
+                        className="border-blue-300 hover:bg-blue-100"
+                        disabled={!nextAppt.line_user_id}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        แจ้งเตือน
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
