@@ -218,12 +218,20 @@ const StaffPortal = () => {
   const updateAppointmentStatus = async (id: string, newStatus: Appointment['status']) => {
     setIsLoading(true);
     try {
+      const appointment = appointments.find(apt => apt.id === id);
+      if (!appointment) throw new Error('ไม่พบข้อมูลการนัดหมาย');
+
       const { error } = await supabase
         .from('appointments')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) throw error;
+
+      // ถ้าสถานะเป็น completed ให้สร้าง patient tracking และคำนวนนัดครั้งถัดไป
+      if (newStatus === 'completed') {
+        await createPatientTracking(appointment);
+      }
 
       // Update local state
       setAppointments(prev => 
@@ -243,6 +251,120 @@ const StaffPortal = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const createPatientTracking = async (appointment: Appointment) => {
+    try {
+      // ดึงข้อมูล vaccine schedule
+      const { data: vaccineSchedule, error: scheduleError } = await supabase
+        .from('vaccine_schedules')
+        .select('*')
+        .eq('vaccine_type', appointment.vaccine_type)
+        .eq('active', true)
+        .single();
+
+      if (scheduleError || !vaccineSchedule) {
+        console.error('ไม่พบ vaccine schedule สำหรับ:', appointment.vaccine_type);
+        return;
+      }
+
+      // ตรวจสอบว่ามี tracking record อยู่แล้วหรือไม่
+      const { data: existingTracking, error: trackingError } = await supabase
+        .from('patient_vaccine_tracking')
+        .select('*')
+        .eq('patient_id', appointment.patient_phone || appointment.patient_name)
+        .eq('vaccine_schedule_id', vaccineSchedule.id)
+        .single();
+
+      let currentDose = 1;
+      let trackingId = null;
+
+      if (existingTracking) {
+        // อัพเดท tracking ที่มีอยู่
+        currentDose = existingTracking.current_dose + 1;
+        const isCompleted = currentDose > vaccineSchedule.total_doses;
+        
+        const { error: updateError } = await supabase
+          .from('patient_vaccine_tracking')
+          .update({
+            current_dose: currentDose,
+            last_dose_date: appointment.appointment_date,
+            completion_status: isCompleted ? 'completed' : 'in_progress',
+            next_dose_due: isCompleted ? null : calculateNextDoseDate(appointment.appointment_date, vaccineSchedule.dose_intervals as number[], currentDose - 1)
+          })
+          .eq('id', existingTracking.id);
+
+        if (updateError) throw updateError;
+        trackingId = existingTracking.id;
+      } else {
+        // สร้าง tracking record ใหม่
+        const nextDoseDate = vaccineSchedule.total_doses > 1 ? 
+          calculateNextDoseDate(appointment.appointment_date, vaccineSchedule.dose_intervals as number[], 0) : null;
+
+        const { data: newTracking, error: insertError } = await supabase
+          .from('patient_vaccine_tracking')
+          .insert({
+            patient_id: appointment.patient_phone || appointment.patient_name,
+            patient_name: appointment.patient_name,
+            vaccine_schedule_id: vaccineSchedule.id,
+            current_dose: 1,
+            total_doses: vaccineSchedule.total_doses,
+            last_dose_date: appointment.appointment_date,
+            completion_status: vaccineSchedule.total_doses === 1 ? 'completed' : 'in_progress',
+            next_dose_due: nextDoseDate,
+            contraindication_checked: true
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        trackingId = newTracking.id;
+      }
+
+      // สร้าง notification schedule สำหรับนัดครั้งถัดไป (ถ้ามี)
+        if (currentDose <= vaccineSchedule.total_doses && trackingId) {
+        const nextDoseDate = calculateNextDoseDate(appointment.appointment_date, vaccineSchedule.dose_intervals as number[], currentDose - 1);
+        
+        if (nextDoseDate) {
+          const reminderDate = new Date(nextDoseDate);
+          reminderDate.setDate(reminderDate.getDate() - 1); // เตือน 1 วันก่อน
+
+          await supabase
+            .from('notification_schedules')
+            .insert({
+              patient_tracking_id: trackingId,
+              line_user_id: appointment.line_user_id,
+              notification_type: 'next_dose_reminder',
+              scheduled_date: reminderDate.toISOString().split('T')[0],
+              message_content: `🔔 แจ้งเตือนนัดฉีดวัคซีนครั้งถัดไป\n\nคุณ ${appointment.patient_name}\nมีนัดฉีดวัคซีน ${vaccineSchedule.vaccine_name} เข็มที่ ${currentDose + 1}\nวันที่: ${new Date(nextDoseDate).toLocaleDateString('th-TH')}\nสถานที่: รพ.โฮม`
+            });
+
+          toast({
+            title: "จัดนัดครั้งถัดไปสำเร็จ",
+            description: `นัดฉีดวัคซีนเข็มที่ ${currentDose + 1} วันที่ ${new Date(nextDoseDate).toLocaleDateString('th-TH')}`,
+          });
+        }
+      }
+
+    } catch (error: any) {
+      console.error('Error creating patient tracking:', error);
+      toast({
+        title: "ไม่สามารถสร้างการติดตามผู้ป่วยได้",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const calculateNextDoseDate = (lastDoseDate: string, intervals: number[], doseIndex: number): string | null => {
+    if (!intervals || doseIndex >= intervals.length) return null;
+    
+    const lastDate = new Date(lastDoseDate);
+    const intervalDays = intervals[doseIndex];
+    const nextDate = new Date(lastDate);
+    nextDate.setDate(nextDate.getDate() + intervalDays);
+    
+    return nextDate.toISOString().split('T')[0];
   };
 
   const sendNotification = async (appointment: Appointment, message: string) => {
