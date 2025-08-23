@@ -777,6 +777,7 @@ const StaffPortal = () => {
           registration_id: registrationId,
           full_name: patientData.name,
           phone: patientData.phone,
+          line_user_id: `walk_in_${Date.now()}`,
           source: 'walk_in',
           status: 'completed',
           notes: patientData.notes || 'Walk-in วันนี้'

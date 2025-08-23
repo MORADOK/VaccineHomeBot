@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { User, CheckCircle } from 'lucide-react';
+import { User, CheckCircle, Calendar, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PatientNextAppointment from '@/components/PatientNextAppointment';
 
 interface PatientData {
   fullName: string;
@@ -74,6 +76,7 @@ const PatientPortal = () => {
         .insert({
           full_name: patientData.fullName,
           phone: patientData.phone,
+          line_user_id: lineUserId || `temp_${Date.now()}`,
           hospital: 'โรงพยาบาลโฮม',
           registration_id: registrationId,
           source: lineUserId ? 'line_liff' : 'web_portal',
@@ -208,7 +211,7 @@ const PatientPortal = () => {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header with Logo */}
         <div className="text-center">
           <div className="mb-4">
@@ -218,70 +221,96 @@ const PatientPortal = () => {
               className="mx-auto h-24 w-auto object-contain"
             />
           </div>
-          <h1 className="text-3xl font-bold">ลงทะเบียนรับบริการ</h1>
-          <h2 className="text-xl text-muted-foreground mt-2 font-semibold">
-            โรงพยาบาลโฮม
-          </h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            กรุณากรอกข้อมูลเพื่อลงทะเบียนรับบริการ
+          <h1 className="text-3xl font-bold">โรงพยาบาลโฮม</h1>
+          <p className="text-muted-foreground mt-1">
+            บริการวัคซีนและการนัดหมาย
           </p>
         </div>
 
-        {/* Patient Registration Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              ข้อมูลผู้ลงทะเบียน
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="fullName">ชื่อ-นามสกุล</Label>
-              <Input
-                id="fullName"
-                placeholder="นาย/นาง/นางสาว ชื่อ นามสกุล"
-                value={patientData.fullName}
-                onChange={(e) => {
-                  console.log('Name input changed:', e.target.value);
-                  handleInputChange('fullName', e.target.value);
-                }}
-                onFocus={() => console.log('Name input focused')}
-                onBlur={() => console.log('Name input blurred')}
-                className="mt-1"
-                autoComplete="name"
-              />
+        {/* Tabs for different functions */}
+        <Tabs defaultValue="appointments" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="appointments" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              นัดหมายของฉัน
+            </TabsTrigger>
+            <TabsTrigger value="register" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              ลงทะเบียน
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="appointments" className="mt-6">
+            <PatientNextAppointment />
+          </TabsContent>
+          
+          <TabsContent value="register" className="mt-6">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold">ลงทะเบียนรับบริการ</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  กรุณากรอกข้อมูลเพื่อลงทะเบียนรับบริการ
+                </p>
+              </div>
+
+              {/* Patient Registration Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    ข้อมูลผู้ลงทะเบียน
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="fullName">ชื่อ-นามสกุล</Label>
+                    <Input
+                      id="fullName"
+                      placeholder="นาย/นาง/นางสาว ชื่อ นามสกุล"
+                      value={patientData.fullName}
+                      onChange={(e) => {
+                        console.log('Name input changed:', e.target.value);
+                        handleInputChange('fullName', e.target.value);
+                      }}
+                      onFocus={() => console.log('Name input focused')}
+                      onBlur={() => console.log('Name input blurred')}
+                      className="mt-1"
+                      autoComplete="name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">หมายเลขโทรศัพท์</Label>
+                    <Input
+                      id="phone"
+                      placeholder="08x-xxx-xxxx"
+                      value={patientData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Submit Button */}
+              <Button 
+                onClick={submitRegistration}
+                disabled={isLoading}
+                className="w-full"
+                size="lg"
+              >
+                {isLoading ? 'กำลังลงทะเบียน...' : 'ลงทะเบียนรับบริการ'}
+              </Button>
+
+              <Alert>
+                <AlertDescription>
+                  หลังจากลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
+                  และแจ้งข้อมูลบริการที่ต้องการ
+                </AlertDescription>
+              </Alert>
             </div>
-
-            <div>
-              <Label htmlFor="phone">หมายเลขโทรศัพท์</Label>
-              <Input
-                id="phone"
-                placeholder="08x-xxx-xxxx"
-                value={patientData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Submit Button */}
-        <Button 
-          onClick={submitRegistration}
-          disabled={isLoading}
-          className="w-full"
-          size="lg"
-        >
-          {isLoading ? 'กำลังลงทะเบียน...' : 'ลงทะเบียนรับบริการ'}
-        </Button>
-
-        <Alert>
-          <AlertDescription>
-            หลังจากลงทะเบียน เจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันนัดหมาย
-            และแจ้งข้อมูลบริการที่ต้องการ
-          </AlertDescription>
-        </Alert>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
