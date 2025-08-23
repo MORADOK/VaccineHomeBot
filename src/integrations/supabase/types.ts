@@ -73,6 +73,8 @@ export type Database = {
           scheduled_by: string | null
           status: string | null
           updated_at: string
+          vaccine_name: string | null
+          vaccine_schedule_id: string | null
           vaccine_type: string
         }
         Insert: {
@@ -89,6 +91,8 @@ export type Database = {
           scheduled_by?: string | null
           status?: string | null
           updated_at?: string
+          vaccine_name?: string | null
+          vaccine_schedule_id?: string | null
           vaccine_type: string
         }
         Update: {
@@ -105,7 +109,62 @@ export type Database = {
           scheduled_by?: string | null
           status?: string | null
           updated_at?: string
+          vaccine_name?: string | null
+          vaccine_schedule_id?: string | null
           vaccine_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_app_vaccine_schedule"
+            columns: ["vaccine_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "vaccine_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_jobs: {
+        Row: {
+          appointment_id: string | null
+          attempts: number
+          created_at: string
+          id: number
+          idempotency_key: string
+          kind: string
+          last_error: string | null
+          line_user_id: string
+          payload: Json
+          schedule_at: string
+          status: Database["public"]["Enums"]["notification_status"]
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          attempts?: number
+          created_at?: string
+          id?: number
+          idempotency_key: string
+          kind: string
+          last_error?: string | null
+          line_user_id: string
+          payload: Json
+          schedule_at: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          attempts?: number
+          created_at?: string
+          id?: number
+          idempotency_key?: string
+          kind?: string
+          last_error?: string | null
+          line_user_id?: string
+          payload?: Json
+          schedule_at?: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -156,9 +215,12 @@ export type Database = {
       patient_registrations: {
         Row: {
           created_at: string
+          created_date_th: string | null
           full_name: string
-          hospital: string
+          hospital: string | null
           id: string
+          idempotency_key: string | null
+          line_user_id: string
           notes: string | null
           phone: string
           registration_id: string
@@ -168,21 +230,27 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_date_th?: string | null
           full_name: string
-          hospital?: string
+          hospital?: string | null
           id?: string
+          idempotency_key?: string | null
+          line_user_id: string
           notes?: string | null
           phone: string
-          registration_id: string
+          registration_id?: string
           source?: string
           status?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          created_date_th?: string | null
           full_name?: string
-          hospital?: string
+          hospital?: string | null
           id?: string
+          idempotency_key?: string | null
+          line_user_id?: string
           notes?: string | null
           phone?: string
           registration_id?: string
@@ -390,9 +458,115 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _insert_notification_job_definer: {
+        Args: {
+          p_alt_text: string
+          p_app_date: string
+          p_app_time: string
+          p_appointment_id: string
+          p_line_user_id: string
+          p_vaccine_name: string
+          p_vaccine_type: string
+        }
+        Returns: undefined
+      }
       admin_make_user_admin: {
         Args: { _user_id: string }
         Returns: undefined
+      }
+      api_next_appointments: {
+        Args: { _limit?: number; _line_user_id: string }
+        Returns: {
+          appointment_date: string
+          appointment_id: string
+          appointment_time: string
+          location: string
+          patient_name: string
+          status: string
+          vaccine_name: string
+          vaccine_type: string
+        }[]
+      }
+      api_next_dose_for_patient: {
+        Args: { _as_of?: string; _line_user_id: string; _vaccine_type: string }
+        Returns: {
+          doses_received: number
+          is_booster: boolean
+          last_dose_date: string
+          next_dose_number: number
+          recommended_date: string
+          total_doses: number
+          vaccine_name: string
+          vaccine_schedule_id: string
+          vaccine_type: string
+        }[]
+      }
+      api_plan_notifications_for_appt: {
+        Args: { _appointment_id: string; _tz?: string }
+        Returns: {
+          created_at: string
+          id: string
+          line_user_id: string | null
+          message_content: string | null
+          notification_type: string
+          patient_tracking_id: string | null
+          scheduled_date: string
+          sent: boolean | null
+          sent_at: string | null
+        }[]
+      }
+      api_upsert_appointment: {
+        Args: {
+          _appointment_date: string
+          _appointment_id: string
+          _appointment_time: string
+          _line_user_id: string
+          _patient_name: string
+          _patient_phone: string
+          _status?: string
+          _vaccine_type: string
+        }
+        Returns: {
+          appointment_date: string
+          appointment_id: string
+          appointment_time: string | null
+          created_at: string
+          id: string
+          line_user_id: string | null
+          notes: string | null
+          patient_id_number: string | null
+          patient_name: string
+          patient_phone: string | null
+          scheduled_by: string | null
+          status: string | null
+          updated_at: string
+          vaccine_name: string | null
+          vaccine_schedule_id: string | null
+          vaccine_type: string
+        }
+      }
+      api_upsert_patient_registration: {
+        Args: {
+          p_full_name: string
+          p_line_user_id: string
+          p_phone: string
+          p_source: string
+        }
+        Returns: {
+          created_at: string
+          created_date_th: string | null
+          full_name: string
+          hospital: string | null
+          id: string
+          idempotency_key: string | null
+          line_user_id: string
+          notes: string | null
+          phone: string
+          registration_id: string
+          source: string
+          status: string
+          updated_at: string
+        }
       }
       calculate_next_dose_date: {
         Args: { _patient_tracking_id: string }
@@ -401,6 +575,23 @@ export type Database = {
       check_contraindications: {
         Args: { _patient_conditions?: Json; _vaccine_schedule_id: string }
         Returns: Json
+      }
+      claim_notification_jobs: {
+        Args: { _limit?: number }
+        Returns: {
+          appointment_id: string | null
+          attempts: number
+          created_at: string
+          id: number
+          idempotency_key: string
+          kind: string
+          last_error: string | null
+          line_user_id: string
+          payload: Json
+          schedule_at: string
+          status: Database["public"]["Enums"]["notification_status"]
+          updated_at: string
+        }[]
       }
       has_role: {
         Args: {
@@ -417,9 +608,19 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      mk_bkk_ts: {
+        Args: { _date: string; _time?: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "healthcare_staff" | "patient"
+      notification_status:
+        | "pending"
+        | "processing"
+        | "sent"
+        | "failed"
+        | "canceled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -548,6 +749,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "healthcare_staff", "patient"],
+      notification_status: [
+        "pending",
+        "processing",
+        "sent",
+        "failed",
+        "canceled",
+      ],
     },
   },
 } as const
