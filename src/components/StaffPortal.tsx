@@ -545,6 +545,45 @@ const StaffPortal = () => {
     }
   };
 
+  // Send reminder notification
+  const sendReminderNotification = async (appointment: NextAppointment) => {
+    try {
+      // สร้างข้อความเตือน
+      const message = `🔔 แจ้งเตือนนัดฉีดวัคซีนครั้งถัดไป
+
+คุณ ${appointment.patient_name}
+มีนัดฉีดวัคซีน ${appointment.vaccine_name} เข็มที่ ${appointment.current_dose + 1}
+วันที่: ${new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}
+สถานที่: รพ.โฮม
+
+กรุณามาตามนัดเพื่อให้ได้รับความคุ้มครองที่สมบูรณ์`;
+
+      // สร้าง notification schedule record
+      await supabase
+        .from('notification_schedules')
+        .insert({
+          patient_tracking_id: appointment.id,
+          line_user_id: appointment.line_user_id || null,
+          notification_type: 'next_dose_reminder',
+          scheduled_date: new Date().toISOString().split('T')[0],
+          message_content: message,
+          sent: true
+        });
+
+      toast({
+        title: "ส่งแจ้งเตือนสำเร็จ",
+        description: `บันทึกการแจ้งเตือนให้ ${appointment.patient_name} แล้ว`,
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "ไม่สามารถส่งแจ้งเตือนได้",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusText = (status: string) => {
     const statusMap = {
       scheduled: 'รอการยืนยัน',
