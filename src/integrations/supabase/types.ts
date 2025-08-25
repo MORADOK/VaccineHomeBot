@@ -79,7 +79,7 @@ export type Database = {
         }
         Insert: {
           appointment_date: string
-          appointment_id: string
+          appointment_id?: string
           appointment_time?: string | null
           created_at?: string
           id?: string
@@ -127,12 +127,14 @@ export type Database = {
         Row: {
           appointment_id: string | null
           attempts: number
+          channel: string
           created_at: string
+          destination: string | null
           id: number
           idempotency_key: string
           kind: string
           last_error: string | null
-          line_user_id: string
+          line_user_id: string | null
           payload: Json
           schedule_at: string
           status: Database["public"]["Enums"]["notification_status"]
@@ -141,12 +143,14 @@ export type Database = {
         Insert: {
           appointment_id?: string | null
           attempts?: number
+          channel?: string
           created_at?: string
+          destination?: string | null
           id?: number
           idempotency_key: string
           kind: string
           last_error?: string | null
-          line_user_id: string
+          line_user_id?: string | null
           payload: Json
           schedule_at: string
           status?: Database["public"]["Enums"]["notification_status"]
@@ -155,12 +159,14 @@ export type Database = {
         Update: {
           appointment_id?: string | null
           attempts?: number
+          channel?: string
           created_at?: string
+          destination?: string | null
           id?: number
           idempotency_key?: string
           kind?: string
           last_error?: string | null
-          line_user_id?: string
+          line_user_id?: string | null
           payload?: Json
           schedule_at?: string
           status?: Database["public"]["Enums"]["notification_status"]
@@ -581,12 +587,14 @@ export type Database = {
         Returns: {
           appointment_id: string | null
           attempts: number
+          channel: string
           created_at: string
+          destination: string | null
           id: number
           idempotency_key: string
           kind: string
           last_error: string | null
-          line_user_id: string
+          line_user_id: string | null
           payload: Json
           schedule_at: string
           status: Database["public"]["Enums"]["notification_status"]
