@@ -1,97 +1,113 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Shield, LogOut, User, Calculator, Bell, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Shield, User, Settings, Calculator, Bell } from 'lucide-react';
+
 import StaffPortal from './StaffPortal';
-import GoogleSheetsIntegration from './GoogleSheetsIntegration';
 import VaccineScheduleCalculator from './VaccineScheduleCalculator';
+import PatientRegistrationsList from './PatientRegistrationsList';
+import NextAppointments from './NextAppointments';
+import PastVaccinations from './PastVaccinations';
 import AutoNotificationSystem from './AutoNotificationSystem';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import GoogleSheetsIntegration from './GoogleSheetsIntegration';
 
 const AuthenticatedStaffPortal = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    const checkAuthAndPermissions = async () => {
+      try {
+        // Check session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (!session) {
+          setIsLoading(false);
+          return;
+        }
+
+        setSession(session);
+        setUser(session.user);
+
+        // Check if user is healthcare staff
+        const { data: isStaff, error: staffError } = await supabase
+          .rpc('is_healthcare_staff', { _user_id: session.user.id });
+
+        if (staffError) {
+          console.error('Error checking staff status:', staffError);
+          setIsAuthorized(false);
+        } else {
+          setIsAuthorized(isStaff);
+        }
+
+        // Check if user is admin
+        const { data: hasAdminRole, error: adminError } = await supabase
+          .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+
+        if (adminError) {
+          console.error('Error checking admin status:', adminError);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(hasAdminRole);
+        }
+
+      } catch (error) {
+        console.error('Auth check error:', error);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถตรวจสอบสิทธิ์การเข้าถึงได้",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthAndPermissions();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Check if user has healthcare staff role
-          setTimeout(async () => {
-            try {
-              const { data: roleCheck, error } = await supabase
-                .rpc('is_healthcare_staff', { _user_id: session.user.id });
-              
-              const { data: adminCheck, error: adminError } = await supabase
-                .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
-              
-              if (error || adminError) {
-                console.error('Role check error:', error || adminError);
-                setIsAuthorized(false);
-                setIsAdmin(false);
-              } else {
-                setIsAuthorized(roleCheck);
-                setIsAdmin(adminCheck);
-                if (!roleCheck) {
-                  toast({
-                    title: "ไม่มีสิทธิ์เข้าถึง",
-                    description: "คุณไม่มีสิทธิ์เข้าถึงระบบเจ้าหน้าที่",
-                    variant: "destructive",
-                  });
-                }
-              }
-            } catch (error) {
-              console.error('Authorization check failed:', error);
-              setIsAuthorized(false);
-              setIsAdmin(false);
-            }
-          }, 0);
-        } else {
+        if (event === 'SIGNED_OUT' || !session) {
+          setUser(null);
+          setSession(null);
           setIsAuthorized(false);
           setIsAdmin(false);
+          navigate('/auth');
         }
-        setIsLoading(false);
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (!session) {
-        setIsLoading(false);
-      }
-    });
-
     return () => subscription.unsubscribe();
-  }, [toast]);
+  }, [navigate, toast]);
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "ออกจากระบบแล้ว",
+        description: "คุณได้ออกจากระบบเรียบร้อยแล้ว",
+      });
+      
+      navigate('/auth');
+    } catch (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถออกจากระบบได้",
         variant: "destructive",
-      });
-    } else {
-      navigate('/');
-      toast({
-        title: "ออกจากระบบสำเร็จ",
-        description: "คุณได้ออกจากระบบเรียบร้อยแล้ว",
       });
     }
   };
@@ -153,22 +169,14 @@ const AuthenticatedStaffPortal = () => {
             <p className="text-center text-muted-foreground">
               คุณไม่มีสิทธิ์เข้าถึงระบบจัดการเจ้าหน้าที่ กรุณาติดต่อผู้ดูแลระบบ
             </p>
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleSignOut} 
-                variant="outline"
-                className="flex-1"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                ออกจากระบบ
-              </Button>
             <Button 
-              onClick={() => navigate('/')} 
-              className="flex-1"
+              onClick={handleSignOut} 
+              variant="outline" 
+              className="w-full"
             >
-              กลับหน้าแอดมิน
+              <LogOut className="h-4 w-4 mr-2" />
+              ออกจากระบบ
             </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -176,128 +184,109 @@ const AuthenticatedStaffPortal = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
-      {/* Mobile-optimized header */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-border/50 shadow-sm">
-        <div className="container mx-auto px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white">
+      {/* Header */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
               <div>
-                <h1 className="text-lg md:text-xl font-semibold text-foreground truncate">
-                  ระบบเจ้าหน้าที่
-                </h1>
-                <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
-                  {user.email}
-                </p>
+                <h1 className="text-xl font-bold text-foreground">ระบบจัดการวัคซีน</h1>
+                <p className="text-sm text-muted-foreground">โรงพยาบาลโฮม</p>
               </div>
             </div>
-            <Button 
-              onClick={handleSignOut} 
-              variant="outline" 
-              size="sm"
-              className="h-8 px-2 md:h-9 md:px-3"
-            >
-              <LogOut className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">ออกจากระบบ</span>
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden md:block">
+                <p className="text-sm font-medium">{user.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}
+                </p>
+              </div>
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                size="sm"
+              >
+                <LogOut className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">ออกจากระบบ</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 md:py-6">
-        <Card className="w-full">
-          <CardHeader className="text-center px-4 py-4 md:px-6 md:py-6">
-            <CardTitle className="flex items-center justify-center gap-2 text-xl md:text-3xl">
-              <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-              <span className="hidden sm:inline">ระบบจัดการวัคซีนสำหรับเจ้าหน้าที่</span>
-              <span className="sm:hidden">ระบบจัดการวัคซีน</span>
-            </CardTitle>
-            <CardDescription className="text-sm md:text-base">
-              ระบบครบถ้วนสำหรับการจัดการวัคซีน การติดตาม และการแจ้งเตือน
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <Tabs defaultValue="portal" className="w-full">
-              <TabsList className={`grid w-full gap-1 h-auto ${isAdmin ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-1'}`}>
-                <TabsTrigger value="portal" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Staff Portal</span>
-                  <span className="sm:hidden">Portal</span>
-                </TabsTrigger>
-                {isAdmin && (
-                  <>
-                    <TabsTrigger value="calculator" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                      <Calculator className="h-4 w-4" />
-                      <span className="hidden sm:inline">คำนวณวัคซีน</span>
-                      <span className="sm:hidden">คำนวณ</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="notifications" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3 md:col-span-1 col-span-2">
-                      <Bell className="h-4 w-4" />
-                      <span>แจ้งเตือน</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="sheets" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                      <Settings className="h-4 w-4" />
-                      <span className="hidden sm:inline">Google Sheets</span>
-                      <span className="sm:hidden">Sheets</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-xs md:text-sm p-2 md:p-3">
-                      <Shield className="h-4 w-4" />
-                      <span className="hidden sm:inline">Settings</span>
-                      <span className="sm:hidden">ตั้งค่า</span>
-                    </TabsTrigger>
-                  </>
-                )}
-              </TabsList>
+      <div className="container mx-auto px-4 py-6">
+        <Tabs defaultValue="staff-portal" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-6">
+            <TabsTrigger value="staff-portal">นัดวันนี้</TabsTrigger>
+            <TabsTrigger value="registrations">รายการลงทะเบียน</TabsTrigger>
+            <TabsTrigger value="next-appointments">นัดครั้งถัดไป</TabsTrigger>
+            <TabsTrigger value="past-vaccinations">ประวัติการฉีด</TabsTrigger>
+            <TabsTrigger value="vaccine-calculator">คำนวณวัคซีน</TabsTrigger>
+            {isAdmin && <TabsTrigger value="settings">ตั้งค่า</TabsTrigger>}
+          </TabsList>
 
-              <TabsContent value="portal" className="mt-6">
-                <StaffPortal />
-              </TabsContent>
+          <TabsContent value="staff-portal">
+            <StaffPortal />
+          </TabsContent>
 
-              {isAdmin && (
-                <>
-                  <TabsContent value="calculator" className="mt-6">
-                    <VaccineScheduleCalculator />
-                  </TabsContent>
+          <TabsContent value="registrations">
+            <PatientRegistrationsList />
+          </TabsContent>
 
-                  <TabsContent value="notifications" className="mt-6">
-                    <AutoNotificationSystem />
-                  </TabsContent>
+          <TabsContent value="next-appointments">
+            <NextAppointments />
+          </TabsContent>
 
-                  <TabsContent value="sheets" className="mt-6">
-                    <GoogleSheetsIntegration />
-                  </TabsContent>
+          <TabsContent value="past-vaccinations">
+            <PastVaccinations />
+          </TabsContent>
 
-                  <TabsContent value="settings" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>การตั้งค่าระบบ</CardTitle>
-                    <CardDescription>
-                      จัดการการตั้งค่าระบบและสิทธิ์การเข้าถึง
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+          <TabsContent value="vaccine-calculator">
+            <VaccineScheduleCalculator />
+          </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>ตั้งค่าระบบ</CardTitle>
+                  <CardDescription>
+                    จัดการการตั้งค่าระบบและสิทธิ์การเข้าถึง
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
                     <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">ข้อมูลผู้ใช้</h3>
+                      <h3 className="font-semibold mb-2">การจัดการผู้ใช้</h3>
                       <p className="text-sm text-muted-foreground">อีเมล: {user.email}</p>
-                      <p className="text-sm text-muted-foreground">สิทธิ์: เจ้าหน้าที่ด้านสุขภาพ</p>
+                      <p className="text-sm text-muted-foreground">สิทธิ์: {isAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}</p>
                     </div>
-                    
                     <div className="p-4 border rounded-lg">
-                      <h3 className="font-medium mb-2">สถานะระบบ</h3>
-                      <p className="text-sm text-green-600">✅ ระบบคำนวณวัคซีน: ใช้งานได้</p>
-                      <p className="text-sm text-green-600">✅ ระบบแจ้งเตือน: ใช้งานได้</p>
-                      <p className="text-sm text-green-600">✅ Google Sheets: เชื่อมต่อแล้ว</p>
-                      <p className="text-sm text-green-600">✅ LINE Integration: เชื่อมต่อแล้ว</p>
+                      <h3 className="font-semibold mb-2">การตั้งค่าวัคซีน</h3>
+                      <p className="text-sm text-muted-foreground">จัดการประเภทวัคซีนและตารางการให้</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-                </>
-              )}
-            </Tabs>
-          </CardContent>
-        </Card>
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-semibold mb-2">ระบบแจ้งเตือน</h3>
+                      <div className="mt-2">
+                        <AutoNotificationSystem />
+                      </div>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-semibold mb-2">Google Sheets Integration</h3>
+                      <div className="mt-2">
+                        <GoogleSheetsIntegration />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </div>
   );
