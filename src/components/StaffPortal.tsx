@@ -346,35 +346,50 @@ const StaffPortal = () => {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="patientSearch">ค้นหาผู้ป่วย *</Label>
+              <Label htmlFor="patientSearch">ค้นหาผู้ป่วยที่ลงทะเบียนแล้ว *</Label>
               <div className="relative">
                 <Input
                   id="patientSearch"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="ค้นหาด้วยชื่อ หรือเบอร์โทร"
+                  placeholder="กรอกชื่อ หรือเบอร์โทรศัพท์เพื่อค้นหา"
+                  className="pr-10"
                 />
                 {searchTerm && (
-                  <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-b-md shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 z-50 bg-background border rounded-b-md shadow-lg max-h-60 overflow-y-auto">
                     {patientRegistrations
                       .filter(patient => 
                         patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        patient.phone.includes(searchTerm)
+                        patient.phone.includes(searchTerm) ||
+                        patient.registration_id.includes(searchTerm)
                       )
+                      .slice(0, 10)
                       .map((patient) => (
                         <div
                           key={patient.id}
-                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                          className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0 transition-colors"
                           onClick={() => {
                             setSelectedPatient(patient);
                             setSearchTerm('');
                           }}
                         >
-                          <div className="font-medium">{patient.full_name}</div>
-                          <div className="text-sm text-muted-foreground">{patient.phone}</div>
+                          <div className="font-medium text-foreground">{patient.full_name}</div>
+                          <div className="text-sm text-muted-foreground flex items-center justify-between">
+                            <span>โทร: {patient.phone}</span>
+                            <span className="text-xs">ID: {patient.registration_id}</span>
+                          </div>
                         </div>
                       ))
                     }
+                    {patientRegistrations.filter(patient => 
+                      patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      patient.phone.includes(searchTerm) ||
+                      patient.registration_id.includes(searchTerm)
+                    ).length === 0 && (
+                      <div className="p-3 text-center text-muted-foreground">
+                        ไม่พบผู้ป่วยที่ตรงกับการค้นหา
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
