@@ -115,10 +115,13 @@ const StaffPortal = () => {
       const { data, error } = await supabase
         .from('patient_registrations')
         .select('*')
-        .eq('status', 'confirmed')
-        .order('full_name');
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('Patient registrations loaded:', data?.length || 0, 'records');
+      console.log('Sample data:', data?.slice(0, 3));
+      
       setPatientRegistrations(data || []);
     } catch (error) {
       console.error('Error loading patient registrations:', error);
