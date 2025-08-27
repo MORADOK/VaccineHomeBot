@@ -39,29 +39,32 @@ interface Appointment {
 }
 
 interface VaccineOption {
-  type: string;
-  name: string;
+  id: string;
+  vaccine_type: string;
+  vaccine_name: string;
+}
+
+interface PatientRegistration {
+  id: string;
+  registration_id: string;
+  full_name: string;
+  phone: string;
+  line_user_id?: string;
+  status: string;
 }
 
 const StaffPortal = () => {
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [vaccineOptions, setVaccineOptions] = useState<VaccineOption[]>([]);
+  const [patientRegistrations, setPatientRegistrations] = useState<PatientRegistration[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState<PatientRegistration | null>(null);
   const [walkInForm, setWalkInForm] = useState({
-    patientName: '',
-    patientPhone: '',
     vaccineType: '',
     notes: ''
   });
   const { toast } = useToast();
-
-  const vaccineOptions: VaccineOption[] = [
-    { type: 'COVID-19', name: 'วัคซีนโควิด-19' },
-    { type: 'Influenza', name: 'วัคซีนไข้หวัดใหญ่' },
-    { type: 'Hepatitis B', name: 'วัคซีนไวรัสตับอักเสบบี' },
-    { type: 'HPV', name: 'วัคซีนป้องกันมะเร็งปากมดลูก' },
-    { type: 'Pneumococcal', name: 'วัคซีนป้องกันปอดบวม' },
-    { type: 'Tdap', name: 'วัคซีนคอตีบ-ไอกรน-บาดทะยัก' }
-  ];
 
   const loadTodayAppointments = async () => {
     setLoading(true);
@@ -84,6 +87,46 @@ const StaffPortal = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadVaccineOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vaccine_schedules')
+        .select('id, vaccine_type, vaccine_name')
+        .eq('active', true)
+        .order('vaccine_name');
+
+      if (error) throw error;
+      setVaccineOptions(data || []);
+    } catch (error) {
+      console.error('Error loading vaccine options:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลวัคซีนได้",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadPatientRegistrations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('patient_registrations')
+        .select('*')
+        .eq('status', 'confirmed')
+        .order('full_name');
+
+      if (error) throw error;
+      setPatientRegistrations(data || []);
+    } catch (error) {
+      console.error('Error loading patient registrations:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลผู้ป่วยได้",
+        variant: "destructive",
+      });
     }
   };
 
@@ -113,10 +156,10 @@ const StaffPortal = () => {
   };
 
   const createWalkInVaccination = async () => {
-    if (!walkInForm.patientName || !walkInForm.patientPhone || !walkInForm.vaccineType) {
+    if (!selectedPatient || !walkInForm.vaccineType) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        description: "กรุณาเลือกผู้ป่วยและประเภทวัคซีน",
         variant: "destructive",
       });
       return;
@@ -128,8 +171,10 @@ const StaffPortal = () => {
       const currentTime = now.toTimeString().slice(0, 5);
 
       const appointmentData = {
-        patient_name: walkInForm.patientName,
-        patient_phone: walkInForm.patientPhone,
+        patient_name: selectedPatient.full_name,
+        patient_phone: selectedPatient.phone,
+        patient_id_number: selectedPatient.registration_id,
+        line_user_id: selectedPatient.line_user_id,
         vaccine_type: walkInForm.vaccineType,
         appointment_date: today,
         appointment_time: currentTime,
@@ -146,13 +191,13 @@ const StaffPortal = () => {
 
       toast({
         title: "บันทึกสำเร็จ",
-        description: `บันทึกการฉีดวัคซีน Walk-in ของ ${walkInForm.patientName} แล้ว`,
+        description: `บันทึกการฉีดวัคซีนของ ${selectedPatient.full_name} แล้ว`,
       });
 
       // Reset form
+      setSelectedPatient(null);
+      setSearchTerm('');
       setWalkInForm({
-        patientName: '',
-        patientPhone: '',
         vaccineType: '',
         notes: ''
       });
@@ -170,6 +215,8 @@ const StaffPortal = () => {
 
   useEffect(() => {
     loadTodayAppointments();
+    loadVaccineOptions();
+    loadPatientRegistrations();
   }, []);
 
   const getStatusText = (status: string) => {
@@ -297,51 +344,89 @@ const StaffPortal = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-4">
             <div>
-              <Label htmlFor="patientName">ชื่อผู้ป่วย *</Label>
-              <Input
-                id="patientName"
-                value={walkInForm.patientName}
-                onChange={(e) => setWalkInForm({ ...walkInForm, patientName: e.target.value })}
-                placeholder="กรุณากรอกชื่อ-สกุล"
-              />
+              <Label htmlFor="patientSearch">ค้นหาผู้ป่วย *</Label>
+              <div className="relative">
+                <Input
+                  id="patientSearch"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ค้นหาด้วยชื่อ หรือเบอร์โทร"
+                />
+                {searchTerm && (
+                  <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-b-md shadow-lg max-h-48 overflow-y-auto">
+                    {patientRegistrations
+                      .filter(patient => 
+                        patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        patient.phone.includes(searchTerm)
+                      )
+                      .map((patient) => (
+                        <div
+                          key={patient.id}
+                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                          onClick={() => {
+                            setSelectedPatient(patient);
+                            setSearchTerm('');
+                          }}
+                        >
+                          <div className="font-medium">{patient.full_name}</div>
+                          <div className="text-sm text-muted-foreground">{patient.phone}</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <Label htmlFor="patientPhone">เบอร์โทรศัพท์ *</Label>
-              <Input
-                id="patientPhone"
-                value={walkInForm.patientPhone}
-                onChange={(e) => setWalkInForm({ ...walkInForm, patientPhone: e.target.value })}
-                placeholder="เบอร์โทรศัพท์"
-              />
-            </div>
-            <div>
-              <Label htmlFor="vaccineType">ประเภทวัคซีน *</Label>
-              <Select
-                value={walkInForm.vaccineType}
-                onValueChange={(value) => setWalkInForm({ ...walkInForm, vaccineType: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกประเภทวัคซีน" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vaccineOptions.map((vaccine) => (
-                    <SelectItem key={vaccine.type} value={vaccine.type}>
-                      {vaccine.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="notes">หมายเหตุ</Label>
-              <Input
-                id="notes"
-                value={walkInForm.notes}
-                onChange={(e) => setWalkInForm({ ...walkInForm, notes: e.target.value })}
-                placeholder="หมายเหตุเพิ่มเติม"
-              />
+
+            {selectedPatient && (
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{selectedPatient.full_name}</div>
+                    <div className="text-sm text-muted-foreground">{selectedPatient.phone}</div>
+                    <div className="text-xs text-muted-foreground">ID: {selectedPatient.registration_id}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedPatient(null)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="vaccineType">ประเภทวัคซีน *</Label>
+                <Select
+                  value={walkInForm.vaccineType}
+                  onValueChange={(value) => setWalkInForm({ ...walkInForm, vaccineType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="เลือกประเภทวัคซีน" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vaccineOptions.map((vaccine) => (
+                      <SelectItem key={vaccine.id} value={vaccine.vaccine_type}>
+                        {vaccine.vaccine_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="notes">หมายเหตุ</Label>
+                <Input
+                  id="notes"
+                  value={walkInForm.notes}
+                  onChange={(e) => setWalkInForm({ ...walkInForm, notes: e.target.value })}
+                  placeholder="หมายเหตุเพิ่มเติม"
+                />
+              </div>
             </div>
           </div>
           <div className="mt-4">

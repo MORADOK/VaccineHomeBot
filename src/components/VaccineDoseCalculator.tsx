@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calculator, Calendar, Syringe, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calculator, Calendar, Syringe, Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 
 interface VaccineSchedule {
   id: string;
@@ -43,11 +43,21 @@ interface DoseCalculation {
   reminderDate: string | null;
 }
 
+interface PatientRegistration {
+  id: string;
+  registration_id: string;
+  full_name: string;
+  phone: string;
+  line_user_id?: string;
+  status: string;
+}
+
 const VaccineDoseCalculator = () => {
   const [vaccineSchedules, setVaccineSchedules] = useState<VaccineSchedule[]>([]);
+  const [patientRegistrations, setPatientRegistrations] = useState<PatientRegistration[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
-  const [patientName, setPatientName] = useState('');
-  const [patientId, setPatientId] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState<PatientRegistration | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [lastDoseDate, setLastDoseDate] = useState('');
   const [currentDose, setCurrentDose] = useState(1);
   const [calculation, setCalculation] = useState<DoseCalculation | null>(null);
@@ -55,9 +65,10 @@ const VaccineDoseCalculator = () => {
   const [reminderDays, setReminderDays] = useState(1);
   const { toast } = useToast();
 
-  // โหลดข้อมูลวัคซีน
+  // โหลดข้อมูลวัคซีนและผู้ป่วย
   useEffect(() => {
     loadVaccineSchedules();
+    loadPatientRegistrations();
   }, []);
 
   const loadVaccineSchedules = async () => {
@@ -75,6 +86,26 @@ const VaccineDoseCalculator = () => {
       toast({
         title: "ข้อผิดพลาด",
         description: "ไม่สามารถโหลดข้อมูลวัคซีนได้",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const loadPatientRegistrations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('patient_registrations')
+        .select('*')
+        .eq('status', 'confirmed')
+        .order('full_name');
+
+      if (error) throw error;
+      setPatientRegistrations(data || []);
+    } catch (error) {
+      console.error('Error loading patient registrations:', error);
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลผู้ป่วยได้",
         variant: "destructive"
       });
     }
@@ -132,10 +163,10 @@ const VaccineDoseCalculator = () => {
   };
 
   const saveToDatabase = async () => {
-    if (!calculation || !patientName || !patientId) {
+    if (!calculation || !selectedPatient) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        description: "กรุณาเลือกผู้ป่วยและคำนวณข้อมูล",
         variant: "destructive"
       });
       return;
@@ -146,8 +177,8 @@ const VaccineDoseCalculator = () => {
       const schedule = vaccineSchedules.find(s => s.id === selectedSchedule);
       
       const trackingData = {
-        patient_name: patientName,
-        patient_id: patientId,
+        patient_name: selectedPatient.full_name,
+        patient_id: selectedPatient.registration_id,
         vaccine_schedule_id: selectedSchedule,
         current_dose: currentDose,
         total_doses: schedule?.total_doses || 1,
@@ -168,28 +199,28 @@ const VaccineDoseCalculator = () => {
 
       // สร้างการแจ้งเตือนอัตโนมัติ
       if (!calculation.isComplete && calculation.reminderDate) {
-        const { error: scheduleError } = await supabase
-          .from('notification_schedules')
-          .insert({
-            patient_tracking_id: (await supabase
-              .from('patient_vaccine_tracking')
-              .select('id')
-              .eq('patient_id', patientId)
-              .eq('vaccine_schedule_id', selectedSchedule)
-              .single()).data?.id,
-            scheduled_date: calculation.reminderDate,
-            notification_type: 'dose_reminder',
-            message_content: `🔔 แจ้งเตือนฉีดวัคซีน
+            const { error: scheduleError } = await supabase
+              .from('notification_schedules')
+              .insert({
+                patient_tracking_id: (await supabase
+                  .from('patient_vaccine_tracking')
+                  .select('id')
+                  .eq('patient_id', selectedPatient.registration_id)
+                  .eq('vaccine_schedule_id', selectedSchedule)
+                  .single()).data?.id,
+                scheduled_date: calculation.reminderDate,
+                notification_type: 'dose_reminder',
+                message_content: `🔔 แจ้งเตือนฉีดวัคซีน
 
-สวัสดี ${patientName}
+สวัสดี ${selectedPatient.full_name}
 ได้เวลาฉีดวัคซีน ${schedule?.vaccine_name} โดสที่ ${calculation.nextDoseNumber}
 
 📅 วันที่กำหนด: ${calculation.nextDoseDate}
 💉 โดสที่: ${calculation.nextDoseNumber}/${schedule?.total_doses}
 
 กรุณามาตามนัดหมายตรงเวลา`,
-            sent: false
-          });
+                sent: false
+              });
 
         if (scheduleError) {
           console.error('Error creating notification:', scheduleError);
@@ -216,8 +247,8 @@ const VaccineDoseCalculator = () => {
   };
 
   const resetForm = () => {
-    setPatientName('');
-    setPatientId('');
+    setSelectedPatient(null);
+    setSearchTerm('');
     setLastDoseDate('');
     setCurrentDose(1);
     setSelectedSchedule('');
@@ -237,26 +268,59 @@ const VaccineDoseCalculator = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="patientName">ชื่อผู้ป่วย</Label>
+          <div>
+            <Label htmlFor="patientSearch">ค้นหาผู้ป่วย</Label>
+            <div className="relative">
               <Input
-                id="patientName"
-                value={patientName}
-                onChange={(e) => setPatientName(e.target.value)}
-                placeholder="ระบุชื่อผู้ป่วย"
+                id="patientSearch"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="ค้นหาด้วยชื่อ หรือเบอร์โทร"
               />
-            </div>
-            <div>
-              <Label htmlFor="patientId">รหัสผู้ป่วย</Label>
-              <Input
-                id="patientId"
-                value={patientId}
-                onChange={(e) => setPatientId(e.target.value)}
-                placeholder="รหัสประจำตัวหรือเลขบัตรประชาชน"
-              />
+              {searchTerm && (
+                <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-b-md shadow-lg max-h-48 overflow-y-auto">
+                  {patientRegistrations
+                    .filter(patient => 
+                      patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      patient.phone.includes(searchTerm)
+                    )
+                    .map((patient) => (
+                      <div
+                        key={patient.id}
+                        className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => {
+                          setSelectedPatient(patient);
+                          setSearchTerm('');
+                        }}
+                      >
+                        <div className="font-medium">{patient.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{patient.phone}</div>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
             </div>
           </div>
+
+          {selectedPatient && (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{selectedPatient.full_name}</div>
+                  <div className="text-sm text-muted-foreground">{selectedPatient.phone}</div>
+                  <div className="text-xs text-muted-foreground">ID: {selectedPatient.registration_id}</div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedPatient(null)}
+                >
+                  <XCircle className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div>
             <Label>เลือกวัคซีน</Label>
