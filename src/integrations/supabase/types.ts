@@ -328,6 +328,27 @@ export type Database = {
           },
         ]
       }
+      staff_profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
