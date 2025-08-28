@@ -267,7 +267,7 @@ const NextAppointments = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <span>🗓️</span>
-                          เข็มก่อน: {new Date(appointment.last_dose_date).toLocaleDateString('th-TH')}
+                          เข็มก่อน: {appointment.last_dose_date ? new Date(appointment.last_dose_date).toLocaleDateString('th-TH') : 'ยังไม่เคยฉีด'}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
