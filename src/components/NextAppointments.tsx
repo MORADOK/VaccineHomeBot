@@ -31,29 +31,74 @@ const NextAppointments = () => {
   const loadNextAppointments = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('patient_vaccine_tracking')
-        .select(`
-          *,
-          vaccine_schedules (
-            vaccine_name,
-            vaccine_type
-          )
-        `)
-        .eq('completion_status', 'in_progress')
-        .not('next_dose_due', 'is', null)
-        .order('next_dose_due', { ascending: true });
+      // Get all patients with completed doses to calculate next appointments
+      const { data: completedAppointments, error: apptError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('status', 'completed')
+        .order('appointment_date', { ascending: false });
 
-      if (error) throw error;
+      if (apptError) throw apptError;
+
+      // Group by patient and vaccine type to get latest doses
+      const patientVaccineMap = new Map();
       
-      // Transform data to match interface
-      const transformedData = (data || []).map(item => ({
-        ...item,
-        vaccine_name: item.vaccine_schedules?.vaccine_name || '',
-        vaccine_type: item.vaccine_schedules?.vaccine_type || ''
-      }));
+      for (const appt of completedAppointments || []) {
+        const key = `${appt.patient_id_number || appt.line_user_id}-${appt.vaccine_type}`;
+        if (!patientVaccineMap.has(key)) {
+          patientVaccineMap.set(key, {
+            patient_id: appt.patient_id_number || appt.line_user_id,
+            patient_name: appt.patient_name,
+            line_user_id: appt.line_user_id,
+            vaccine_type: appt.vaccine_type,
+            latest_date: appt.appointment_date
+          });
+        }
+      }
+
+      // Calculate next appointments using the database function
+      const nextAppointmentPromises = Array.from(patientVaccineMap.values()).map(async (patient) => {
+        try {
+          const { data, error } = await supabase.rpc('api_next_dose_for_patient', {
+            _line_user_id: patient.patient_id,
+            _vaccine_type: patient.vaccine_type
+          });
+
+          if (error) {
+            console.error('Error calculating next dose:', error);
+            return null;
+          }
+
+          if (data && data.length > 0 && data[0].next_dose_number) {
+            const nextDose = data[0];
+            return {
+              id: `${patient.patient_id}-${patient.vaccine_type}`,
+              patient_id: patient.patient_id,
+              patient_name: patient.patient_name,
+              vaccine_name: nextDose.vaccine_name,
+              vaccine_type: nextDose.vaccine_type,
+              current_dose: nextDose.doses_received,
+              total_doses: nextDose.total_doses,
+              next_dose_due: nextDose.recommended_date,
+              last_dose_date: nextDose.last_dose_date,
+              completion_status: 'in_progress',
+              line_user_id: patient.line_user_id,
+              vaccine_schedule_id: nextDose.vaccine_schedule_id
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error('Error processing patient:', patient.patient_id, error);
+          return null;
+        }
+      });
+
+      const results = await Promise.all(nextAppointmentPromises);
+      const validAppointments = results
+        .filter(appt => appt !== null)
+        .sort((a, b) => new Date(a.next_dose_due).getTime() - new Date(b.next_dose_due).getTime());
       
-      setNextAppointments(transformedData);
+      setNextAppointments(validAppointments);
     } catch (error) {
       console.error('Error loading next appointments:', error);
       toast({
