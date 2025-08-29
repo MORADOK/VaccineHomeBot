@@ -114,12 +114,56 @@ const VaccineScheduleCalculator: React.FC = () => {
         .from('patient_vaccine_tracking')
         .select(`
           *,
-          vaccine_schedules(vaccine_name, vaccine_type)
+          vaccine_schedules(vaccine_name, vaccine_type, dose_intervals, total_doses)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTracking(data || []);
+      
+      // คำนวณวันนัดใหม่สำหรับแต่ละรายการตาม vaccine_schedules
+      const updatedTracking = await Promise.all((data || []).map(async (track) => {
+        if (track.completion_status === 'completed') {
+          return track; // ถ้าเสร็จแล้วไม่ต้องคำนวณใหม่
+        }
+
+        try {
+          // ใช้ database function เพื่อคำนวณวันนัดที่ถูกต้อง
+          const { data: nextDoseData } = await supabase.rpc('api_next_dose_for_patient', {
+            _line_user_id: track.patient_id,
+            _vaccine_type: (track as any).vaccine_schedules?.vaccine_type || ''
+          });
+
+          if (nextDoseData && nextDoseData.length > 0 && nextDoseData[0].next_dose_number) {
+            const nextDose = nextDoseData[0];
+            
+            // อัปเดตข้อมูลในฐานข้อมูลถ้าวันนัดเปลี่ยนแปลง
+            if (track.next_dose_due !== nextDose.recommended_date) {
+              await supabase
+                .from('patient_vaccine_tracking')
+                .update({
+                  next_dose_due: nextDose.recommended_date,
+                  current_dose: nextDose.doses_received,
+                  last_dose_date: nextDose.last_dose_date
+                })
+                .eq('id', track.id);
+              
+              // อัปเดตข้อมูลในตัวแปร local
+              return {
+                ...track,
+                next_dose_due: nextDose.recommended_date,
+                current_dose: nextDose.doses_received,
+                last_dose_date: nextDose.last_dose_date
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Error calculating next dose for patient:', track.patient_id, error);
+        }
+        
+        return track;
+      }));
+
+      setTracking(updatedTracking);
     } catch (error: any) {
       toast({
         title: "ข้อผิดพลาด",
