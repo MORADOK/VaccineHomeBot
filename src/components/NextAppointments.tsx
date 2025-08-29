@@ -17,6 +17,7 @@ interface NextAppointment {
   total_doses: number;
   next_dose_due: string;
   last_dose_date: string;
+  first_dose_date?: string;
   completion_status: string;
   line_user_id?: string;
   vaccine_schedule_id?: string;
@@ -26,6 +27,8 @@ const NextAppointments = () => {
   const [nextAppointments, setNextAppointments] = useState<NextAppointment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [creatingAppointment, setCreatingAppointment] = useState<string | null>(null);
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadNextAppointments = async () => {
@@ -59,6 +62,16 @@ const NextAppointments = () => {
       // Calculate next appointments using the database function
       const nextAppointmentPromises = Array.from(patientVaccineMap.values()).map(async (patient) => {
         try {
+          // Get first dose date for this patient and vaccine type
+          const { data: firstDoseData } = await supabase
+            .from('appointments')
+            .select('appointment_date')
+            .eq('status', 'completed')
+            .or(`patient_id_number.eq.${patient.patient_id},line_user_id.eq.${patient.patient_id}`)
+            .eq('vaccine_type', patient.vaccine_type)
+            .order('appointment_date', { ascending: true })
+            .limit(1);
+
           const { data, error } = await supabase.rpc('api_next_dose_for_patient', {
             _line_user_id: patient.patient_id,
             _vaccine_type: patient.vaccine_type
@@ -81,6 +94,7 @@ const NextAppointments = () => {
               total_doses: nextDose.total_doses,
               next_dose_due: nextDose.recommended_date,
               last_dose_date: nextDose.last_dose_date,
+              first_dose_date: firstDoseData?.[0]?.appointment_date || null,
               completion_status: 'in_progress',
               line_user_id: patient.line_user_id,
               vaccine_schedule_id: nextDose.vaccine_schedule_id
@@ -112,6 +126,7 @@ const NextAppointments = () => {
   };
 
   const scheduleAppointment = async (patientTracking: NextAppointment) => {
+    setCreatingAppointment(patientTracking.id);
     try {
       const appointmentData = {
         patient_id_number: patientTracking.patient_id,
@@ -142,10 +157,22 @@ const NextAppointments = () => {
         description: "ไม่สามารถสร้างนัดหมายได้",
         variant: "destructive",
       });
+    } finally {
+      setCreatingAppointment(null);
     }
   };
 
   const sendReminder = async (patientTracking: NextAppointment) => {
+    if (!patientTracking.line_user_id) {
+      toast({
+        title: "ไม่สามารถส่งได้",
+        description: "ไม่พบ LINE User ID ของผู้ป่วย",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingReminder(patientTracking.id);
     try {
       const { error } = await supabase.functions.invoke('send-line-message', {
         body: {
@@ -167,6 +194,8 @@ const NextAppointments = () => {
         description: "ไม่สามารถส่งข้อความแจ้งเตือนได้",
         variant: "destructive",
       });
+    } finally {
+      setSendingReminder(null);
     }
   };
 
@@ -267,8 +296,8 @@ const NextAppointments = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <span>🗓️</span>
-                          เข็มก่อน: {appointment.last_dose_date ? 
-                            new Date(appointment.last_dose_date).toLocaleDateString('th-TH') : 
+                          เข็มแรก: {appointment.first_dose_date ? 
+                            new Date(appointment.first_dose_date).toLocaleDateString('th-TH') : 
                             'ไม่พบข้อมูล'}
                         </div>
                       </div>
@@ -280,19 +309,30 @@ const NextAppointments = () => {
                       <Button
                         size="sm"
                         onClick={() => scheduleAppointment(appointment)}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={creatingAppointment === appointment.id}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                       >
-                        <CalendarPlus className="h-4 w-4 mr-1" />
-                        สร้างนัด
+                        {creatingAppointment === appointment.id ? (
+                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <CalendarPlus className="h-4 w-4 mr-1" />
+                        )}
+                        {creatingAppointment === appointment.id ? 'กำลังสร้าง...' : 'สร้างนัด'}
                       </Button>
                       {appointment.line_user_id && (
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => sendReminder(appointment)}
+                          disabled={sendingReminder === appointment.id}
+                          className="disabled:opacity-50"
                         >
-                          <Send className="h-4 w-4 mr-1" />
-                          แจ้งเตือน
+                          {sendingReminder === appointment.id ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4 mr-1" />
+                          )}
+                          {sendingReminder === appointment.id ? 'กำลังส่ง...' : 'แจ้งเตือน'}
                         </Button>
                       )}
                     </div>
