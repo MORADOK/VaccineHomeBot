@@ -144,12 +144,15 @@ const NextAppointments = () => {
 
       if (error) throw error;
 
+      // ลบรายชื่อออกจากรายการทันที เพื่อป้องกันการกดซ้ำ
+      setNextAppointments(prevAppointments => 
+        prevAppointments.filter(appt => appt.id !== patientTracking.id)
+      );
+
       toast({
         title: "นัดหมายสำเร็จ",
         description: `สร้างนัดหมายสำหรับ ${patientTracking.patient_name} แล้ว`,
       });
-
-      loadNextAppointments();
     } catch (error) {
       console.error('Error scheduling appointment:', error);
       toast({
