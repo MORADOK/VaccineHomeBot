@@ -191,35 +191,32 @@ async function notifyStaff(userId, displayName, phone) {
   };
 
   const sendToN8n = async (patientData: any) => {
-    if (!n8nWebhookUrl) {
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "กรุณากรอก n8n Webhook URL ก่อน",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Security: Use secure webhook proxy instead of direct external webhook
     setIsLoading(true);
     try {
-      await fetch(n8nWebhookUrl, {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/secure-patient-webhook`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-webhook-secret": "secure-patient-registration" // Simple secret for demo
+        },
         body: JSON.stringify({
-          ...patientData,
+          type: "patient_registration",
+          patientName: patientData.fullName || patientData.displayName,
+          registrationType: patientData.registrationType || "manual",
           timestamp: new Date().toISOString(),
           source: "frontend_registration",
         }),
       });
       toast({
         title: "ส่งข้อมูลสำเร็จ",
-        description: "ข้อมูลได้ถูกส่งไปยัง n8n workflow แล้ว",
+        description: "ข้อมูลได้ถูกส่งผ่านระบบรักษาความปลอดภัยแล้ว",
       });
     } catch (error) {
-      console.error("Error sending to n8n:", error);
+      console.error("Error sending to secure webhook:", error);
       toast({
         title: "ข้อผิดพลาด",
-        description: "ไม่สามารถส่งข้อมูลไปยัง n8n ได้",
+        description: "ไม่สามารถส่งข้อมูลได้",
         variant: "destructive",
       });
     } finally {
@@ -228,15 +225,10 @@ async function notifyStaff(userId, displayName, phone) {
   };
 
   const testPatientRegistration = () => {
-    if (!n8nWebhookUrl) {
-      toast({ title: "Webhook URL ไม่ถูกต้อง", variant: "destructive" });
-      return;
-    }
     const testData = {
       LineUserID: "test-user-123",
       displayName: "ทดสอบ ระบบ",
       fullName: "นาย ทดสอบ ระบบ",
-      phone: "081-234-5678",
       registrationType: "manual",
     };
     sendToN8n(testData);
@@ -267,36 +259,24 @@ async function notifyStaff(userId, displayName, phone) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="n8n-webhook">n8n Webhook URL</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    id="n8n-webhook"
-                    value={n8nWebhookUrl}
-                    readOnly
-                  />
-                  <Button 
-                    onClick={testPatientRegistration}
-                    disabled={!n8nWebhookUrl || isLoading}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {isLoading ? 'กำลังส่ง...' : 'ทดสอบ'}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  URL จาก n8n workflow ที่มีอยู่แล้วบน Render
-                </p>
-              </div>
-              
               <Alert>
                 <Settings className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>การใช้งานกับ workflow เดิม:</strong>
-                  <br />• ใส่ Webhook URL จาก n8n workflow ที่รันอยู่แล้ว
-                  <br />• กดปุ่ม "ทดสอบ" เพื่อส่งข้อมูลทดสอบ
-                  <br />• ระบบจะส่งข้อมูลผู้ป่วยไปยัง workflow โดยอัตโนมัติ
+                  <strong>ระบบรักษาความปลอดภัย:</strong>
+                  <br />• ข้อมูลจะถูกส่งผ่านระบบรักษาความปลอดภัยของ Supabase
+                  <br />• ข้อมูลส่วนตัวจะถูกกรองก่อนส่งต่อ
+                  <br />• กดปุ่ม "ทดสอบ" เพื่อทดสอบการเชื่อมต่อ
                 </AlertDescription>
               </Alert>
+              
+              <Button 
+                onClick={testPatientRegistration}
+                disabled={isLoading}
+                className="w-full"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {isLoading ? 'กำลังส่ง...' : 'ทดสอบระบบ'}
+              </Button>
             </CardContent>
           </Card>
 

@@ -633,10 +633,6 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
-      make_user_admin: {
-        Args: { _user_id: string }
-        Returns: undefined
-      }
       mk_bkk_ts: {
         Args: { _date: string; _time?: string }
         Returns: string

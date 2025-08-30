@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.54.0'
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const corsHeaders = {
@@ -26,6 +27,60 @@ serve(async (req) => {
 
   try {
     console.log('Auto notification system started')
+    
+    // Security: Check for CRON secret or require authentication
+    const cronSecret = req.headers.get('x-cron-secret')
+    const authHeader = req.headers.get('Authorization')
+    
+    if (cronSecret === Deno.env.get('CRON_SECRET')) {
+      console.log('Authenticated via CRON secret')
+    } else if (authHeader) {
+      // Verify JWT and healthcare staff role
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: authHeader }
+          }
+        }
+      )
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        console.error('Authentication failed:', authError)
+        return new Response(
+          JSON.stringify({ error: 'Authentication required' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+
+      const { data: hasStaffRole, error: roleError } = await supabase
+        .rpc('is_healthcare_staff', { _user_id: user.id })
+      
+      if (roleError || !hasStaffRole) {
+        console.error('Role check failed:', roleError)
+        return new Response(
+          JSON.stringify({ error: 'Access denied: Healthcare staff role required' }),
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+      console.log('Authenticated via JWT for user:', user.id)
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
     
     // Get environment variables
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!

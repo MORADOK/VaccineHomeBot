@@ -8,6 +8,57 @@ serve(async (req) => {
   }
 
   try {
+    // Security: Authenticate user and check healthcare staff role
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }), 
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Create Supabase client with anon key for RLS enforcement
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    )
+
+    // Verify user authentication and healthcare staff role
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      console.error('Authentication failed:', authError)
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }), 
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Check if user has healthcare staff role
+    const { data: hasStaffRole, error: roleError } = await supabase
+      .rpc('is_healthcare_staff', { _user_id: user.id })
+    
+    if (roleError || !hasStaffRole) {
+      console.error('Role check failed:', roleError)
+      return new Response(
+        JSON.stringify({ error: 'Access denied: Healthcare staff role required' }), 
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     const { searchType, searchValue } = await req.json()
     
     // Validate input
@@ -31,60 +82,59 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client with service role key for secure access
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    console.log('Authorized lookup request:', { searchType, user: user.id })
 
     let appointmentsQuery;
     let logsQuery;
     let trackingQuery;
     let registrationsQuery;
 
-    // Build queries based on search type
+    // Build queries based on search type - limited columns for security
     if (searchType === 'phone') {
       appointmentsQuery = supabase
         .from('appointments')
-        .select('*')
+        .select('appointment_id, patient_name, appointment_date, appointment_time, vaccine_type, status')
         .eq('patient_phone', searchValue)
         .order('appointment_date', { ascending: false })
 
       registrationsQuery = supabase
         .from('patient_registrations')
-        .select('*')
+        .select('registration_id, full_name, phone, created_at, status')
         .eq('phone', searchValue)
         .order('created_at', { ascending: false })
 
       logsQuery = supabase
         .from('vaccine_logs')
-        .select('*')
-        .eq('patient_name', searchValue) // Note: This is not ideal, we should match by phone but the schema doesn't have phone in vaccine_logs
+        .select('vaccine_type, administered_date, dose_number, administered_by')
+        .eq('patient_name', searchValue)
 
-      // For tracking, we need to join with appointments to match by phone
       trackingQuery = supabase
         .from('patient_vaccine_tracking')
         .select(`
-          *,
+          patient_name,
+          current_dose,
+          total_doses,
+          last_dose_date,
+          next_dose_due,
+          completion_status,
           vaccine_schedules (
             vaccine_name,
             vaccine_type,
-            total_doses,
-            dose_intervals
+            total_doses
           )
         `)
-        .eq('patient_id', searchValue) // This will need to be improved to properly match by phone
+        .eq('patient_id', searchValue)
     } else {
-      // Search by patient_id - first check if it's in registrations
+      // Search by patient_id
       registrationsQuery = supabase
         .from('patient_registrations')
-        .select('*')
+        .select('registration_id, full_name, phone, created_at, status')
         .eq('registration_id', searchValue)
         .order('created_at', { ascending: false })
 
       appointmentsQuery = supabase
         .from('appointments')
-        .select('*')
+        .select('appointment_id, patient_name, appointment_date, appointment_time, vaccine_type, status')
         .eq('patient_id_number', searchValue)
         .order('appointment_date', { ascending: false })
 
@@ -94,24 +144,28 @@ serve(async (req) => {
 
       logsQuery = supabase
         .from('vaccine_logs')
-        .select('*')
+        .select('vaccine_type, administered_date, dose_number, administered_by')
         .eq('patient_name', patientName || '')
 
       trackingQuery = supabase
         .from('patient_vaccine_tracking')
         .select(`
-          *,
+          patient_name,
+          current_dose,
+          total_doses,
+          last_dose_date,
+          next_dose_due,
+          completion_status,
           vaccine_schedules (
             vaccine_name,
             vaccine_type,
-            total_doses,
-            dose_intervals
+            total_doses
           )
         `)
         .eq('patient_id', searchValue)
     }
 
-    // Execute queries
+    // Execute queries with RLS enforcement
     const [appointmentsResult, logsResult, trackingResult, registrationsResult] = await Promise.all([
       appointmentsQuery,
       logsQuery,
@@ -164,7 +218,12 @@ serve(async (req) => {
       )
     }
 
-    // Return filtered results
+    console.log('Lookup completed successfully:', { 
+      appointments: appointmentsResult.data?.length || 0,
+      registrations: registrationsResult.data?.length || 0
+    })
+
+    // Return filtered results with minimal data
     return new Response(
       JSON.stringify({
         appointments: appointmentsResult.data || [],

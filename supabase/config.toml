@@ -46,8 +46,8 @@ double_confirm_changes = true
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
-# Minimum password length. Defaults to 6.
-password_min_length = 6
+# Minimum password length. Defaults to 10.
+password_min_length = 10
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "5m"
 
@@ -84,6 +84,18 @@ verify_jwt = true
 
 [functions.vaccine-reminder-system]
 verify_jwt = true
+
+[functions.secure-vaccine-status-lookup]
+verify_jwt = true
+
+[functions.auto-vaccine-notifications]
+verify_jwt = true
+
+[functions.manual-notification-trigger]
+verify_jwt = true
+
+[functions.secure-patient-webhook]
+verify_jwt = false
 
 [analytics]
 enabled = false

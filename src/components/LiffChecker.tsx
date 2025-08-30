@@ -179,15 +179,16 @@ const LiffChecker = () => {
         data: {
           liffId: LIFF_ID,
           timestamp: new Date().toISOString(),
-          liffInfo: liffInfo,
           source: 'liff_checker'
         }
       };
 
-      const response = await fetch(WEBHOOK_URL, {
+      // Security: Use secure webhook proxy instead of direct external webhook
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/secure-patient-webhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-webhook-secret': 'secure-liff-check', // Simple secret for demo
         },
         body: JSON.stringify(testData),
       });
@@ -195,7 +196,7 @@ const LiffChecker = () => {
       if (response.ok) {
         toast({
           title: "Webhook Test Success",
-          description: "Successfully sent data to webhook",
+          description: "Successfully sent data via secure proxy",
         });
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -203,7 +204,7 @@ const LiffChecker = () => {
     } catch (error) {
       toast({
         title: "Webhook Test Failed",
-        description: `Failed to connect to webhook: ${error}`,
+        description: `Failed to connect to secure webhook: ${error}`,
         variant: "destructive",
       });
     }
