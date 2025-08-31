@@ -43,18 +43,39 @@ const NextAppointments = () => {
 
       if (apptError) throw apptError;
 
-      // Group by patient and vaccine type to get latest doses
+      // Group by patient and vaccine type to get latest doses and calculate actual dose counts
       const patientVaccineMap = new Map();
       
       for (const appt of completedAppointments || []) {
         const key = `${appt.patient_id_number || appt.line_user_id}-${appt.vaccine_type}`;
+        
         if (!patientVaccineMap.has(key)) {
+          // Count completed doses for this patient and vaccine type
+          const completedDoses = completedAppointments.filter(a => 
+            (a.patient_id_number === (appt.patient_id_number || appt.line_user_id) || 
+             a.line_user_id === (appt.patient_id_number || appt.line_user_id)) &&
+            a.vaccine_type === appt.vaccine_type &&
+            a.status === 'completed'
+          );
+
+          // Find latest dose date
+          const latestDose = completedDoses.reduce((latest, current) => 
+            new Date(current.appointment_date) > new Date(latest.appointment_date) ? current : latest
+          );
+
+          // Find first dose date
+          const firstDose = completedDoses.reduce((earliest, current) => 
+            new Date(current.appointment_date) < new Date(earliest.appointment_date) ? current : earliest
+          );
+
           patientVaccineMap.set(key, {
             patient_id: appt.patient_id_number || appt.line_user_id,
             patient_name: appt.patient_name,
             line_user_id: appt.line_user_id,
             vaccine_type: appt.vaccine_type,
-            latest_date: appt.appointment_date
+            doses_received: completedDoses.length,
+            latest_date: latestDose.appointment_date,
+            first_dose_date: firstDose.appointment_date
           });
         }
       }
@@ -62,16 +83,6 @@ const NextAppointments = () => {
       // Calculate next appointments using the database function
       const nextAppointmentPromises = Array.from(patientVaccineMap.values()).map(async (patient) => {
         try {
-          // Get first dose date for this patient and vaccine type
-          const { data: firstDoseData } = await supabase
-            .from('appointments')
-            .select('appointment_date')
-            .eq('status', 'completed')
-            .or(`patient_id_number.eq.${patient.patient_id},line_user_id.eq.${patient.patient_id}`)
-            .eq('vaccine_type', patient.vaccine_type)
-            .order('appointment_date', { ascending: true })
-            .limit(1);
-
           const { data, error } = await supabase.rpc('api_next_dose_for_patient', {
             _line_user_id: patient.patient_id,
             _vaccine_type: patient.vaccine_type
@@ -90,11 +101,11 @@ const NextAppointments = () => {
               patient_name: patient.patient_name,
               vaccine_name: nextDose.vaccine_name,
               vaccine_type: nextDose.vaccine_type,
-              current_dose: nextDose.doses_received,
+              current_dose: patient.doses_received, // ใช้จำนวนโดสที่คำนวนจากประวัติการฉีดจริง
               total_doses: nextDose.total_doses,
               next_dose_due: nextDose.recommended_date,
-              last_dose_date: nextDose.last_dose_date,
-              first_dose_date: firstDoseData?.[0]?.appointment_date || null,
+              last_dose_date: patient.latest_date, // ใช้วันที่ฉีดเข็มล่าสุดจากประวัติการฉีดจริง
+              first_dose_date: patient.first_dose_date,
               completion_status: 'in_progress',
               line_user_id: patient.line_user_id,
               vaccine_schedule_id: nextDose.vaccine_schedule_id
@@ -298,9 +309,9 @@ const NextAppointments = () => {
                           ครบกำหนด: {new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span>🗓️</span>
-                          เข็มแรก: {appointment.first_dose_date ? 
-                            new Date(appointment.first_dose_date).toLocaleDateString('th-TH') : 
+                          <span>📅</span>
+                          เข็มล่าสุด: {appointment.last_dose_date ? 
+                            new Date(appointment.last_dose_date).toLocaleDateString('th-TH') : 
                             'ไม่พบข้อมูล'}
                         </div>
                       </div>

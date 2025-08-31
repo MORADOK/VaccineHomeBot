@@ -96,7 +96,6 @@ const VaccineDoseCalculator = () => {
       const { data, error } = await supabase
         .from('patient_registrations')
         .select('*')
-        .eq('status', 'confirmed')
         .order('full_name');
 
       if (error) throw error;
@@ -269,35 +268,51 @@ const VaccineDoseCalculator = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="patientSearch">ค้นหาผู้ป่วย</Label>
+            <Label htmlFor="patientSearch">ค้นหาผู้ป่วยจากรายชื่อลงทะเบียน</Label>
             <div className="relative">
               <Input
                 id="patientSearch"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="ค้นหาด้วยชื่อ หรือเบอร์โทร"
+                placeholder="ค้นหาด้วยชื่อ, เบอร์โทร, หรือ ID"
               />
               {searchTerm && (
                 <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-b-md shadow-lg max-h-48 overflow-y-auto">
                   {patientRegistrations
                     .filter(patient => 
                       patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      patient.phone.includes(searchTerm)
+                      patient.phone.includes(searchTerm) ||
+                      patient.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
                     )
+                    .slice(0, 10) // จำกัดผลลัพธ์ไม่เกิน 10 รายการ
                     .map((patient) => (
                       <div
                         key={patient.id}
-                        className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                         onClick={() => {
                           setSelectedPatient(patient);
-                          setSearchTerm('');
+                          setSearchTerm(patient.full_name);
                         }}
                       >
                         <div className="font-medium">{patient.full_name}</div>
                         <div className="text-sm text-muted-foreground">{patient.phone}</div>
+                        <div className="text-xs text-muted-foreground">ID: {patient.registration_id}</div>
+                        <div className="text-xs text-muted-foreground">
+                          สถานะ: {patient.status === 'pending' ? 'รอดำเนินการ' : 
+                                  patient.status === 'confirmed' ? 'ยืนยันแล้ว' : patient.status}
+                        </div>
                       </div>
                     ))
                   }
+                  {patientRegistrations.filter(patient => 
+                    patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    patient.phone.includes(searchTerm) ||
+                    patient.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
+                  ).length === 0 && (
+                    <div className="p-3 text-center text-muted-foreground">
+                      ไม่พบผู้ป่วยที่ค้นหา
+                    </div>
+                  )}
                 </div>
               )}
             </div>
