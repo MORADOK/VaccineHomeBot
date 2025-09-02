@@ -294,12 +294,14 @@ const VaccineDoseCalculator = () => {
                           setSearchTerm(patient.full_name);
                         }}
                       >
-                        <div className="font-medium">{patient.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{patient.phone}</div>
-                        <div className="text-xs text-muted-foreground">ID: {patient.registration_id}</div>
+                       <div className="font-medium truncate">{patient.full_name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{patient.phone}</div>
+                        <div className="text-xs text-muted-foreground truncate">ID: {patient.registration_id}</div>
                         <div className="text-xs text-muted-foreground">
-                          สถานะ: {patient.status === 'pending' ? 'รอดำเนินการ' : 
-                                  patient.status === 'confirmed' ? 'ยืนยันแล้ว' : patient.status}
+                          สถานะ: <span className="inline-block">
+                            {patient.status === 'pending' ? 'รอดำเนินการ' : 
+                             patient.status === 'confirmed' ? 'ยืนยันแล้ว' : patient.status}
+                          </span>
                         </div>
                       </div>
                     ))
@@ -320,11 +322,11 @@ const VaccineDoseCalculator = () => {
 
           {selectedPatient && (
             <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{selectedPatient.full_name}</div>
-                  <div className="text-sm text-muted-foreground">{selectedPatient.phone}</div>
-                  <div className="text-xs text-muted-foreground">ID: {selectedPatient.registration_id}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{selectedPatient.full_name}</div>
+                  <div className="text-sm text-muted-foreground truncate">{selectedPatient.phone}</div>
+                  <div className="text-xs text-muted-foreground truncate">ID: {selectedPatient.registration_id}</div>
                 </div>
                 <Button
                   size="sm"
@@ -366,11 +368,11 @@ const VaccineDoseCalculator = () => {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="currentDose">โดสปัจจุบัน</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentDose" className="text-sm font-medium">โดสปัจจุบัน</Label>
               <Select value={currentDose.toString()} onValueChange={(value) => setCurrentDose(parseInt(value))}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -382,17 +384,18 @@ const VaccineDoseCalculator = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="lastDoseDate">วันที่ฉีดครั้งล่าสุด</Label>
+            <div className="space-y-2">
+              <Label htmlFor="lastDoseDate" className="text-sm font-medium">วันที่ฉีดครั้งล่าสุด</Label>
               <Input
                 id="lastDoseDate"
                 type="date"
                 value={lastDoseDate}
                 onChange={(e) => setLastDoseDate(e.target.value)}
+                className="w-full"
               />
             </div>
-            <div>
-              <Label htmlFor="reminderDays">แจ้งเตือนก่อน (วัน)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="reminderDays" className="text-sm font-medium">แจ้งเตือนก่อน (วัน)</Label>
               <Input
                 id="reminderDays"
                 type="number"
@@ -400,6 +403,7 @@ const VaccineDoseCalculator = () => {
                 max="30"
                 value={reminderDays}
                 onChange={(e) => setReminderDays(parseInt(e.target.value) || 1)}
+                className="w-full"
               />
             </div>
           </div>
@@ -438,33 +442,38 @@ const VaccineDoseCalculator = () => {
                 </AlertDescription>
               </Alert>
             ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="text-center bg-blue-50 p-4 rounded-lg border">
+                    <div className="text-2xl font-bold text-blue-600 mb-2">
                       {calculation.nextDoseNumber}
                     </div>
-                    <div className="text-sm text-muted-foreground">โดสถัดไป</div>
+                    <div className="text-sm text-muted-foreground font-medium">โดสถัดไป</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                  <div className="text-center bg-green-50 p-4 rounded-lg border">
+                    <div className="text-lg font-bold text-green-600 mb-2 break-words">
                       {calculation.nextDoseDate}
                     </div>
-                    <div className="text-sm text-muted-foreground">วันที่กำหนด</div>
+                    <div className="text-sm text-muted-foreground font-medium">วันที่กำหนด</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-center bg-orange-50 p-4 rounded-lg border sm:col-span-2 lg:col-span-1">
+                    <div className="text-2xl font-bold text-orange-600 mb-2">
                       {calculation.daysUntilNextDose}
                     </div>
-                    <div className="text-sm text-muted-foreground">วันที่เหลือ</div>
+                    <div className="text-sm text-muted-foreground font-medium">วันที่เหลือ</div>
                   </div>
                 </div>
 
-                <Alert>
-                  <Clock className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>การแจ้งเตือน:</strong><br />
-                    จะแจ้งเตือนในวันที่ {calculation.reminderDate} ({reminderDays} วันก่อนครบกำหนด)
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Clock className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-sm">
+                    <div className="font-semibold text-blue-800 mb-1">การแจ้งเตือน:</div>
+                    <div className="text-blue-700">
+                      จะแจ้งเตือนในวันที่ <span className="font-medium">{calculation.reminderDate}</span> 
+                      <br className="sm:hidden" />
+                      <span className="hidden sm:inline"> </span>
+                      ({reminderDays} วันก่อนครบกำหนด)
+                    </div>
                   </AlertDescription>
                 </Alert>
 
