@@ -36,16 +36,21 @@ const NextAppointments = () => {
     try {
       console.log('🔍 เริ่มโหลดข้อมูลนัดครั้งถัดไป...');
       
-      // Get all patients with completed doses to calculate next appointments
-      const { data: completedAppointments, error: apptError } = await supabase
+      // Get all appointments (both completed and scheduled) to check for existing future appointments
+      const { data: allAppointments, error: apptError } = await supabase
         .from('appointments')
         .select('*')
-        .eq('status', 'completed')
         .order('appointment_date', { ascending: false });
 
       if (apptError) throw apptError;
 
-      console.log('📊 ข้อมูลการฉีดที่เสร็จสิ้น:', completedAppointments?.length || 0, 'รายการ');
+      console.log('📊 ข้อมูลนัดทั้งหมด:', allAppointments?.length || 0, 'รายการ');
+
+      const completedAppointments = allAppointments?.filter(a => a.status === 'completed') || [];
+      const scheduledAppointments = allAppointments?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
+
+      console.log('✅ การฉีดที่เสร็จสิ้น:', completedAppointments.length, 'รายการ');
+      console.log('📅 นัดที่มีอยู่แล้ว:', scheduledAppointments.length, 'รายการ');
 
       // Group by patient and vaccine type to get latest doses and calculate actual dose counts
       const patientVaccineMap = new Map();
@@ -116,6 +121,19 @@ const NextAppointments = () => {
             return null; // Already completed
           }
 
+          // Check if patient already has a future appointment for this vaccine type
+          const existingFutureAppointment = scheduledAppointments.find(appt => {
+            const apptPatientKey = appt.patient_id_number || appt.line_user_id;
+            return (apptPatientKey === patient.patient_id) &&
+                   appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase() &&
+                   new Date(appt.appointment_date) > new Date();
+          });
+
+          if (existingFutureAppointment) {
+            console.log(`📅 ผู้ป่วย ${patient.patient_name} มีนัด ${patient.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date}`);
+            return null; // Already has appointment
+          }
+
           // Calculate next dose date
           const intervals = Array.isArray(schedule.dose_intervals) ? 
             schedule.dose_intervals : 
@@ -177,6 +195,32 @@ const NextAppointments = () => {
   };
 
   const scheduleAppointment = async (patientTracking: NextAppointment) => {
+    // ตรวจสอบซ้ำก่อนสร้างนัดว่ามีนัดแล้วหรือยัง
+    try {
+      const { data: existingAppointments } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_id_number', patientTracking.patient_id)
+        .eq('vaccine_type', patientTracking.vaccine_type)
+        .in('status', ['scheduled', 'pending'])
+        .gte('appointment_date', new Date().toISOString().split('T')[0]);
+
+      if (existingAppointments && existingAppointments.length > 0) {
+        toast({
+          title: "มีนัดอยู่แล้ว",
+          description: `${patientTracking.patient_name} มีนัดหมายสำหรับวัคซีนนี้แล้ว`,
+          variant: "destructive",
+        });
+        // ลบออกจากรายการ
+        setNextAppointments(prevAppointments => 
+          prevAppointments.filter(appt => appt.id !== patientTracking.id)
+        );
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking existing appointments:', error);
+    }
+
     setCreatingAppointment(patientTracking.id);
     try {
       const appointmentData = {
@@ -363,8 +407,8 @@ const NextAppointments = () => {
                       <Button
                         size="sm"
                         onClick={() => scheduleAppointment(appointment)}
-                        disabled={creatingAppointment === appointment.id}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                        disabled={creatingAppointment === appointment.id || creatingAppointment !== null}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {creatingAppointment === appointment.id ? (
                           <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
