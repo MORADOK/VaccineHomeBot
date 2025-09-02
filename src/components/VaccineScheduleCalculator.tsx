@@ -110,61 +110,153 @@ const VaccineScheduleCalculator: React.FC = () => {
 
   const loadPatientTracking = async () => {
     try {
-      const { data, error } = await supabase
-        .from('patient_vaccine_tracking')
-        .select(`
-          *,
-          vaccine_schedules(vaccine_name, vaccine_type, dose_intervals, total_doses)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      console.log('🔍 เริ่มโหลดข้อมูลการติดตามผู้ป่วย...');
       
-      // คำนวณวันนัดใหม่สำหรับแต่ละรายการตาม vaccine_schedules
-      const updatedTracking = await Promise.all((data || []).map(async (track) => {
-        if (track.completion_status === 'completed') {
-          return track; // ถ้าเสร็จแล้วไม่ต้องคำนวณใหม่
-        }
+      // Get all appointments to calculate actual tracking data
+      const { data: allAppointments, error: apptError } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('appointment_date', { ascending: false });
 
-        try {
-          // ใช้ database function เพื่อคำนวณวันนัดที่ถูกต้อง
-          const { data: nextDoseData } = await supabase.rpc('api_next_dose_for_patient', {
-            _line_user_id: track.patient_id,
-            _vaccine_type: (track as any).vaccine_schedules?.vaccine_type || ''
+      if (apptError) throw apptError;
+
+      console.log('📊 ข้อมูลนัดทั้งหมด:', allAppointments?.length || 0, 'รายการ');
+
+      const completedAppointments = allAppointments?.filter(a => a.status === 'completed') || [];
+      const scheduledAppointments = allAppointments?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
+
+      console.log('✅ การฉีดที่เสร็จสิ้น:', completedAppointments.length, 'รายการ');
+      console.log('📅 นัดที่มีอยู่แล้ว:', scheduledAppointments.length, 'รายการ');
+
+      // Group by patient and vaccine type to get actual tracking data
+      const patientVaccineMap = new Map();
+      
+      for (const appt of completedAppointments || []) {
+        const patientKey = appt.patient_id_number || appt.line_user_id;
+        const key = `${patientKey}-${appt.vaccine_type}`;
+        
+        if (!patientVaccineMap.has(key)) {
+          // Count completed doses for this patient and vaccine type
+          const completedDoses = completedAppointments.filter(a => {
+            const aPatientKey = a.patient_id_number || a.line_user_id;
+            return (aPatientKey === patientKey) &&
+                   a.vaccine_type === appt.vaccine_type &&
+                   a.status === 'completed';
           });
 
-          if (nextDoseData && nextDoseData.length > 0 && nextDoseData[0].next_dose_number) {
-            const nextDose = nextDoseData[0];
-            
-            // อัปเดตข้อมูลในฐานข้อมูลถ้าวันนัดเปลี่ยนแปลง
-            if (track.next_dose_due !== nextDose.recommended_date) {
-              await supabase
-                .from('patient_vaccine_tracking')
-                .update({
-                  next_dose_due: nextDose.recommended_date,
-                  current_dose: nextDose.doses_received,
-                  last_dose_date: nextDose.last_dose_date
-                })
-                .eq('id', track.id);
+          console.log(`👤 ผู้ป่วย: ${appt.patient_name}, วัคซีน: ${appt.vaccine_type}, โดสที่ฉีดแล้ว: ${completedDoses.length}`);
+
+          // Find latest dose date
+          const latestDose = completedDoses.reduce((latest, current) => 
+            new Date(current.appointment_date) > new Date(latest.appointment_date) ? current : latest
+          );
+
+          // Find first dose date
+          const firstDose = completedDoses.reduce((earliest, current) => 
+            new Date(current.appointment_date) < new Date(earliest.appointment_date) ? current : earliest
+          );
+
+          console.log(`📅 เข็มล่าสุด: ${latestDose.appointment_date}, เข็มแรก: ${firstDose.appointment_date}`);
+
+          patientVaccineMap.set(key, {
+            patient_id: patientKey,
+            patient_name: appt.patient_name,
+            vaccine_type: appt.vaccine_type,
+            doses_received: completedDoses.length,
+            latest_date: latestDose.appointment_date,
+            first_dose_date: firstDose.appointment_date
+          });
+        }
+      }
+
+      // Get vaccine schedules for calculating next doses
+      const { data: vaccineSchedules } = await supabase
+        .from('vaccine_schedules')
+        .select('*')
+        .eq('active', true);
+
+      console.log('💉 โหลดข้อมูลวัคซีน:', vaccineSchedules?.length || 0, 'ประเภท');
+
+      // Calculate tracking data based on actual appointments
+      const trackingData = [];
+      
+      for (const patient of patientVaccineMap.values()) {
+        try {
+          // Find vaccine schedule
+          const schedule = vaccineSchedules?.find(vs => 
+            vs.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase()
+          );
+
+          if (!schedule) {
+            console.log(`❌ ไม่พบข้อมูลวัคซีน: ${patient.vaccine_type}`);
+            continue;
+          }
+
+          // Check completion status
+          let completionStatus = 'in_progress';
+          let nextDoseDate = null;
+
+          if (patient.doses_received >= schedule.total_doses) {
+            completionStatus = 'completed';
+            console.log(`✅ ผู้ป่วย ${patient.patient_name} ได้รับวัคซีน ${patient.vaccine_type} ครบแล้ว`);
+          } else {
+            // Check if patient already has a future appointment for this vaccine type
+            const existingFutureAppointment = scheduledAppointments.find(appt => {
+              const apptPatientKey = appt.patient_id_number || appt.line_user_id;
+              return (apptPatientKey === patient.patient_id) &&
+                     appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase() &&
+                     new Date(appt.appointment_date) > new Date();
+            });
+
+            if (!existingFutureAppointment) {
+              // Calculate next dose date
+              const intervals = Array.isArray(schedule.dose_intervals) ? 
+                schedule.dose_intervals : 
+                JSON.parse(schedule.dose_intervals?.toString() || '[]');
+
+              let nextDate = new Date(patient.latest_date);
               
-              // อัปเดตข้อมูลในตัวแปร local
-              return {
-                ...track,
-                next_dose_due: nextDose.recommended_date,
-                current_dose: nextDose.doses_received,
-                last_dose_date: nextDose.last_dose_date
-              };
+              // Add interval for current dose (intervals are 0-indexed)
+              const intervalDays = typeof intervals[patient.doses_received - 1] === 'number' ? 
+                intervals[patient.doses_received - 1] : 30;
+              nextDate.setDate(nextDate.getDate() + intervalDays);
+              
+              nextDoseDate = nextDate.toISOString().split('T')[0];
             }
           }
-        } catch (error) {
-          console.error('Error calculating next dose for patient:', track.patient_id, error);
-        }
-        
-        return track;
-      }));
 
-      setTracking(updatedTracking);
+          trackingData.push({
+            id: `${patient.patient_id}-${patient.vaccine_type}`,
+            patient_id: patient.patient_id,
+            patient_name: patient.patient_name,
+            vaccine_schedule_id: schedule.id,
+            current_dose: patient.doses_received,
+            total_doses: schedule.total_doses,
+            last_dose_date: patient.latest_date,
+            next_dose_due: nextDoseDate,
+            completion_status: completionStatus,
+            auto_reminder_enabled: true,
+            reminder_days_before: 1,
+            contraindication_checked: false,
+            contraindication_notes: null,
+            vaccine_schedules: {
+              vaccine_name: schedule.vaccine_name,
+              vaccine_type: schedule.vaccine_type,
+              dose_intervals: schedule.dose_intervals,
+              total_doses: schedule.total_doses
+            }
+          });
+
+        } catch (error) {
+          console.error('Error processing patient:', patient.patient_id, error);
+        }
+      }
+
+      console.log('✅ ข้อมูลการติดตามที่คำนวณได้:', trackingData.length, 'รายการ');
+      setTracking(trackingData);
+      
     } catch (error: any) {
+      console.error('Error loading patient tracking:', error);
       toast({
         title: "ข้อผิดพลาด",
         description: "ไม่สามารถโหลดข้อมูลการติดตามผู้ป่วยได้",
