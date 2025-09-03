@@ -16,7 +16,7 @@ interface NextAppointment {
   current_dose: number;
   total_doses: number;
   next_dose_due: string;
-  last_dose_date: string;
+  last_dose_date: string | null;
   completion_status: string;
 }
 
@@ -63,10 +63,10 @@ const PatientNextAppointment = () => {
     
     setIsLoading(true);
     try {
-      console.log('🔍 เริ่มโหลดข้อมูลนัดครั้งถัดไปสำหรับผู้ใช้:', userId);
+      console.log('🔍 เริ่มโหลดข้อมูลการติดตามผู้ป่วย...');
       
       // Get all appointments for this user (both completed and scheduled)
-      const { data: allAppointments, error: apptError } = await supabase
+      const { data: appointmentData, error: apptError } = await supabase
         .from('appointments')
         .select('*')
         .eq('line_user_id', userId)
@@ -74,15 +74,60 @@ const PatientNextAppointment = () => {
 
       if (apptError) throw apptError;
 
-      console.log('📊 ข้อมูลนัดทั้งหมดของผู้ใช้:', allAppointments?.length || 0, 'รายการ');
+      console.log('📊 ข้อมูลนัดทั้งหมด:', appointmentData?.length || 0, 'รายการ');
 
-      const completedAppointments = allAppointments?.filter(a => a.status === 'completed') || [];
-      const scheduledAppointments = allAppointments?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
+      const completedAppointments = appointmentData?.filter(a => a.status === 'completed') || [];
+      const scheduledAppointments = appointmentData?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
 
       console.log('✅ การฉีดที่เสร็จสิ้น:', completedAppointments.length, 'รายการ');
       console.log('📅 นัดที่มีอยู่แล้ว:', scheduledAppointments.length, 'รายการ');
 
-      // Group by vaccine type to get latest doses and calculate actual dose counts
+      // Get vaccine schedules for calculating next doses
+      const { data: vaccineSchedules } = await supabase
+        .from('vaccine_schedules')
+        .select('*')
+        .eq('active', true);
+
+      console.log('💉 โหลดข้อมูลวัคซีน:', vaccineSchedules?.length || 0, 'ประเภท');
+
+      const allNextAppointments: NextAppointment[] = [];
+
+      // 1. First add existing scheduled appointments that haven't passed
+      for (const scheduledAppt of scheduledAppointments) {
+        if (new Date(scheduledAppt.appointment_date) > new Date()) {
+          // Count completed doses for this vaccine type
+          const completedDoses = completedAppointments.filter(a => 
+            a.vaccine_type.toLowerCase() === scheduledAppt.vaccine_type.toLowerCase()
+          );
+
+          // Find vaccine schedule
+          const schedule = vaccineSchedules?.find(vs => 
+            vs.vaccine_type.toLowerCase() === scheduledAppt.vaccine_type.toLowerCase()
+          );
+
+          if (schedule) {
+            allNextAppointments.push({
+              id: `scheduled-${scheduledAppt.id}`,
+              patient_id: userId,
+              patient_name: scheduledAppt.patient_name || 'ผู้ใช้',
+              vaccine_name: scheduledAppt.vaccine_name || schedule.vaccine_name,
+              vaccine_type: scheduledAppt.vaccine_type,
+              current_dose: completedDoses.length,
+              total_doses: schedule.total_doses,
+              next_dose_due: scheduledAppt.appointment_date,
+              last_dose_date: completedDoses.length > 0 ? 
+                completedDoses.reduce((latest, current) => 
+                  new Date(current.appointment_date) > new Date(latest.appointment_date) ? current : latest
+                ).appointment_date : '',
+              completion_status: 'scheduled'
+            });
+            
+            console.log(`📅 นัดที่มีอยู่: ${scheduledAppt.vaccine_type} วันที่ ${scheduledAppt.appointment_date}`);
+          }
+        }
+      }
+
+      // 2. Group completed appointments by vaccine type to calculate needed appointments
       const vaccineMap = new Map();
       
       for (const appt of completedAppointments || []) {
@@ -91,7 +136,7 @@ const PatientNextAppointment = () => {
         if (!vaccineMap.has(key)) {
           // Count completed doses for this vaccine type
           const completedDoses = completedAppointments.filter(a => 
-            a.vaccine_type === appt.vaccine_type && a.status === 'completed'
+            a.vaccine_type.toLowerCase() === appt.vaccine_type.toLowerCase()
           );
 
           console.log(`💉 วัคซีน: ${appt.vaccine_type}, โดสที่ฉีดแล้ว: ${completedDoses.length}`);
@@ -112,15 +157,7 @@ const PatientNextAppointment = () => {
         }
       }
 
-      // Get vaccine schedules for calculating next doses
-      const { data: vaccineSchedules } = await supabase
-        .from('vaccine_schedules')
-        .select('*')
-        .eq('active', true);
-
-      console.log('💉 โหลดข้อมูลวัคซีน:', vaccineSchedules?.length || 0, 'ประเภท');
-
-      // Calculate next appointments manually
+      // 3. Calculate new appointments needed for completed patients
       const nextAppointmentPromises = Array.from(vaccineMap.values()).map(async (vaccine) => {
         try {
           // Find vaccine schedule
@@ -146,28 +183,32 @@ const PatientNextAppointment = () => {
           );
 
           if (existingFutureAppointment) {
-            console.log(`📅 มีนัด ${vaccine.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date}`);
-            return null; // Already has appointment
+            console.log(`📅 มีนัด ${vaccine.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date} - ข้าม`);
+            return null; // Already has appointment (will be shown from existing appointments above)
           }
 
-          // Calculate next dose date
+          // Calculate next dose date based on last completed dose
           const intervals = Array.isArray(schedule.dose_intervals) ? 
             schedule.dose_intervals : 
             JSON.parse(schedule.dose_intervals?.toString() || '[]');
 
           let nextDoseDate = new Date(vaccine.latest_date);
           
-          // Add interval for current dose (intervals are 0-indexed)
-          const intervalDays = typeof intervals[vaccine.doses_received - 1] === 'number' ? 
-            intervals[vaccine.doses_received - 1] : 30;
+          // Add interval for next dose (intervals are 0-indexed from dose 1)
+          const intervalIndex = vaccine.doses_received; // For dose N+1, use intervals[N]
+          const intervalDays = typeof intervals[intervalIndex] === 'number' ? 
+            intervals[intervalIndex] : 
+            (typeof intervals[vaccine.doses_received - 1] === 'number' ? 
+              intervals[vaccine.doses_received - 1] : 30);
+          
           nextDoseDate.setDate(nextDoseDate.getDate() + intervalDays);
 
           const nextDoseNumber = vaccine.doses_received + 1;
 
-          console.log(`🎯 วัคซีน ${vaccine.vaccine_type}: โดสถัดไป ${nextDoseNumber}/${schedule.total_doses}, นัด: ${nextDoseDate.toISOString().split('T')[0]}`);
+          console.log(`🎯 วัคซีน ${vaccine.vaccine_type}: ต้องการโดสใหม่ ${nextDoseNumber}/${schedule.total_doses}, คำนวณนัด: ${nextDoseDate.toISOString().split('T')[0]}, ช่วงห่าง: ${intervalDays} วัน`);
 
           return {
-            id: `${userId}-${vaccine.vaccine_type}`,
+            id: `new-${userId}-${vaccine.vaccine_type}`,
             patient_id: userId,
             patient_name: vaccine.patient_name || 'ผู้ใช้',
             vaccine_name: schedule.vaccine_name,
@@ -176,7 +217,7 @@ const PatientNextAppointment = () => {
             total_doses: schedule.total_doses,
             next_dose_due: nextDoseDate.toISOString().split('T')[0],
             last_dose_date: vaccine.latest_date, // วันที่ฉีดเข็มล่าสุดจริง
-            completion_status: 'in_progress'
+            completion_status: 'needs_appointment'
           };
         } catch (error) {
           console.error('Error processing vaccine:', vaccine.vaccine_type, error);
@@ -185,16 +226,22 @@ const PatientNextAppointment = () => {
       });
 
       const results = await Promise.all(nextAppointmentPromises);
-      const validAppointments = results
-        .filter(appt => appt !== null)
+      const validNewAppointments = results.filter(appt => appt !== null);
+      
+      // 4. Combine existing and new appointments
+      const allAppointments = [...allNextAppointments, ...validNewAppointments]
         .sort((a, b) => new Date(a.next_dose_due).getTime() - new Date(b.next_dose_due).getTime());
       
-      console.log('✅ ผลลัพธ์สุดท้าย:', validAppointments.length, 'รายการ');
-      validAppointments.forEach(appt => {
-        console.log(`- วัคซีน: ${appt.vaccine_name}, โดส ${appt.current_dose}/${appt.total_doses}, นัด: ${appt.next_dose_due}, เข็มล่าสุด: ${appt.last_dose_date}`);
+      console.log('✅ ข้อมูลการติดตามที่คำนวณได้:', allAppointments.length, 'รายการ');
+      console.log('📅 นัดที่มีอยู่แล้ว:', allNextAppointments.length, 'รายการ');
+      console.log('🆕 นัดใหม่ที่ต้องสร้าง:', validNewAppointments.length, 'รายการ');
+      
+      allAppointments.forEach(appt => {
+        const status = appt.completion_status === 'scheduled' ? '(มีนัดแล้ว)' : '(ต้องสร้างนัด)';
+        console.log(`- วัคซีน: ${appt.vaccine_name}, โดส ${appt.current_dose + 1}/${appt.total_doses}, นัด: ${appt.next_dose_due}, เข็มล่าสุด: ${appt.last_dose_date || 'ยังไม่มี'} ${status}`);
       });
       
-      setNextAppointments(validAppointments);
+      setNextAppointments(allAppointments);
     } catch (error: any) {
       console.error('Error loading next appointments:', error);
       toast({
@@ -376,7 +423,10 @@ const PatientNextAppointment = () => {
                   
                   <div className="mt-4 p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
-                      💡 กรุณาติดต่อโรงพยาบาลโฮม เพื่อนัดหมายฉีดวัคซีนเข็มถัดไป
+                      {appointment.completion_status === 'scheduled' ? 
+                        '✅ มีนัดหมายแล้ว - กรุณามาตามเวลาที่นัด' :
+                        '💡 กรุณาติดต่อโรงพยาบาลโฮม เพื่อนัดหมายฉีดวัคซีนเข็มถัดไป'
+                      }
                     </p>
                   </div>
                 </div>
