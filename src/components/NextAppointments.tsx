@@ -16,11 +16,12 @@ interface NextAppointment {
   current_dose: number;
   total_doses: number;
   next_dose_due: string;
-  last_dose_date: string;
-  first_dose_date?: string;
+  last_dose_date: string | null;
+  first_dose_date?: string | null;
   completion_status: string;
   line_user_id?: string;
   vaccine_schedule_id?: string;
+  is_existing_appointment?: boolean;
 }
 
 const NextAppointments = () => {
@@ -37,17 +38,17 @@ const NextAppointments = () => {
       console.log('🔍 เริ่มโหลดข้อมูลนัดครั้งถัดไป...');
       
       // Get all appointments (both completed and scheduled) to check for existing future appointments
-      const { data: allAppointments, error: apptError } = await supabase
+      const { data: appointmentData, error: apptError } = await supabase
         .from('appointments')
         .select('*')
         .order('appointment_date', { ascending: false });
 
       if (apptError) throw apptError;
 
-      console.log('📊 ข้อมูลนัดทั้งหมด:', allAppointments?.length || 0, 'รายการ');
+      console.log('📊 ข้อมูลนัดทั้งหมด:', appointmentData?.length || 0, 'รายการ');
 
-      const completedAppointments = allAppointments?.filter(a => a.status === 'completed') || [];
-      const scheduledAppointments = allAppointments?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
+      const completedAppointments = appointmentData?.filter(a => a.status === 'completed') || [];
+      const scheduledAppointments = appointmentData?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
 
       console.log('✅ การฉีดที่เสร็จสิ้น:', completedAppointments.length, 'รายการ');
       console.log('📅 นัดที่มีอยู่แล้ว:', scheduledAppointments.length, 'รายการ');
@@ -102,7 +103,57 @@ const NextAppointments = () => {
 
       console.log('💉 โหลดข้อมูลวัคซีน:', vaccineSchedules?.length || 0, 'ประเภท');
 
-      // Calculate next appointments manually instead of relying on the problematic function
+      // Initialize arrays for storing appointments
+      const allNextAppointments: NextAppointment[] = [];
+
+      // Calculate next appointments manually - include both new appointments and existing scheduled ones
+      // 1. First add existing scheduled appointments that haven't passed
+      for (const scheduledAppt of scheduledAppointments) {
+        if (new Date(scheduledAppt.appointment_date) > new Date()) {
+          const patientKey = scheduledAppt.patient_id_number || scheduledAppt.line_user_id;
+          
+          // Find completed doses for this patient and vaccine
+          const completedDoses = completedAppointments.filter(a => {
+            const aPatientKey = a.patient_id_number || a.line_user_id;
+            return (aPatientKey === patientKey) &&
+                   a.vaccine_type.toLowerCase() === scheduledAppt.vaccine_type.toLowerCase();
+          });
+
+          // Find vaccine schedule
+          const schedule = vaccineSchedules?.find(vs => 
+            vs.vaccine_type.toLowerCase() === scheduledAppt.vaccine_type.toLowerCase()
+          );
+
+          if (schedule) {
+            allNextAppointments.push({
+              id: `scheduled-${scheduledAppt.id}`,
+              patient_id: patientKey,
+              patient_name: scheduledAppt.patient_name,
+              vaccine_name: scheduledAppt.vaccine_name || schedule.vaccine_name,
+              vaccine_type: scheduledAppt.vaccine_type,
+              current_dose: completedDoses.length,
+              total_doses: schedule.total_doses,
+              next_dose_due: scheduledAppt.appointment_date,
+              last_dose_date: completedDoses.length > 0 ? 
+                completedDoses.reduce((latest, current) => 
+                  new Date(current.appointment_date) > new Date(latest.appointment_date) ? current : latest
+                ).appointment_date : null,
+              first_dose_date: completedDoses.length > 0 ?
+                completedDoses.reduce((earliest, current) => 
+                  new Date(current.appointment_date) < new Date(earliest.appointment_date) ? current : earliest
+                ).appointment_date : null,
+              completion_status: 'scheduled',
+              line_user_id: scheduledAppt.line_user_id,
+              vaccine_schedule_id: schedule.id,
+              is_existing_appointment: true
+            });
+            
+            console.log(`📅 นัดที่มีอยู่: ${scheduledAppt.patient_name} - ${scheduledAppt.vaccine_type} วันที่ ${scheduledAppt.appointment_date}`);
+          }
+        }
+      }
+      
+      // 2. Then calculate new appointments needed for completed patients
       const nextAppointmentPromises = Array.from(patientVaccineMap.values()).map(async (patient) => {
         try {
           // Find vaccine schedule
@@ -130,28 +181,32 @@ const NextAppointments = () => {
           });
 
           if (existingFutureAppointment) {
-            console.log(`📅 ผู้ป่วย ${patient.patient_name} มีนัด ${patient.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date}`);
-            return null; // Already has appointment
+            console.log(`📅 ผู้ป่วย ${patient.patient_name} มีนัด ${patient.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date} - ข้าม`);
+            return null; // Already has appointment (will be shown from existing appointments above)
           }
 
-          // Calculate next dose date
+          // Calculate next dose date based on last completed dose
           const intervals = Array.isArray(schedule.dose_intervals) ? 
             schedule.dose_intervals : 
             JSON.parse(schedule.dose_intervals?.toString() || '[]');
 
           let nextDoseDate = new Date(patient.latest_date);
           
-          // Add interval for current dose (intervals are 0-indexed)
-          const intervalDays = typeof intervals[patient.doses_received - 1] === 'number' ? 
-            intervals[patient.doses_received - 1] : 30;
+          // Add interval for next dose (intervals are 0-indexed from dose 1)
+          const intervalIndex = patient.doses_received; // For dose N+1, use intervals[N]
+          const intervalDays = typeof intervals[intervalIndex] === 'number' ? 
+            intervals[intervalIndex] : 
+            (typeof intervals[patient.doses_received - 1] === 'number' ? 
+              intervals[patient.doses_received - 1] : 30);
+          
           nextDoseDate.setDate(nextDoseDate.getDate() + intervalDays);
 
           const nextDoseNumber = patient.doses_received + 1;
 
-          console.log(`🎯 ${patient.patient_name}: โดสถัดไป ${nextDoseNumber}/${schedule.total_doses}, นัด: ${nextDoseDate.toISOString().split('T')[0]}`);
+          console.log(`🎯 ${patient.patient_name}: ต้องการโดสใหม่ ${nextDoseNumber}/${schedule.total_doses}, คำนวณนัด: ${nextDoseDate.toISOString().split('T')[0]}, ช่วงห่าง: ${intervalDays} วัน`);
 
           return {
-            id: `${patient.patient_id}-${patient.vaccine_type}`,
+            id: `new-${patient.patient_id}-${patient.vaccine_type}`,
             patient_id: patient.patient_id,
             patient_name: patient.patient_name,
             vaccine_name: schedule.vaccine_name,
@@ -161,9 +216,10 @@ const NextAppointments = () => {
             next_dose_due: nextDoseDate.toISOString().split('T')[0],
             last_dose_date: patient.latest_date, // วันที่ฉีดเข็มล่าสุดจริง
             first_dose_date: patient.first_dose_date,
-            completion_status: 'in_progress',
+            completion_status: 'needs_appointment',
             line_user_id: patient.line_user_id,
-            vaccine_schedule_id: schedule.id
+            vaccine_schedule_id: schedule.id,
+            is_existing_appointment: false
           };
         } catch (error) {
           console.error('Error processing patient:', patient.patient_id, error);
@@ -172,16 +228,23 @@ const NextAppointments = () => {
       });
 
       const results = await Promise.all(nextAppointmentPromises);
-      const validAppointments = results
-        .filter(appt => appt !== null)
+      const validNewAppointments = results
+        .filter(appt => appt !== null);
+      
+      // 3. Combine existing and new appointments
+      const allAppointments = [...allNextAppointments, ...validNewAppointments]
         .sort((a, b) => new Date(a.next_dose_due).getTime() - new Date(b.next_dose_due).getTime());
       
-      console.log('✅ ผลลัพธ์สุดท้าย:', validAppointments.length, 'รายการ');
-      validAppointments.forEach(appt => {
-        console.log(`- ${appt.patient_name}: โดส ${appt.current_dose}/${appt.total_doses}, นัด: ${appt.next_dose_due}, เข็มล่าสุด: ${appt.last_dose_date}`);
+      console.log('✅ ผลลัพธ์สุดท้าย:', allAppointments.length, 'รายการ');
+      console.log('📅 นัดที่มีอยู่แล้ว:', allNextAppointments.length, 'รายการ');
+      console.log('🆕 นัดใหม่ที่ต้องสร้าง:', validNewAppointments.length, 'รายการ');
+      
+      allAppointments.forEach(appt => {
+        const status = appt.is_existing_appointment ? '(มีนัดแล้ว)' : '(ต้องสร้างนัด)';
+        console.log(`- ${appt.patient_name}: โดส ${appt.current_dose + 1}/${appt.total_doses}, นัด: ${appt.next_dose_due}, เข็มล่าสุด: ${appt.last_dose_date || 'ยังไม่มี'} ${status}`);
       });
       
-      setNextAppointments(validAppointments);
+      setNextAppointments(allAppointments);
     } catch (error) {
       console.error('Error loading next appointments:', error);
       toast({
@@ -403,37 +466,43 @@ const NextAppointments = () => {
                         ID: {appointment.patient_id}
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        size="sm"
-                        onClick={() => scheduleAppointment(appointment)}
-                        disabled={creatingAppointment === appointment.id || creatingAppointment !== null}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {creatingAppointment === appointment.id ? (
-                          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <CalendarPlus className="h-4 w-4 mr-1" />
-                        )}
-                        {creatingAppointment === appointment.id ? 'กำลังสร้าง...' : 'สร้างนัด'}
-                      </Button>
-                      {appointment.line_user_id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => sendReminder(appointment)}
-                          disabled={sendingReminder === appointment.id}
-                          className="disabled:opacity-50"
-                        >
-                          {sendingReminder === appointment.id ? (
-                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4 mr-1" />
-                          )}
-                          {sendingReminder === appointment.id ? 'กำลังส่ง...' : 'แจ้งเตือน'}
-                        </Button>
-                      )}
-                    </div>
+                     <div className="flex gap-2 ml-4">
+                       {!appointment.is_existing_appointment ? (
+                         <Button
+                           size="sm"
+                           onClick={() => scheduleAppointment(appointment)}
+                           disabled={creatingAppointment === appointment.id || creatingAppointment !== null}
+                           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                         >
+                           {creatingAppointment === appointment.id ? (
+                             <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                           ) : (
+                             <CalendarPlus className="h-4 w-4 mr-1" />
+                           )}
+                           {creatingAppointment === appointment.id ? 'กำลังสร้าง...' : 'สร้างนัด'}
+                         </Button>
+                       ) : (
+                         <Badge className="bg-green-100 text-green-800 border-green-200">
+                           มีนัดแล้ว
+                         </Badge>
+                       )}
+                       {appointment.line_user_id && (
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => sendReminder(appointment)}
+                           disabled={sendingReminder === appointment.id}
+                           className="disabled:opacity-50"
+                         >
+                           {sendingReminder === appointment.id ? (
+                             <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                           ) : (
+                             <Send className="h-4 w-4 mr-1" />
+                           )}
+                           {sendingReminder === appointment.id ? 'กำลังส่ง...' : 'แจ้งเตือน'}
+                         </Button>
+                       )}
+                     </div>
                   </div>
                 </div>
               );
