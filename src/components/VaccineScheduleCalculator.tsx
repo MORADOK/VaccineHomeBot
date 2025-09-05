@@ -216,12 +216,14 @@ const VaccineScheduleCalculator: React.FC = () => {
 
               let nextDate = new Date(patient.latest_date);
               
-              // Add interval for current dose (intervals are 0-indexed)
-              const intervalDays = typeof intervals[patient.doses_received - 1] === 'number' ? 
-                intervals[patient.doses_received - 1] : 30;
+              // Add interval for next dose (intervals are 0-indexed, patient.doses_received is current index for next dose)
+              const intervalDays = typeof intervals[patient.doses_received] === 'number' ? 
+                intervals[patient.doses_received] : 30;
               nextDate.setDate(nextDate.getDate() + intervalDays);
               
               nextDoseDate = nextDate.toISOString().split('T')[0];
+              
+              console.log(`🎯 วัคซีน ${patient.vaccine_type}: ต้องการโดสใหม่ ${patient.doses_received + 1}/${schedule.total_doses}, คำนวณนัด: ${nextDoseDate}, ช่วงห่าง: ${intervalDays} วัน`);
             }
           }
 
@@ -736,30 +738,65 @@ const VaccineScheduleCalculator: React.FC = () => {
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">วัคซีน:</span>
                         <p className="font-medium">{(track as any).vaccine_schedules?.vaccine_name}</p>
+                        <p className="text-xs text-muted-foreground">ประเภท: {(track as any).vaccine_schedules?.vaccine_type}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">โดสที่ฉีดแล้ว:</span>
+                        <span className="text-muted-foreground">ความคืบหน้า:</span>
                         <p className="font-medium">
-                          {track.current_dose > 0 ? `เข็มที่ ${track.current_dose} จาก ${track.total_doses} เข็ม` : 'ยังไม่เริ่มฉีด'}
+                          {track.current_dose > 0 ? `ฉีดแล้ว ${track.current_dose} จาก ${track.total_doses} เข็ม` : 'ยังไม่เริ่มฉีด'}
                         </p>
+                        {track.current_dose > 0 && track.current_dose < track.total_doses && (
+                          <p className="text-xs text-green-600">โดสถัดไป: เข็มที่ {track.current_dose + 1}</p>
+                        )}
                       </div>
                       <div>
                         <span className="text-muted-foreground">เข็มล่าสุด:</span>
                         <p className="font-medium">
                           {track.last_dose_date && track.current_dose > 0 
-                            ? `เข็มที่ ${track.current_dose} (${format(parseISO(track.last_dose_date), 'dd/MM/yyyy')})` 
+                            ? format(parseISO(track.last_dose_date), 'dd MMM yyyy', { locale: th })
                             : 'ยังไม่ได้ฉีด'}
                         </p>
+                        {track.last_dose_date && track.current_dose > 0 && (
+                          <p className="text-xs text-muted-foreground">เข็มที่ {track.current_dose}</p>
+                        )}
                       </div>
                       <div>
                         <span className="text-muted-foreground">นัดครั้งถัดไป:</span>
-                        <p className="font-medium">
-                          {track.next_dose_due ? format(parseISO(track.next_dose_due), 'dd/MM/yyyy') : 'ไม่มี'}
-                        </p>
+                        {track.next_dose_due ? (
+                          <div>
+                            <p className="font-medium text-blue-600">
+                              {format(parseISO(track.next_dose_due), 'dd MMM yyyy', { locale: th })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              เข็มที่ {track.current_dose + 1} • 
+                              {(() => {
+                                const daysLeft = differenceInDays(parseISO(track.next_dose_due), new Date());
+                                if (daysLeft < 0) return ` เลยมา ${Math.abs(daysLeft)} วัน`;
+                                if (daysLeft === 0) return ' วันนี้';
+                                return ` อีก ${daysLeft} วัน`;
+                              })()}
+                            </p>
+                            {(track as any).vaccine_schedules?.dose_intervals && (
+                              <p className="text-xs text-muted-foreground">
+                                ระยะห่าง: {(track as any).vaccine_schedules.dose_intervals[track.current_dose] || 'N/A'} วัน
+                              </p>
+                            )}
+                          </div>
+                        ) : track.completion_status === 'completed' ? (
+                          <div>
+                            <p className="font-medium text-green-600">เสร็จสิ้น</p>
+                            <p className="text-xs text-muted-foreground">ครบตามตาราง</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="font-medium text-gray-500">ไม่มี</p>
+                            <p className="text-xs text-muted-foreground">รอการกำหนด</p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
