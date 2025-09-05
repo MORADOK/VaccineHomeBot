@@ -595,6 +595,10 @@ export type Database = {
           updated_at: string
         }
       }
+      assign_healthcare_staff_to_existing_users: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       calculate_next_dose_date: {
         Args: { _patient_tracking_id: string }
         Returns: string
