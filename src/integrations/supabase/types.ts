@@ -641,6 +641,10 @@ export type Database = {
         Args: { _date: string; _time?: string }
         Returns: string
       }
+      process_pending_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "healthcare_staff" | "patient"
