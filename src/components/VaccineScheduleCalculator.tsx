@@ -208,22 +208,26 @@ const VaccineScheduleCalculator: React.FC = () => {
                      new Date(appt.appointment_date) > new Date();
             });
 
-            if (!existingFutureAppointment) {
-              // Calculate next dose date
-              const intervals = Array.isArray(schedule.dose_intervals) ? 
-                schedule.dose_intervals : 
-                JSON.parse(schedule.dose_intervals?.toString() || '[]');
+            // Calculate next dose date regardless of existing appointment
+            const intervals = Array.isArray(schedule.dose_intervals) ? 
+              schedule.dose_intervals : 
+              JSON.parse(schedule.dose_intervals?.toString() || '[]');
 
-              let nextDate = new Date(patient.latest_date);
-              
-              // Add interval for next dose (intervals are 0-indexed, patient.doses_received is current index for next dose)
-              const intervalDays = typeof intervals[patient.doses_received] === 'number' ? 
-                intervals[patient.doses_received] : 30;
-              nextDate.setDate(nextDate.getDate() + intervalDays);
-              
-              nextDoseDate = nextDate.toISOString().split('T')[0];
-              
-              console.log(`🎯 วัคซีน ${patient.vaccine_type}: ต้องการโดสใหม่ ${patient.doses_received + 1}/${schedule.total_doses}, คำนวณนัด: ${nextDoseDate}, ช่วงห่าง: ${intervalDays} วัน`);
+            let nextDate = new Date(patient.latest_date);
+            
+            // Add interval for next dose (intervals are 0-indexed, patient.doses_received is current index for next dose)
+            const intervalDays = typeof intervals[patient.doses_received] === 'number' ? 
+              intervals[patient.doses_received] : 30;
+            nextDate.setDate(nextDate.getDate() + intervalDays);
+            
+            nextDoseDate = nextDate.toISOString().split('T')[0];
+            
+            // If there's an existing appointment, use that date instead
+            if (existingFutureAppointment) {
+              nextDoseDate = existingFutureAppointment.appointment_date;
+              console.log(`📅 วัคซีน ${patient.vaccine_type}: พบนัดที่มีแล้ว ${nextDoseDate}`);
+            } else {
+              console.log(`🎯 วัคซีน ${patient.vaccine_type}: คำนวณนัดใหม่ ${patient.doses_received + 1}/${schedule.total_doses}, วันที่: ${nextDoseDate}, ช่วงห่าง: ${intervalDays} วัน`);
             }
           }
 
@@ -246,7 +250,14 @@ const VaccineScheduleCalculator: React.FC = () => {
               vaccine_type: schedule.vaccine_type,
               dose_intervals: schedule.dose_intervals,
               total_doses: schedule.total_doses
-            }
+            },
+            // Add appointment info for better display
+            existing_appointment: !!scheduledAppointments.find(appt => {
+              const apptPatientKey = appt.patient_id_number || appt.line_user_id;
+              return (apptPatientKey === patient.patient_id) &&
+                     appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase() &&
+                     new Date(appt.appointment_date) > new Date();
+            })
           });
 
         } catch (error) {
@@ -780,6 +791,9 @@ const VaccineScheduleCalculator: React.FC = () => {
                                 return ` อีก ${daysLeft} วัน`;
                               })()}
                             </p>
+                            {(track as any).existing_appointment && (
+                              <p className="text-xs text-green-600">✓ นัดในระบบแล้ว</p>
+                            )}
                             {(track as any).vaccine_schedules?.dose_intervals && (
                               <p className="text-xs text-muted-foreground">
                                 ระยะห่าง: {(track as any).vaccine_schedules.dose_intervals[track.current_dose] || 'N/A'} วัน
@@ -790,6 +804,11 @@ const VaccineScheduleCalculator: React.FC = () => {
                           <div>
                             <p className="font-medium text-green-600">เสร็จสิ้น</p>
                             <p className="text-xs text-muted-foreground">ครบตามตาราง</p>
+                          </div>
+                        ) : track.current_dose < track.total_doses ? (
+                          <div>
+                            <p className="font-medium text-orange-600">ต้องกำหนดนัด</p>
+                            <p className="text-xs text-muted-foreground">เข็มที่ {track.current_dose + 1}</p>
                           </div>
                         ) : (
                           <div>
