@@ -1,33 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, User, Syringe, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, User, Syringe, Clock, CheckCircle, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const VaccineStatusChecker = () => {
-  const [searchType, setSearchType] = useState('phone');
-  const [searchValue, setSearchValue] = useState('');
+  const [patients, setPatients] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [isLoadingPatients, setIsLoadingPatients] = useState(true);
+  const [vaccineData, setVaccineData] = useState(null);
   const { toast } = useToast();
 
-  const searchPatientData = async () => {
-    if (!searchValue.trim()) {
+  // Load all patients on component mount
+  useEffect(() => {
+    loadPatients();
+  }, []);
+
+  // Filter patients based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredPatients(patients);
+    } else {
+      const filtered = patients.filter(patient => 
+        patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.phone.includes(searchTerm) ||
+        patient.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredPatients(filtered);
+    }
+  }, [searchTerm, patients]);
+
+  const loadPatients = async () => {
+    try {
+      setIsLoadingPatients(true);
+      const { data, error } = await supabase
+        .from('patient_registrations')
+        .select('*')
+        .order('full_name', { ascending: true });
+
+      if (error) throw error;
+      setPatients(data || []);
+    } catch (error) {
       toast({
         variant: "destructive",
-        title: "กรุณากรอกข้อมูล",
-        description: `กรุณากรอก${searchType === 'phone' ? 'เบอร์โทรศัพท์' : 'เลขบัตรประชาชน'}`
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดรายชื่อผู้ป่วยได้"
       });
-      return;
+    } finally {
+      setIsLoadingPatients(false);
     }
+  };
 
+  const fetchPatientVaccineData = async (patient) => {
     setIsLoading(true);
-    setHasSearched(true);
+    setSelectedPatient(patient);
 
     try {
       // Use secure Edge Function for vaccine status lookup
@@ -41,8 +74,8 @@ const VaccineStatusChecker = () => {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          searchType: searchType === 'id' ? 'patient_id' : searchType,
-          searchValue
+          searchType: 'phone',
+          searchValue: patient.phone
         }),
       });
 
@@ -53,34 +86,23 @@ const VaccineStatusChecker = () => {
 
       const data = await response.json();
       
-      const patientName = data.appointments?.[0]?.patient_name || 
-                         data.registrations?.[0]?.full_name || '';
-
-      setResults({
+      setVaccineData({
         appointments: data.appointments || [],
         logs: data.vaccineLogs || [],
         registrations: data.registrations || [],
-        patientName: patientName
       });
 
-      if (!data.appointments?.length && !data.vaccineLogs?.length && !data.registrations?.length) {
-        toast({
-          title: "ไม่พบข้อมูล",
-          description: "ไม่พบข้อมูลการลงทะเบียนในระบบ กรุณาตรวจสอบข้อมูลอีกครั้ง"
-        });
-      } else {
-        toast({
-          title: "ค้นหาสำเร็จ",
-          description: `พบข้อมูลของ ${patientName || 'ผู้ป่วย'}`
-        });
-      }
+      toast({
+        title: "โหลดข้อมูลสำเร็จ",
+        description: `โหลดข้อมูลของ ${patient.full_name} สำเร็จ`
+      });
 
     } catch (error) {
       console.error('Error:', error);
       toast({
         variant: "destructive",
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถค้นหาข้อมูลได้ กรุณาลองใหม่อีกครั้ง"
+        description: "ไม่สามารถโหลดข้อมูลวัคซีนได้"
       });
     } finally {
       setIsLoading(false);
@@ -116,7 +138,7 @@ const VaccineStatusChecker = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4 max-w-6xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -124,178 +146,225 @@ const VaccineStatusChecker = () => {
             ตรวจสอบสถานะการฉีดวัคซีน
           </CardTitle>
           <CardDescription>
-            กรอกเบอร์โทรศัพท์หรือเลขบัตรประชาชนเพื่อค้นหาข้อมูลการฉีดวัคซีน
+            เลือกผู้ป่วยเพื่อดูข้อมูลการฉีดวัคซีนและประวัติการรักษา
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <select 
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            >
-              <option value="phone">เบอร์โทรศัพท์</option>
-              <option value="id">เลขบัตรประชาชน</option>
-            </select>
-            
-            <Input
-              placeholder={searchType === 'phone' ? 'กรอกเบอร์โทรศัพท์' : 'กรอกเลขบัตรประชาชน'}
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className="flex-1"
-            />
-            
-            <Button onClick={searchPatientData} disabled={isLoading}>
-              {isLoading ? 'กำลังค้นหา...' : 'ค้นหา'}
-            </Button>
-          </div>
+        <CardContent className="space-y-6">
+          {!selectedPatient ? (
+            <div className="space-y-4">
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="ค้นหาด้วยชื่อ เบอร์โทร หรือรหัสลงทะเบียน"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-          {hasSearched && results && (
-            <div className="space-y-6">
-              {results.patientName && (
-                <div className="flex items-center gap-2 text-lg font-medium">
-                  <User className="h-5 w-5" />
-                  ข้อมูลผู้ป่วย: {results.patientName}
-                </div>
-              )}
-
-              {/* Patient Registrations */}
-              {results.registrations && results.registrations.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">ข้อมูลการลงทะเบียน</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {results.registrations.map((registration) => (
-                        <div key={registration.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h3 className="font-semibold">{registration.full_name}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <User className="h-4 w-4" />
-                                {registration.phone}
-                                <Clock className="h-4 w-4 ml-2" />
-                                {formatDate(registration.created_at)}
+              {/* Patient List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">รายชื่อผู้ป่วย ({filteredPatients.length} คน)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingPatients ? (
+                    <div className="text-center py-8">กำลังโหลดรายชื่อผู้ป่วย...</div>
+                  ) : filteredPatients.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {patients.length === 0 ? 'ไม่พบข้อมูลผู้ป่วยในระบบ' : 'ไม่พบผู้ป่วยที่ตรงกับการค้นหา'}
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {filteredPatients.map((patient) => (
+                        <div 
+                          key={patient.id}
+                          className="border rounded-lg p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                          onClick={() => fetchPatientVaccineData(patient)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="font-semibold">{patient.full_name}</h3>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                <div className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {patient.phone}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDate(patient.created_at)}
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                รหัส: {patient.registration_id}
                               </div>
                             </div>
-                            <Badge variant={registration.status === 'pending' ? 'secondary' : 'default'}>
-                              {registration.status === 'pending' ? 'รอการนัดหมาย' : registration.status}
+                            <Badge variant={patient.status === 'pending' ? 'secondary' : 'default'} className="ml-2">
+                              {patient.status === 'pending' ? 'รอการนัดหมาย' : patient.status}
                             </Badge>
                           </div>
-                          
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">โรงพยาบาล:</span>
-                            <span className="ml-2">{registration.hospital}</span>
-                          </div>
-                          
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">รหัสลงทะเบียน:</span>
-                            <span className="ml-2">{registration.registration_id}</span>
-                          </div>
-                          
-                          {registration.notes && (
-                            <div className="mt-2">
-                              <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
-                              <p className="text-sm mt-1">{registration.notes}</p>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Selected Patient Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-lg font-medium">
+                  <User className="h-5 w-5" />
+                  ข้อมูลผู้ป่วย: {selectedPatient.full_name}
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSelectedPatient(null);
+                    setVaccineData(null);
+                  }}
+                >
+                  กลับไปยังรายชื่อ
+                </Button>
+              </div>
 
-              {/* Appointments */}
-              {results.appointments && results.appointments.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">นัดหมายการฉีดวัคซีน</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {results.appointments.map((appointment) => (
-                        <div key={appointment.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h3 className="font-semibold">{appointment.vaccine_type}</h3>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Calendar className="h-4 w-4" />
-                                {formatDate(appointment.appointment_date)}
-                                {appointment.appointment_time && (
-                                  <>
-                                    <Clock className="h-4 w-4 ml-2" />
-                                    {appointment.appointment_time.substring(0, 5)}
-                                  </>
+              {isLoading ? (
+                <div className="text-center py-8">กำลังโหลดข้อมูลวัคซีน...</div>
+              ) : vaccineData && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Patient Registration Info */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">ข้อมูลการลงทะเบียน</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-1 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">ชื่อ-นามสกุล:</span>
+                          <span className="ml-2 font-medium">{selectedPatient.full_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">เบอร์โทร:</span>
+                          <span className="ml-2">{selectedPatient.phone}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">โรงพยาบาล:</span>
+                          <span className="ml-2">{selectedPatient.hospital}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">รหัสลงทะเบียน:</span>
+                          <span className="ml-2">{selectedPatient.registration_id}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">วันที่ลงทะเบียน:</span>
+                          <span className="ml-2">{formatDate(selectedPatient.created_at)}</span>
+                        </div>
+                        {selectedPatient.notes && (
+                          <div>
+                            <span className="text-muted-foreground">หมายเหตุ:</span>
+                            <p className="text-sm mt-1">{selectedPatient.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Appointments */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">นัดหมายการฉีดวัคซีน</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {vaccineData.appointments && vaccineData.appointments.length > 0 ? (
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {vaccineData.appointments.map((appointment) => (
+                            <div key={appointment.id} className="border rounded-lg p-3">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h4 className="font-medium">{appointment.vaccine_type}</h4>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Calendar className="h-3 w-3" />
+                                    {formatDate(appointment.appointment_date)}
+                                    {appointment.appointment_time && (
+                                      <>
+                                        <Clock className="h-3 w-3 ml-1" />
+                                        {appointment.appointment_time.substring(0, 5)}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                {getStatusBadge(appointment.status)}
+                              </div>
+                              {appointment.notes && (
+                                <p className="text-sm text-muted-foreground">{appointment.notes}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-muted-foreground">ไม่มีนัดหมาย</div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Vaccine History - Full Width */}
+                  <Card className="lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="text-lg">ประวัติการฉีดวัคซีน</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {vaccineData.logs && vaccineData.logs.length > 0 ? (
+                        <div className="space-y-3">
+                          {vaccineData.logs.map((log) => (
+                            <div key={log.id} className="border rounded-lg p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <h4 className="font-medium">{log.vaccine_type}</h4>
+                                <Badge variant="outline">เข็มที่ {log.dose_number}</Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground">วันที่ฉีด:</span>
+                                  <p className="font-medium">{formatDate(log.administered_date)}</p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">ฉีดโดย:</span>
+                                  <p className="font-medium">{log.administered_by}</p>
+                                </div>
+                                {log.batch_number && (
+                                  <div>
+                                    <span className="text-muted-foreground">Batch:</span>
+                                    <p className="font-medium">{log.batch_number}</p>
+                                  </div>
+                                )}
+                                {log.side_effects && (
+                                  <div>
+                                    <span className="text-muted-foreground">ผลข้างเคียง:</span>
+                                    <p className="font-medium">{log.side_effects}</p>
+                                  </div>
                                 )}
                               </div>
+                              
+                              {log.notes && (
+                                <div className="mt-3">
+                                  <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
+                                  <p className="text-sm mt-1">{log.notes}</p>
+                                </div>
+                              )}
                             </div>
-                            {getStatusBadge(appointment.status)}
-                          </div>
-                          
-                          {appointment.notes && (
-                            <div className="mt-2">
-                              <span className="text-sm text-muted-foreground">หมายเหตุ:</span>
-                              <p className="text-sm mt-1">{appointment.notes}</p>
-                            </div>
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Vaccine History */}
-              {results.logs && results.logs.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">ประวัติการฉีดวัคซีน</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {results.logs.map((log) => (
-                        <div key={log.id} className="border rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{log.vaccine_type}</h3>
-                            <Badge variant="outline">เข็มที่ {log.dose_number}</Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">วันที่ฉีด:</span>
-                              <span className="ml-2">{formatDate(log.administered_date)}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">ฉีดโดย:</span>
-                              <span className="ml-2">{log.administered_by}</span>
-                            </div>
-                            {log.batch_number && (
-                              <div>
-                                <span className="text-muted-foreground">Batch:</span>
-                                <span className="ml-2">{log.batch_number}</span>
-                              </div>
-                            )}
-                          </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          ไม่มีประวัติการฉีดวัคซีน
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {hasSearched && results && 
-               (!results.appointments || results.appointments.length === 0) && 
-               (!results.logs || results.logs.length === 0) &&
-               (!results.registrations || results.registrations.length === 0) && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    ไม่พบข้อมูลการลงทะเบียนในระบบ กรุณาตรวจสอบข้อมูลอีกครั้งหรือติดต่อเจ้าหน้าที่
-                  </AlertDescription>
-                </Alert>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               )}
             </div>
           )}
