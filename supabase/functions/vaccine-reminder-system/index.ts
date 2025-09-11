@@ -421,8 +421,71 @@ async function sendLineMessage(userId: string, message: string) {
     body: JSON.stringify({
       to: userId,
       messages: [{
-        type: 'text',
-        text: message
+        type: "flex",
+        altText: message,
+        contents: {
+          type: "bubble",
+          body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                  {
+                    type: "image",
+                    url: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+                    size: "40px",
+                    aspectRatio: "1:1",
+                    aspectMode: "cover",
+                    flex: 0
+                  },
+                  {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                      {
+                        type: "text",
+                        text: "โรงพยาบาลโฮม",
+                        weight: "bold",
+                        size: "lg",
+                        color: "#1E40AF"
+                      },
+                      {
+                        type: "text",
+                        text: "แจ้งเตือนระบบ",
+                        size: "xs",
+                        color: "#6B7280"
+                      }
+                    ],
+                    flex: 1,
+                    paddingStart: "md"
+                  }
+                ],
+                paddingBottom: "md"
+              },
+              {
+                type: "separator",
+                margin: "md"
+              },
+              {
+                type: "text",
+                text: message,
+                wrap: true,
+                size: "md",
+                color: "#374151",
+                margin: "lg"
+              }
+            ],
+            paddingAll: "lg"
+          },
+          styles: {
+            body: {
+              backgroundColor: "#F8FAFC"
+            }
+          }
+        }
       }]
     })
   });
