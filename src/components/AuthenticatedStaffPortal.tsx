@@ -190,8 +190,12 @@ const AuthenticatedStaffPortal = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Shield className="h-6 w-6 text-primary" />
+              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
+                <img 
+                  src="https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+                  alt="โลโก้โรงพยาบาลโฮม"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">ระบบจัดการวัคซีน</h1>
