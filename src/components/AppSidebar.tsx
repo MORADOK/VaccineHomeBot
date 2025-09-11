@@ -81,8 +81,12 @@ export function AppSidebar() {
         {/* Logo Section */}
         <div className="p-6 border-b border-border/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-md">
-              <Stethoscope className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md">
+              <img 
+                src="https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+                alt="โลโก้โรงพยาบาลโฮม"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <h2 className="font-bold text-lg text-foreground">โรงพยาบาลโฮม</h2>
