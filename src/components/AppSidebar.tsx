@@ -83,9 +83,9 @@ export function AppSidebar() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md">
               <img 
-                src="@/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+                src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
                 alt="โลโก้โรงพยาบาลโฮม"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain object-center"
               />
             </div>
             <div>
