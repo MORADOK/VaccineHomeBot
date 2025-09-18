@@ -38,7 +38,7 @@ const sendLineMessage = async (userId: string, message: string) => {
                 contents: [
                   {
                     type: "image",
-                    url: "/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+                    url: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
                     size: "40px",
                     aspectRatio: "1:1",
                     aspectMode: "cover",

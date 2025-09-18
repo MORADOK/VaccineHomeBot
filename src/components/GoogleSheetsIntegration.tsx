@@ -29,7 +29,7 @@ interface AppointmentData {
   notificationDate?: string;
 }
 
-const GoogleSheetsIntegration = () => {
+const PatientAppointmentManager = () => {
   const [patients, setPatients] = useState<PatientData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [appointment, setAppointment] = useState<AppointmentData>({
@@ -44,20 +44,29 @@ const GoogleSheetsIntegration = () => {
   });
   const { toast } = useToast();
 
-  // โหลดข้อมูลผู้ป่วยจาก Google Sheets
+  // โหลดข้อมูลผู้ป่วยจาก Supabase และ Sync ไป Google Sheets
   const loadPatients = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
-        body: { action: 'readPatients' }
-      });
+      const { data, error } = await supabase
+        .from('patient_registrations')
+        .select('id, full_name, phone, line_user_id, registration_id, created_at')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      setPatients(data.patients || []);
+      const formattedPatients = data?.map(patient => ({
+        id: patient.registration_id || patient.id,
+        name: patient.full_name,
+        phone: patient.phone,
+        lineId: patient.line_user_id,
+        createdAt: patient.created_at
+      })) || [];
+
+      setPatients(formattedPatients);
       toast({
         title: "โหลดข้อมูลสำเร็จ",
-        description: `โหลดข้อมูลผู้ป่วย ${data.patients?.length || 0} คน`,
+        description: `โหลดข้อมูลผู้ป่วย ${formattedPatients.length} คน จาก Supabase`,
       });
     } catch (error: any) {
       toast({
@@ -70,7 +79,44 @@ const GoogleSheetsIntegration = () => {
     }
   };
 
-  // บันทึกการนัดหมาย
+  // Sync ข้อมูลผู้ป่วยไป Google Sheets
+  const syncPatientsToSheets = async () => {
+    if (patients.length === 0) {
+      toast({
+        title: "ไม่มีข้อมูล",
+        description: "กรุณาโหลดข้อมูลผู้ป่วยก่อน",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
+        body: { 
+          action: 'syncPatients',
+          data: patients
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sync สำเร็จ",
+        description: `Sync ข้อมูลผู้ป่วย ${patients.length} คน ไป Google Sheets แล้ว`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Sync ไม่สำเร็จ",
+        description: error.message || "ไม่สามารถ sync ข้อมูลได้",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // บันทึกการนัดหมายลง Supabase และ Google Sheets
   const saveAppointment = async () => {
     if (!appointment.patientId || !appointment.date || !appointment.time || !appointment.vaccine) {
       toast({
@@ -83,18 +129,55 @@ const GoogleSheetsIntegration = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
-        body: { 
-          action: 'saveAppointment',
-          data: appointment
-        }
-      });
+      // หาข้อมูลผู้ป่วย
+      const selectedPatient = patients.find(p => p.id === appointment.patientId);
+      if (!selectedPatient) {
+        throw new Error('ไม่พบข้อมูลผู้ป่วย');
+      }
 
-      if (error) throw error;
+      // 1. บันทึกลงตาราง appointments ใน Supabase (หลัก)
+      const appointmentData = {
+        patient_name: selectedPatient.name,
+        patient_phone: selectedPatient.phone,
+        patient_id_number: appointment.patientId,
+        line_user_id: selectedPatient.lineId,
+        vaccine_type: appointment.vaccine,
+        appointment_date: appointment.date,
+        appointment_time: appointment.time,
+        status: 'scheduled',
+        notes: appointment.notes || `นัดหมายจาก ${appointment.hospital}`,
+        scheduled_by: 'staff_manual'
+      };
+
+      const { error: supabaseError } = await supabase
+        .from('appointments')
+        .insert([appointmentData]);
+
+      if (supabaseError) throw supabaseError;
+
+      // 2. Sync ข้อมูลไป Google Sheets (สำรอง)
+      try {
+        await supabase.functions.invoke('google-sheets-integration', {
+          body: { 
+            action: 'saveAppointment',
+            data: {
+              ...appointment,
+              patientName: selectedPatient.name,
+              patientPhone: selectedPatient.phone,
+              lineId: selectedPatient.lineId,
+              timestamp: new Date().toISOString()
+            }
+          }
+        });
+        console.log('✅ Synced to Google Sheets successfully');
+      } catch (syncError) {
+        console.warn('⚠️ Failed to sync to Google Sheets:', syncError);
+        // ไม่ให้ sync error หยุดการทำงานหลัก
+      }
 
       toast({
         title: "บันทึกสำเร็จ",
-        description: "บันทึกการนัดหมายเรียบร้อยแล้ว",
+        description: `บันทึกการนัดหมายของ ${selectedPatient.name} เรียบร้อยแล้ว (พร้อม sync ข้อมูลสำรอง)`,
       });
 
       // รีเซ็ตฟอร์ม
@@ -119,9 +202,9 @@ const GoogleSheetsIntegration = () => {
     }
   };
 
-  // ตั้งค่าการแจ้งเตือน
-  const scheduleNotification = async () => {
-    if (!appointment.patientId || !appointment.date || !appointment.notificationDate) {
+  // ส่งการแจ้งเตือนทันที
+  const sendNotification = async () => {
+    if (!appointment.patientId || !appointment.date) {
       toast({
         title: "ข้อผิดพลาด",
         description: "กรุณากรอกข้อมูลผู้ป่วยและวันที่นัดก่อน",
@@ -132,25 +215,36 @@ const GoogleSheetsIntegration = () => {
 
     setIsLoading(true);
     try {
-      const message = `แจ้งเตือน: คุณมีนัดฉีดวัคซีน ${appointment.vaccine} วันที่ ${appointment.date} เวลา ${appointment.time} ที่ ${appointment.hospital}`;
-      
-      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
-        body: { 
-          action: 'scheduleNotification',
-          data: {
-            patientId: appointment.patientId,
-            appointmentDate: appointment.date,
-            notificationDate: appointment.notificationDate,
-            message
-          }
+      const selectedPatient = patients.find(p => p.id === appointment.patientId);
+      if (!selectedPatient || !selectedPatient.lineId) {
+        throw new Error('ไม่พบ LINE ID ของผู้ป่วย');
+      }
+
+      const message = `🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน
+
+สวัสดีคุณ ${selectedPatient.name}
+
+📅 วันที่: ${appointment.date}
+⏰ เวลา: ${appointment.time}
+💉 วัคซีน: ${appointment.vaccine}
+🏥 สถานที่: ${appointment.hospital}
+
+${appointment.notes ? `📝 หมายเหตุ: ${appointment.notes}` : ''}
+
+กรุณามาตามเวลานัดหมาย`;
+
+      const { error } = await supabase.functions.invoke('send-line-message', {
+        body: {
+          userId: selectedPatient.lineId,
+          message: message
         }
       });
 
       if (error) throw error;
 
       toast({
-        title: "ตั้งค่าการแจ้งเตือนสำเร็จ",
-        description: "ระบบจะแจ้งเตือนผู้ป่วยในวันที่กำหนด",
+        title: "ส่งการแจ้งเตือนสำเร็จ",
+        description: `ส่งข้อความแจ้งเตือนไปยัง ${selectedPatient.name} แล้ว`,
       });
     } catch (error: any) {
       toast({
@@ -174,6 +268,53 @@ const GoogleSheetsIntegration = () => {
     }
   };
 
+  // Sync ข้อมูลนัดหมายที่มีอยู่แล้วไป Google Sheets
+  const syncExistingAppointments = async () => {
+    setIsLoading(true);
+    try {
+      // ดึงข้อมูลนัดหมายจาก Supabase
+      const { data: appointments, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100); // จำกัดที่ 100 รายการล่าสุด
+
+      if (error) throw error;
+
+      if (!appointments || appointments.length === 0) {
+        toast({
+          title: "ไม่มีข้อมูล",
+          description: "ไม่พบข้อมูลนัดหมายที่จะ sync",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Sync ไป Google Sheets
+      const { error: syncError } = await supabase.functions.invoke('google-sheets-integration', {
+        body: { 
+          action: 'syncAppointments',
+          data: appointments
+        }
+      });
+
+      if (syncError) throw syncError;
+
+      toast({
+        title: "Sync สำเร็จ",
+        description: `Sync ข้อมูลนัดหมาย ${appointments.length} รายการ ไป Google Sheets แล้ว`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Sync ไม่สำเร็จ",
+        description: error.message || "ไม่สามารถ sync ข้อมูลนัดหมายได้",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadPatients();
   }, []);
@@ -185,14 +326,33 @@ const GoogleSheetsIntegration = () => {
         <CardHeader className="pb-3 md:pb-4">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Users className="h-5 w-5 text-primary" />
-            ข้อมูลผู้ป่วยจาก Google Sheets
+            ข้อมูลผู้ป่วยจาก Supabase
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-4 md:p-6">
-          <Button onClick={loadPatients} disabled={isLoading} className="w-full h-10 md:h-11">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            {isLoading ? 'กำลังโหลด...' : 'โหลดข้อมูลจาก Google Sheets'}
-          </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Button onClick={loadPatients} disabled={isLoading} className="h-10 md:h-11">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {isLoading ? 'กำลังโหลด...' : 'โหลดข้อมูลผู้ป่วย'}
+            </Button>
+            <Button 
+              onClick={syncPatientsToSheets} 
+              disabled={isLoading || patients.length === 0} 
+              variant="outline" 
+              className="h-10 md:h-11"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {isLoading ? 'กำลัง Sync...' : 'Sync ไป Google Sheets'}
+            </Button>
+          </div>
+
+          <Alert>
+            <FileSpreadsheet className="h-4 w-4" />
+            <AlertDescription>
+              <strong>ระบบ Dual Backup:</strong> ข้อมูลจะถูกบันทึกใน Supabase (หลัก) และ sync ไป Google Sheets (สำรอง) 
+              เพื่อความปลอดภัยและการเข้าถึงที่สะดวก
+            </AlertDescription>
+          </Alert>
           
           {patients.length > 0 && (
             <div className="bg-muted/50 p-3 md:p-4 rounded-lg border">
@@ -227,11 +387,16 @@ const GoogleSheetsIntegration = () => {
                   <SelectValue placeholder="เลือกผู้ป่วย" />
                 </SelectTrigger>
                 <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id}>
-                      {patient.name} - {patient.phone}
-                    </SelectItem>
-                  ))}
+                  {patients
+                    .filter(patient => patient.id && patient.id.trim() !== '')
+                    .map((patient) => (
+                      <SelectItem 
+                        key={patient.id} 
+                        value={patient.id}
+                      >
+                        {patient.name} - {patient.phone}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -288,9 +453,21 @@ const GoogleSheetsIntegration = () => {
             />
           </div>
 
-          <Button onClick={saveAppointment} disabled={isLoading} className="w-full h-10 md:h-11">
-            บันทึกการนัดหมาย
-          </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Button onClick={saveAppointment} disabled={isLoading} className="h-10 md:h-11">
+              <Calendar className="h-4 w-4 mr-2" />
+              {isLoading ? 'กำลังบันทึก...' : 'บันทึกการนัดหมาย'}
+            </Button>
+            <Button 
+              onClick={syncExistingAppointments} 
+              disabled={isLoading} 
+              variant="outline" 
+              className="h-10 md:h-11"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {isLoading ? 'กำลัง Sync...' : 'Sync นัดหมายทั้งหมด'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -299,7 +476,7 @@ const GoogleSheetsIntegration = () => {
         <CardHeader className="pb-3 md:pb-4">
           <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Bell className="h-5 w-5 text-primary" />
-            ตั้งค่าการแจ้งเตือน
+            ส่งการแจ้งเตือน
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-4 md:p-6">
@@ -321,8 +498,9 @@ const GoogleSheetsIntegration = () => {
             </AlertDescription>
           </Alert>
 
-          <Button onClick={scheduleNotification} disabled={isLoading} className="w-full h-10 md:h-11">
-            ตั้งค่าการแจ้งเตือน
+          <Button onClick={sendNotification} disabled={isLoading} className="w-full h-10 md:h-11">
+            <Bell className="h-4 w-4 mr-2" />
+            {isLoading ? 'กำลังส่ง...' : 'ส่งการแจ้งเตือนทันที'}
           </Button>
         </CardContent>
       </Card>
@@ -330,4 +508,4 @@ const GoogleSheetsIntegration = () => {
   );
 };
 
-export default GoogleSheetsIntegration;
+export default PatientAppointmentManager;

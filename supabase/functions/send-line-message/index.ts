@@ -101,7 +101,7 @@ serve(async (req) => {
             type: "bubble",
             hero: {
               type: "image",
-              url: "/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+              url: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
               size: "full",
               aspectRatio: "20:13",
               aspectMode: "cover"
@@ -278,7 +278,7 @@ serve(async (req) => {
                   action: {
                     type: "uri",
                     label: "ดูรายละเอียด",
-                    uri: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com"
+                    uri: "https://vaccine-home-hospital.com"
                   },
                   color: "#1E40AF"
                 },
@@ -326,7 +326,7 @@ serve(async (req) => {
                   contents: [
                     {
                       type: "image",
-                      url: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+                      url: "https://cdn-icons-png.flaticon.com/512/3063/3063822.png",
                       size: "40px",
                       aspectRatio: "1:1",
                       aspectMode: "cover",

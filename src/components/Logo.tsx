@@ -1,5 +1,5 @@
 import React from 'react'
-import logoBundled from '/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png' // หรือ .svg
+import logoBundled from '/images/hospital-logo.png'
 
 const resolvedUrl =
   (import.meta.env.VITE_LOGO_URL as string | undefined) || logoBundled

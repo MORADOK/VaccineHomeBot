@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Calendar,
+  CheckCircle,
+  XCircle,
   Clock,
   RefreshCw,
   Plus,
@@ -42,6 +42,7 @@ interface VaccineOption {
   id: string;
   vaccine_type: string;
   vaccine_name: string;
+  total_doses: number;
 }
 
 interface PatientRegistration {
@@ -56,33 +57,34 @@ interface PatientRegistration {
 const StaffPortal = () => {
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [vaccineOptions, setVaccineOptions] = useState<VaccineOption[]>([]);
   const [patientRegistrations, setPatientRegistrations] = useState<PatientRegistration[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<PatientRegistration | null>(null);
   const [walkInForm, setWalkInForm] = useState({
     vaccineType: '',
+    doseNumber: '1',
     notes: ''
   });
   const { toast } = useToast();
 
-  const loadTodayAppointments = async () => {
+  const loadAppointmentsByDate = async (date: string) => {
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('appointments')
         .select('*')
-        .eq('appointment_date', today)
+        .eq('appointment_date', date)
         .order('appointment_time', { ascending: true });
 
       if (error) throw error;
       setTodayAppointments(data || []);
     } catch (error) {
-      console.error('Error loading today appointments:', error);
+      console.error('Error loading appointments:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถโหลดข้อมูลนัดหมายวันนี้ได้",
+        description: `ไม่สามารถโหลดข้อมูลนัดหมายวันที่ ${new Date(date).toLocaleDateString('th-TH')} ได้`,
         variant: "destructive",
       });
     } finally {
@@ -90,11 +92,13 @@ const StaffPortal = () => {
     }
   };
 
+  const loadTodayAppointments = () => loadAppointmentsByDate(selectedDate);
+
   const loadVaccineOptions = async () => {
     try {
       const { data, error } = await supabase
         .from('vaccine_schedules')
-        .select('id, vaccine_type, vaccine_name')
+        .select('id, vaccine_type, vaccine_name, total_doses')
         .eq('active', true)
         .order('vaccine_name');
 
@@ -118,10 +122,10 @@ const StaffPortal = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       console.log('Patient registrations loaded:', data?.length || 0, 'records');
       console.log('Sample data:', data?.slice(0, 3));
-      
+
       setPatientRegistrations(data || []);
     } catch (error) {
       console.error('Error loading patient registrations:', error);
@@ -159,10 +163,23 @@ const StaffPortal = () => {
   };
 
   const createWalkInVaccination = async () => {
-    if (!selectedPatient || !walkInForm.vaccineType) {
+    if (!selectedPatient || !walkInForm.vaccineType || !walkInForm.doseNumber) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาเลือกผู้ป่วยและประเภทวัคซีน",
+        description: "กรุณาเลือกผู้ป่วย ประเภทวัคซีน และโดสที่ฉีด",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate dose number against vaccine's total doses
+    const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
+    const doseNum = parseInt(walkInForm.doseNumber);
+
+    if (selectedVaccine && doseNum > selectedVaccine.total_doses) {
+      toast({
+        title: "โดสไม่ถูกต้อง",
+        description: `วัคซีน ${selectedVaccine.vaccine_name} มีเพียง ${selectedVaccine.total_doses} เข็ม`,
         variant: "destructive",
       });
       return;
@@ -172,6 +189,11 @@ const StaffPortal = () => {
       const today = new Date().toISOString().split('T')[0];
       const now = new Date();
       const currentTime = now.toTimeString().slice(0, 5);
+
+      const doseText = walkInForm.doseNumber === '1' ? 'เข็มที่ 1' :
+        walkInForm.doseNumber === '2' ? 'เข็มที่ 2' :
+          walkInForm.doseNumber === '3' ? 'เข็มที่ 3' :
+            `เข็มที่ ${walkInForm.doseNumber}`;
 
       const appointmentData = {
         patient_name: selectedPatient.full_name,
@@ -183,7 +205,7 @@ const StaffPortal = () => {
         appointment_time: currentTime,
         status: 'completed',
         scheduled_by: 'walk_in',
-        notes: `ฉีดวัคซีน Walk-in วันนี้ ${walkInForm.notes ? '- ' + walkInForm.notes : ''}`
+        notes: `ฉีดวัคซีน Walk-in ${doseText} (${selectedVaccine?.vaccine_name}) วันนี้${walkInForm.notes ? ' - ' + walkInForm.notes : ''}`
       };
 
       const { error } = await supabase
@@ -194,7 +216,7 @@ const StaffPortal = () => {
 
       toast({
         title: "บันทึกสำเร็จ",
-        description: `บันทึกการฉีดวัคซีนของ ${selectedPatient.full_name} แล้ว`,
+        description: `บันทึกการฉีดวัคซีน ${selectedVaccine?.vaccine_name} ${doseText} ของ ${selectedPatient.full_name} แล้ว`,
       });
 
       // Reset form
@@ -202,6 +224,7 @@ const StaffPortal = () => {
       setSearchTerm('');
       setWalkInForm({
         vaccineType: '',
+        doseNumber: '1',
         notes: ''
       });
 
@@ -217,10 +240,14 @@ const StaffPortal = () => {
   };
 
   useEffect(() => {
-    loadTodayAppointments();
+    loadAppointmentsByDate(selectedDate);
     loadVaccineOptions();
     loadPatientRegistrations();
-  }, []);
+  }, [selectedDate]);
+
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
+  };
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -256,6 +283,9 @@ const StaffPortal = () => {
   const scheduledToday = todayAppointments.filter(a => a.status === 'scheduled').length;
   const totalToday = todayAppointments.length;
 
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const dateLabel = isToday ? 'วันนี้' : new Date(selectedDate).toLocaleDateString('th-TH');
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -267,14 +297,47 @@ const StaffPortal = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Staff Portal</h1>
             <p className="text-sm text-muted-foreground">
-              จัดการนัดหมายและการฉีดวัคซีน - วันที่ {new Date().toLocaleDateString('th-TH')}
+              จัดการนัดหมายและการฉีดวัคซีน - วันที่ {new Date(selectedDate).toLocaleDateString('th-TH')}
             </p>
           </div>
         </div>
-        <Button onClick={loadTodayAppointments} disabled={loading} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          รีเฟรช
-        </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="date-picker" className="text-sm font-medium">เลือกวันที่:</Label>
+            <Input
+              id="date-picker"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+              variant="outline"
+              size="sm"
+              disabled={isToday}
+            >
+              วันนี้
+            </Button>
+            <Button
+              onClick={() => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                handleDateChange(tomorrow.toISOString().split('T')[0]);
+              }}
+              variant="outline"
+              size="sm"
+            >
+              พรุ่งนี้
+            </Button>
+            <Button onClick={loadTodayAppointments} disabled={loading} variant="outline" size="sm">
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              รีเฟรช
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -286,7 +349,7 @@ const StaffPortal = () => {
                 <Calendar className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">นัดหมายวันนี้</p>
+                <p className="text-sm text-muted-foreground">นัดหมาย{dateLabel}</p>
                 <p className="text-2xl font-bold text-blue-600">{totalToday}</p>
               </div>
             </div>
@@ -361,7 +424,7 @@ const StaffPortal = () => {
                 {searchTerm && (
                   <div className="absolute top-full left-0 right-0 z-50 bg-background border rounded-b-md shadow-lg max-h-60 overflow-y-auto">
                     {patientRegistrations
-                      .filter(patient => 
+                      .filter(patient =>
                         patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         patient.phone.includes(searchTerm) ||
                         patient.registration_id.includes(searchTerm)
@@ -384,15 +447,15 @@ const StaffPortal = () => {
                         </div>
                       ))
                     }
-                    {patientRegistrations.filter(patient => 
+                    {patientRegistrations.filter(patient =>
                       patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       patient.phone.includes(searchTerm) ||
                       patient.registration_id.includes(searchTerm)
                     ).length === 0 && (
-                      <div className="p-3 text-center text-muted-foreground">
-                        ไม่พบผู้ป่วยที่ตรงกับการค้นหา
-                      </div>
-                    )}
+                        <div className="p-3 text-center text-muted-foreground">
+                          ไม่พบผู้ป่วยที่ตรงกับการค้นหา
+                        </div>
+                      )}
                   </div>
                 )}
               </div>
@@ -417,24 +480,72 @@ const StaffPortal = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="vaccineType">ประเภทวัคซีน *</Label>
                 <Select
                   value={walkInForm.vaccineType}
-                  onValueChange={(value) => setWalkInForm({ ...walkInForm, vaccineType: value })}
+                  onValueChange={(value) => setWalkInForm({ ...walkInForm, vaccineType: value, doseNumber: '1' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="เลือกประเภทวัคซีน" />
                   </SelectTrigger>
                   <SelectContent>
-                    {vaccineOptions.map((vaccine) => (
-                      <SelectItem key={vaccine.id} value={vaccine.vaccine_type}>
-                        {vaccine.vaccine_name}
-                      </SelectItem>
-                    ))}
+                    {vaccineOptions
+                      .filter(vaccine => vaccine.vaccine_type && vaccine.vaccine_type.trim() !== '')
+                      .map((vaccine) => (
+                        <SelectItem
+                          key={vaccine.id}
+                          value={vaccine.vaccine_type}
+                        >
+                          {vaccine.vaccine_name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="doseNumber">โดสที่มาฉีด *</Label>
+                <Select
+                  value={walkInForm.doseNumber}
+                  onValueChange={(value) => setWalkInForm({ ...walkInForm, doseNumber: value })}
+                  disabled={!walkInForm.vaccineType}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={walkInForm.vaccineType ? "เลือกโดสที่ฉีด" : "เลือกวัคซีนก่อน"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {walkInForm.vaccineType && (() => {
+                      const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
+                      const maxDoses = selectedVaccine?.total_doses || 1;
+                      const doseOptions = [];
+
+                      for (let i = 1; i <= maxDoses; i++) {
+                        let label = `เข็มที่ ${i}`;
+                        if (i === 1) label += ' (เข็มแรก)';
+                        else if (i === maxDoses && maxDoses > 2) label += ' (เข็มสุดท้าย)';
+                        else if (i > 2) label += ' (เข็มเสริม)';
+
+                        doseOptions.push(
+                          <SelectItem key={i} value={i.toString()}>
+                            {label}
+                          </SelectItem>
+                        );
+                      }
+                      return doseOptions;
+                    })()}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {walkInForm.vaccineType ? (
+                    (() => {
+                      const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
+                      return `วัคซีนนี้มี ${selectedVaccine?.total_doses || 1} เข็ม - เลือกโดสที่คนไข้มาฉีดครั้งนี้`;
+                    })()
+                  ) : (
+                    'กรุณาเลือกประเภทวัคซีนก่อน'
+                  )}
+                </p>
               </div>
               <div>
                 <Label htmlFor="notes">หมายเหตุ</Label>
@@ -462,7 +573,7 @@ const StaffPortal = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              นัดหมายวันนี้
+              นัดหมาย{dateLabel}
             </CardTitle>
             <Badge variant="secondary">
               {todayAppointments.length} รายการ
@@ -538,9 +649,9 @@ const StaffPortal = () => {
           {todayAppointments.length === 0 && (
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">ไม่มีนัดหมายวันนี้</p>
+              <p className="text-muted-foreground">ไม่มีนัดหมายใน{dateLabel}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                ใช้ฟอร์มด้านบนสำหรับบันทึกการฉีดวัคซีน Walk-in
+                {isToday ? 'ใช้ฟอร์มด้านบนสำหรับบันทึกการฉีดวัคซีน Walk-in' : 'เลือกวันที่อื่นเพื่อดูนัดหมาย'}
               </p>
             </div>
           )}

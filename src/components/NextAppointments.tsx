@@ -48,7 +48,11 @@ const NextAppointments = () => {
       console.log('📊 ข้อมูลนัดทั้งหมด:', appointmentData?.length || 0, 'รายการ');
 
       const completedAppointments = appointmentData?.filter(a => a.status === 'completed') || [];
-      const scheduledAppointments = appointmentData?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
+      // กรองเฉพาะนัดที่ยังไม่ถูกยกเลิกและยังไม่หมดอายุ
+      const scheduledAppointments = appointmentData?.filter(a => 
+        ['scheduled', 'pending'].includes(a.status) && 
+        new Date(a.appointment_date) >= new Date()
+      ) || [];
 
       console.log('✅ การฉีดที่เสร็จสิ้น:', completedAppointments.length, 'รายการ');
       console.log('📅 นัดที่มีอยู่แล้ว:', scheduledAppointments.length, 'รายการ');
@@ -107,9 +111,11 @@ const NextAppointments = () => {
       const allNextAppointments: NextAppointment[] = [];
 
       // Calculate next appointments manually - include both new appointments and existing scheduled ones
-      // 1. First add existing scheduled appointments that haven't passed
+      // 1. First add existing scheduled appointments that haven't passed and aren't cancelled
       for (const scheduledAppt of scheduledAppointments) {
-        if (new Date(scheduledAppt.appointment_date) > new Date()) {
+        // Double check that appointment is still valid
+        if (new Date(scheduledAppt.appointment_date) > new Date() && 
+            ['scheduled', 'pending'].includes(scheduledAppt.status)) {
           const patientKey = scheduledAppt.patient_id_number || scheduledAppt.line_user_id;
           
           // Find completed doses for this patient and vaccine
@@ -172,12 +178,13 @@ const NextAppointments = () => {
             return null; // Already completed
           }
 
-          // Check if patient already has a future appointment for this vaccine type
+          // Check if patient already has a future appointment for this vaccine type (and not cancelled)
           const existingFutureAppointment = scheduledAppointments.find(appt => {
             const apptPatientKey = appt.patient_id_number || appt.line_user_id;
             return (apptPatientKey === patient.patient_id) &&
                    appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase() &&
-                   new Date(appt.appointment_date) > new Date();
+                   new Date(appt.appointment_date) > new Date() &&
+                   ['scheduled', 'pending'].includes(appt.status);
           });
 
           if (existingFutureAppointment) {
@@ -362,6 +369,13 @@ const NextAppointments = () => {
 
   useEffect(() => {
     loadNextAppointments();
+    
+    // Set up interval to refresh every 30 seconds
+    const interval = setInterval(() => {
+      loadNextAppointments();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const filteredAppointments = nextAppointments.filter(appt =>
@@ -399,7 +413,9 @@ const NextAppointments = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">นัดครั้งถัดไป</h1>
-            <p className="text-sm text-muted-foreground">รายการผู้ป่วยที่ต้องฉีดเข็มถัดไป</p>
+            <p className="text-sm text-muted-foreground">
+              รายการผู้ป่วยที่ต้องฉีดเข็มถัดไป (อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')})
+            </p>
           </div>
         </div>
         <Button onClick={loadNextAppointments} disabled={loading} variant="outline">
@@ -462,8 +478,11 @@ const NextAppointments = () => {
                             'ไม่พบข้อมูล'}
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                        ID: {appointment.patient_id}
+                      <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded flex justify-between">
+                        <span>ID: {appointment.patient_id}</span>
+                        <span className="text-blue-600">
+                          {appointment.is_existing_appointment ? '✓ มีนัดแล้ว' : '⚠ ต้องสร้างนัด'}
+                        </span>
                       </div>
                     </div>
                      <div className="flex gap-2 ml-4">

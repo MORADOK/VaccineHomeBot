@@ -95,7 +95,7 @@ const HomePage = () => {
         <div className="text-center mb-8">
           <div className="mb-6">
             <img 
-              src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+              src="/images/hospital-logo.png" 
               alt="โรงพยาบาลโฮม" 
               className="mx-auto h-32 w-auto object-contain animate-float"
             />

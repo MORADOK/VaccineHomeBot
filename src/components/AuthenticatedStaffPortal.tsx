@@ -13,7 +13,9 @@ import PatientRegistrationsList from './PatientRegistrationsList';
 import NextAppointments from './NextAppointments';
 import PastVaccinations from './PastVaccinations';
 import AutoNotificationSystem from './AutoNotificationSystem';
-import GoogleSheetsIntegration from './GoogleSheetsIntegration';
+import PatientAppointmentManager from './GoogleSheetsIntegration';
+import EditPatientAppointment from './EditPatientAppointment';
+import NotificationTestPanel from './NotificationTestPanel';
 
 const AuthenticatedStaffPortal = () => {
   const [user, setUser] = useState<any>(null);
@@ -95,12 +97,12 @@ const AuthenticatedStaffPortal = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+
       toast({
         title: "ออกจากระบบแล้ว",
         description: "คุณได้ออกจากระบบเรียบร้อยแล้ว",
       });
-      
+
       navigate('/auth');
     } catch (error) {
       console.error('Sign out error:', error);
@@ -143,8 +145,8 @@ const AuthenticatedStaffPortal = () => {
             <p className="text-center text-muted-foreground">
               กรุณาเข้าสู่ระบบเพื่อเข้าถึงระบบจัดการเจ้าหน้าที่
             </p>
-            <Button 
-              onClick={navigateToAuth} 
+            <Button
+              onClick={navigateToAuth}
               className="w-full"
             >
               เข้าสู่ระบบ
@@ -169,9 +171,9 @@ const AuthenticatedStaffPortal = () => {
             <p className="text-center text-muted-foreground">
               คุณไม่มีสิทธิ์เข้าถึงระบบจัดการเจ้าหน้าที่ กรุณาติดต่อผู้ดูแลระบบ
             </p>
-            <Button 
-              onClick={handleSignOut} 
-              variant="outline" 
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
               className="w-full"
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -191,8 +193,8 @@ const AuthenticatedStaffPortal = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
-                <img 
-                  src="https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+                <img
+                  src="/images/hospital-logo.png"
                   alt="โลโก้โรงพยาบาลโฮม"
                   className="w-full h-full object-cover"
                 />
@@ -224,11 +226,12 @@ const AuthenticatedStaffPortal = () => {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs defaultValue="staff-portal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-6">
             <TabsTrigger value="staff-portal">นัดวันนี้</TabsTrigger>
             <TabsTrigger value="registrations">รายการลงทะเบียน</TabsTrigger>
             <TabsTrigger value="next-appointments">นัดครั้งถัดไป</TabsTrigger>
             <TabsTrigger value="past-vaccinations">ประวัติการฉีด</TabsTrigger>
+            <TabsTrigger value="edit-appointments">แก้ไขนัด</TabsTrigger>
             <TabsTrigger value="vaccine-calculator">คำนวณวัคซีน</TabsTrigger>
             {isAdmin && <TabsTrigger value="settings">ตั้งค่า</TabsTrigger>}
           </TabsList>
@@ -247,6 +250,10 @@ const AuthenticatedStaffPortal = () => {
 
           <TabsContent value="past-vaccinations">
             <PastVaccinations />
+          </TabsContent>
+
+          <TabsContent value="edit-appointments">
+            <EditPatientAppointment />
           </TabsContent>
 
           <TabsContent value="vaccine-calculator">
@@ -275,14 +282,15 @@ const AuthenticatedStaffPortal = () => {
                     </div>
                     <div className="p-4 border rounded-lg">
                       <h3 className="font-semibold mb-2">ระบบแจ้งเตือน</h3>
-                      <div className="mt-2">
+                      <div className="mt-2 space-y-4">
                         <AutoNotificationSystem />
+                        <NotificationTestPanel />
                       </div>
                     </div>
                     <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-2">Google Sheets Integration</h3>
+                      <h3 className="font-semibold mb-2">จัดการนัดหมายผู้ป่วย</h3>
                       <div className="mt-2">
-                        <GoogleSheetsIntegration />
+                        <PatientAppointmentManager />
                       </div>
                     </div>
                   </div>
