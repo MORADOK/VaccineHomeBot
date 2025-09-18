@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -12,14 +13,17 @@ import {
   XCircle,
   Clock,
   RefreshCw,
-  Plus,
   Stethoscope,
   TrendingUp,
-  Activity,
   Syringe,
-  UserPlus
+  UserPlus,
+  Globe,
+  Settings
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DomainManagement } from './DomainManagement';
+import { DomainMonitoring } from './DomainMonitoring';
+import React from 'react';
 
 interface Appointment {
   id: string;
@@ -54,6 +58,61 @@ interface PatientRegistration {
   status: string;
 }
 
+// Error boundary component for domain management
+class DomainManagementErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ComponentType<{ error: Error; retry: () => void }> },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ComponentType<{ error: Error; retry: () => void }> }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Domain Management Error:', error, errorInfo);
+  }
+
+  retry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      const FallbackComponent = this.props.fallback;
+      return <FallbackComponent error={this.state.error} retry={this.retry} />;
+    }
+
+    return this.props.children;
+  }
+}
+
+// Error fallback component for domain management
+function DomainManagementErrorFallback({ error, retry }: { error: Error; retry: () => void }) {
+  return (
+    <Card>
+      <CardContent className="py-8">
+        <div className="text-center space-y-4">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <div>
+            <h3 className="text-lg font-semibold text-red-700">Domain Management Error</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Failed to load domain management: {error.message}
+            </p>
+          </div>
+          <Button onClick={retry} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 const StaffPortal = () => {
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,6 +121,7 @@ const StaffPortal = () => {
   const [patientRegistrations, setPatientRegistrations] = useState<PatientRegistration[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<PatientRegistration | null>(null);
+  const [activeTab, setActiveTab] = useState('appointments');
   const [walkInForm, setWalkInForm] = useState({
     vaccineType: '',
     doseNumber: '1',
@@ -287,9 +347,9 @@ const StaffPortal = () => {
   const dateLabel = isToday ? 'วันนี้' : new Date(selectedDate).toLocaleDateString('th-TH');
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
             <Stethoscope className="h-6 w-6 text-primary" />
@@ -297,366 +357,396 @@ const StaffPortal = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Staff Portal</h1>
             <p className="text-sm text-muted-foreground">
-              จัดการนัดหมายและการฉีดวัคซีน - วันที่ {new Date(selectedDate).toLocaleDateString('th-TH')}
+              จัดการระบบโรงพยาบาลวัคซีน
             </p>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="date-picker" className="text-sm font-medium">เลือกวันที่:</Label>
-            <Input
-              id="date-picker"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="w-40"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
-              variant="outline"
-              size="sm"
-              disabled={isToday}
-            >
-              วันนี้
-            </Button>
-            <Button
-              onClick={() => {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                handleDateChange(tomorrow.toISOString().split('T')[0]);
-              }}
-              variant="outline"
-              size="sm"
-            >
-              พรุ่งนี้
-            </Button>
-            <Button onClick={loadTodayAppointments} disabled={loading} variant="outline" size="sm">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              รีเฟรช
-            </Button>
-          </div>
-        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">นัดหมาย{dateLabel}</p>
-                <p className="text-2xl font-bold text-blue-600">{totalToday}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Navigation Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
+          <TabsTrigger value="appointments" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">นัดหมายและการฉีด</span>
+            <span className="sm:hidden">นัดหมาย</span>
+          </TabsTrigger>
+          <TabsTrigger value="domains" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            <span className="hidden sm:inline">จัดการโดเมน</span>
+            <span className="sm:hidden">โดเมน</span>
+          </TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">ฉีดแล้ว</p>
-                <p className="text-2xl font-bold text-green-600">{completedToday}</p>
-              </div>
+        {/* Appointments Tab */}
+        <TabsContent value="appointments" className="space-y-6 mt-6">
+          {/* Date Controls */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="date-picker" className="text-sm font-medium">เลือกวันที่:</Label>
+              <Input
+                id="date-picker"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="w-40"
+              />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">รอฉีด</p>
-                <p className="text-2xl font-bold text-yellow-600">{scheduledToday}</p>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+                variant="outline"
+                size="sm"
+                disabled={isToday}
+              >
+                วันนี้
+              </Button>
+              <Button
+                onClick={() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  handleDateChange(tomorrow.toISOString().split('T')[0]);
+                }}
+                variant="outline"
+                size="sm"
+              >
+                พรุ่งนี้
+              </Button>
+              <Button onClick={loadTodayAppointments} disabled={loading} variant="outline" size="sm">
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                รีเฟรช
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">อัตราสำเร็จ</p>
-                <p className="text-2xl font-bold text-purple-600">
-                  {totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">นัดหมาย{dateLabel}</p>
+                    <p className="text-2xl font-bold text-blue-600">{totalToday}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Walk-in Vaccination Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            บันทึกการฉีดวัคซีน Walk-in
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="patientSearch">ค้นหาผู้ป่วยที่ลงทะเบียนแล้ว *</Label>
-              <div className="relative">
-                <Input
-                  id="patientSearch"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="กรอกชื่อ หรือเบอร์โทรศัพท์เพื่อค้นหา"
-                  className="pr-10"
-                />
-                {searchTerm && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-background border rounded-b-md shadow-lg max-h-60 overflow-y-auto">
-                    {patientRegistrations
-                      .filter(patient =>
-                        patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        patient.phone.includes(searchTerm) ||
-                        patient.registration_id.includes(searchTerm)
-                      )
-                      .slice(0, 10)
-                      .map((patient) => (
-                        <div
-                          key={patient.id}
-                          className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0 transition-colors"
-                          onClick={() => {
-                            setSelectedPatient(patient);
-                            setSearchTerm('');
-                          }}
-                        >
-                          <div className="font-medium text-foreground">{patient.full_name}</div>
-                          <div className="text-sm text-muted-foreground flex items-center justify-between">
-                            <span>โทร: {patient.phone}</span>
-                            <span className="text-xs">ID: {patient.registration_id}</span>
-                          </div>
-                        </div>
-                      ))
-                    }
-                    {patientRegistrations.filter(patient =>
-                      patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      patient.phone.includes(searchTerm) ||
-                      patient.registration_id.includes(searchTerm)
-                    ).length === 0 && (
-                        <div className="p-3 text-center text-muted-foreground">
-                          ไม่พบผู้ป่วยที่ตรงกับการค้นหา
-                        </div>
-                      )}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ฉีดแล้ว</p>
+                    <p className="text-2xl font-bold text-green-600">{completedToday}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <Clock className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">รอฉีด</p>
+                    <p className="text-2xl font-bold text-yellow-600">{scheduledToday}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">อัตราสำเร็จ</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0}%
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Walk-in Vaccination Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                บันทึกการฉีดวัคซีน Walk-in
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="patientSearch">ค้นหาผู้ป่วยที่ลงทะเบียนแล้ว *</Label>
+                  <div className="relative">
+                    <Input
+                      id="patientSearch"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="กรอกชื่อ หรือเบอร์โทรศัพท์เพื่อค้นหา"
+                      className="pr-10"
+                    />
+                    {searchTerm && (
+                      <div className="absolute top-full left-0 right-0 z-50 bg-background border rounded-b-md shadow-lg max-h-60 overflow-y-auto">
+                        {patientRegistrations
+                          .filter(patient =>
+                            patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            patient.phone.includes(searchTerm) ||
+                            patient.registration_id.includes(searchTerm)
+                          )
+                          .slice(0, 10)
+                          .map((patient) => (
+                            <div
+                              key={patient.id}
+                              className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0 transition-colors"
+                              onClick={() => {
+                                setSelectedPatient(patient);
+                                setSearchTerm('');
+                              }}
+                            >
+                              <div className="font-medium text-foreground">{patient.full_name}</div>
+                              <div className="text-sm text-muted-foreground flex items-center justify-between">
+                                <span>โทร: {patient.phone}</span>
+                                <span className="text-xs">ID: {patient.registration_id}</span>
+                              </div>
+                            </div>
+                          ))
+                        }
+                        {patientRegistrations.filter(patient =>
+                          patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          patient.phone.includes(searchTerm) ||
+                          patient.registration_id.includes(searchTerm)
+                        ).length === 0 && (
+                            <div className="p-3 text-center text-muted-foreground">
+                              ไม่พบผู้ป่วยที่ตรงกับการค้นหา
+                            </div>
+                          )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {selectedPatient && (
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{selectedPatient.full_name}</div>
+                        <div className="text-sm text-muted-foreground">{selectedPatient.phone}</div>
+                        <div className="text-xs text-muted-foreground">ID: {selectedPatient.registration_id}</div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedPatient(null)}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
 
-            {selectedPatient && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <div className="font-medium">{selectedPatient.full_name}</div>
-                    <div className="text-sm text-muted-foreground">{selectedPatient.phone}</div>
-                    <div className="text-xs text-muted-foreground">ID: {selectedPatient.registration_id}</div>
+                    <Label htmlFor="vaccineType">ประเภทวัคซีน *</Label>
+                    <Select
+                      value={walkInForm.vaccineType}
+                      onValueChange={(value) => setWalkInForm({ ...walkInForm, vaccineType: value, doseNumber: '1' })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกประเภทวัคซีน" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vaccineOptions
+                          .filter(vaccine => vaccine.vaccine_type && vaccine.vaccine_type.trim() !== '')
+                          .map((vaccine) => (
+                            <SelectItem
+                              key={vaccine.id}
+                              value={vaccine.vaccine_type}
+                            >
+                              {vaccine.vaccine_name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSelectedPatient(null)}
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+                  <div>
+                    <Label htmlFor="doseNumber">โดสที่มาฉีด *</Label>
+                    <Select
+                      value={walkInForm.doseNumber}
+                      onValueChange={(value) => setWalkInForm({ ...walkInForm, doseNumber: value })}
+                      disabled={!walkInForm.vaccineType}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={walkInForm.vaccineType ? "เลือกโดสที่ฉีด" : "เลือกวัคซีนก่อน"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {walkInForm.vaccineType && (() => {
+                          const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
+                          const maxDoses = selectedVaccine?.total_doses || 1;
+                          const doseOptions = [];
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="vaccineType">ประเภทวัคซีน *</Label>
-                <Select
-                  value={walkInForm.vaccineType}
-                  onValueChange={(value) => setWalkInForm({ ...walkInForm, vaccineType: value, doseNumber: '1' })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="เลือกประเภทวัคซีน" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vaccineOptions
-                      .filter(vaccine => vaccine.vaccine_type && vaccine.vaccine_type.trim() !== '')
-                      .map((vaccine) => (
-                        <SelectItem
-                          key={vaccine.id}
-                          value={vaccine.vaccine_type}
-                        >
-                          {vaccine.vaccine_name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="doseNumber">โดสที่มาฉีด *</Label>
-                <Select
-                  value={walkInForm.doseNumber}
-                  onValueChange={(value) => setWalkInForm({ ...walkInForm, doseNumber: value })}
-                  disabled={!walkInForm.vaccineType}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={walkInForm.vaccineType ? "เลือกโดสที่ฉีด" : "เลือกวัคซีนก่อน"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {walkInForm.vaccineType && (() => {
-                      const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
-                      const maxDoses = selectedVaccine?.total_doses || 1;
-                      const doseOptions = [];
+                          for (let i = 1; i <= maxDoses; i++) {
+                            let label = `เข็มที่ ${i}`;
+                            if (i === 1) label += ' (เข็มแรก)';
+                            else if (i === maxDoses && maxDoses > 2) label += ' (เข็มสุดท้าย)';
+                            else if (i > 2) label += ' (เข็มเสริม)';
 
-                      for (let i = 1; i <= maxDoses; i++) {
-                        let label = `เข็มที่ ${i}`;
-                        if (i === 1) label += ' (เข็มแรก)';
-                        else if (i === maxDoses && maxDoses > 2) label += ' (เข็มสุดท้าย)';
-                        else if (i > 2) label += ' (เข็มเสริม)';
-
-                        doseOptions.push(
-                          <SelectItem key={i} value={i.toString()}>
-                            {label}
-                          </SelectItem>
-                        );
-                      }
-                      return doseOptions;
-                    })()}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {walkInForm.vaccineType ? (
-                    (() => {
-                      const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
-                      return `วัคซีนนี้มี ${selectedVaccine?.total_doses || 1} เข็ม - เลือกโดสที่คนไข้มาฉีดครั้งนี้`;
-                    })()
-                  ) : (
-                    'กรุณาเลือกประเภทวัคซีนก่อน'
-                  )}
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="notes">หมายเหตุ</Label>
-                <Input
-                  id="notes"
-                  value={walkInForm.notes}
-                  onChange={(e) => setWalkInForm({ ...walkInForm, notes: e.target.value })}
-                  placeholder="หมายเหตุเพิ่มเติม"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <Button onClick={createWalkInVaccination} className="bg-green-600 hover:bg-green-700">
-              <Syringe className="h-4 w-4 mr-2" />
-              บันทึกการฉีดวัคซีน
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Today's Appointments */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              นัดหมาย{dateLabel}
-            </CardTitle>
-            <Badge variant="secondary">
-              {todayAppointments.length} รายการ
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {todayAppointments.map((appointment) => (
-              <div key={appointment.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-lg">{appointment.patient_name}</h3>
-                      <Badge className={getStatusColor(appointment.status)}>
-                        {getStatusIcon(appointment.status)}
-                        <span className="ml-1">{getStatusText(appointment.status)}</span>
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Syringe className="h-4 w-4" />
-                        {appointment.vaccine_type}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        {appointment.appointment_time || 'ไม่ระบุเวลา'}
-                      </div>
-                      {appointment.patient_phone && (
-                        <div className="flex items-center gap-2">
-                          <span>📞</span>
-                          {appointment.patient_phone}
-                        </div>
+                            doseOptions.push(
+                              <SelectItem key={i} value={i.toString()}>
+                                {label}
+                              </SelectItem>
+                            );
+                          }
+                          return doseOptions;
+                        })()}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {walkInForm.vaccineType ? (
+                        (() => {
+                          const selectedVaccine = vaccineOptions.find(v => v.vaccine_type === walkInForm.vaccineType);
+                          return `วัคซีนนี้มี ${selectedVaccine?.total_doses || 1} เข็ม - เลือกโดสที่คนไข้มาฉีดครั้งนี้`;
+                        })()
+                      ) : (
+                        'กรุณาเลือกประเภทวัคซีนก่อน'
                       )}
-                      <div className="flex items-center gap-2">
-                        <span>🆔</span>
-                        {appointment.appointment_id}
-                      </div>
-                    </div>
-                    {appointment.notes && (
-                      <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
-                        {appointment.notes}
-                      </p>
-                    )}
+                    </p>
                   </div>
-                  <div className="flex gap-2 ml-4">
-                    {appointment.status === 'scheduled' && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => updateAppointmentStatus(appointment.appointment_id, 'completed')}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          ฉีดแล้ว
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateAppointmentStatus(appointment.appointment_id, 'no_show')}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          ไม่มา
-                        </Button>
-                      </>
-                    )}
+                  <div>
+                    <Label htmlFor="notes">หมายเหตุ</Label>
+                    <Input
+                      id="notes"
+                      value={walkInForm.notes}
+                      onChange={(e) => setWalkInForm({ ...walkInForm, notes: e.target.value })}
+                      placeholder="หมายเหตุเพิ่มเติม"
+                    />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="mt-4">
+                <Button onClick={createWalkInVaccination} className="bg-green-600 hover:bg-green-700">
+                  <Syringe className="h-4 w-4 mr-2" />
+                  บันทึกการฉีดวัคซีน
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          {todayAppointments.length === 0 && (
-            <div className="text-center py-12">
-              <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">ไม่มีนัดหมายใน{dateLabel}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {isToday ? 'ใช้ฟอร์มด้านบนสำหรับบันทึกการฉีดวัคซีน Walk-in' : 'เลือกวันที่อื่นเพื่อดูนัดหมาย'}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          {/* Today's Appointments */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  นัดหมาย{dateLabel}
+                </CardTitle>
+                <Badge variant="secondary">
+                  {todayAppointments.length} รายการ
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {todayAppointments.map((appointment) => (
+                  <div key={appointment.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex-1 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                          <h3 className="font-semibold text-lg">{appointment.patient_name}</h3>
+                          <Badge className={getStatusColor(appointment.status)}>
+                            {getStatusIcon(appointment.status)}
+                            <span className="ml-1">{getStatusText(appointment.status)}</span>
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Syringe className="h-4 w-4" />
+                            {appointment.vaccine_type}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            {appointment.appointment_time || 'ไม่ระบุเวลา'}
+                          </div>
+                          {appointment.patient_phone && (
+                            <div className="flex items-center gap-2">
+                              <span>📞</span>
+                              {appointment.patient_phone}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <span>🆔</span>
+                            {appointment.appointment_id}
+                          </div>
+                        </div>
+                        {appointment.notes && (
+                          <p className="mt-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                            {appointment.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 w-full sm:w-auto">
+                        {appointment.status === 'scheduled' && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => updateAppointmentStatus(appointment.appointment_id, 'completed')}
+                              className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              ฉีดแล้ว
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateAppointmentStatus(appointment.appointment_id, 'no_show')}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              ไม่มา
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {todayAppointments.length === 0 && (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">ไม่มีนัดหมายใน{dateLabel}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {isToday ? 'ใช้ฟอร์มด้านบนสำหรับบันทึกการฉีดวัคซีน Walk-in' : 'เลือกวันที่อื่นเพื่อดูนัดหมาย'}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Domain Management Tab */}
+        <TabsContent value="domains" className="space-y-6 mt-6">
+          <DomainManagementErrorBoundary fallback={DomainManagementErrorFallback}>
+            <DomainMonitoring className="mb-6" />
+            <DomainManagement />
+          </DomainManagementErrorBoundary>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
