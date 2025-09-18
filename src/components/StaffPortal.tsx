@@ -18,11 +18,14 @@ import {
   Syringe,
   UserPlus,
   Globe,
-  Settings
+  Settings,
+  Lock
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DomainManagement } from './DomainManagement';
 import { DomainMonitoring } from './DomainMonitoring';
+import { ProtectedRoute } from './ProtectedRoute';
+import { VaccineSettings } from './VaccineSettings';
 import React from 'react';
 
 interface Appointment {
@@ -365,7 +368,7 @@ const StaffPortal = () => {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
           <TabsTrigger value="appointments" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">นัดหมายและการฉีด</span>
@@ -375,6 +378,11 @@ const StaffPortal = () => {
             <Globe className="h-4 w-4" />
             <span className="hidden sm:inline">จัดการโดเมน</span>
             <span className="sm:hidden">โดเมน</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">ตั้งค่าระบบ</span>
+            <span className="sm:hidden">ตั้งค่า</span>
           </TabsTrigger>
         </TabsList>
 
@@ -741,10 +749,61 @@ const StaffPortal = () => {
 
         {/* Domain Management Tab */}
         <TabsContent value="domains" className="space-y-6 mt-6">
-          <DomainManagementErrorBoundary fallback={DomainManagementErrorFallback}>
-            <DomainMonitoring className="mb-6" />
-            <DomainManagement />
-          </DomainManagementErrorBoundary>
+          <ProtectedRoute 
+            requiredPermission="domain:read"
+            showLoginForm={false}
+            fallback={
+              <Card>
+                <CardContent className="py-8">
+                  <div className="text-center space-y-4">
+                    <Lock className="h-12 w-12 text-orange-500 mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-orange-700">Admin Access Required</h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        การจัดการโดเมนต้องใช้สิทธิ์ Admin เท่านั้น
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เข้าถึง
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            }
+          >
+            <DomainManagementErrorBoundary fallback={DomainManagementErrorFallback}>
+              <DomainMonitoring className="mb-6" />
+              <DomainManagement />
+            </DomainManagementErrorBoundary>
+          </ProtectedRoute>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6 mt-6">
+          <ProtectedRoute 
+            requiredPermission="system:settings"
+            showLoginForm={false}
+            fallback={
+              <Card>
+                <CardContent className="py-8">
+                  <div className="text-center space-y-4">
+                    <Lock className="h-12 w-12 text-orange-500 mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-orange-700">Admin Access Required</h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        การตั้งค่าระบบต้องใช้สิทธิ์ Admin เท่านั้น
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เข้าถึง
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            }
+          >
+            <VaccineSettings />
+          </ProtectedRoute>
         </TabsContent>
       </Tabs>
     </div>
