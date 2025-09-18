@@ -10,17 +10,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Plus, RefreshCw, Trash2, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Trash2, AlertCircle, CheckCircle, Clock, XCircle, Zap } from 'lucide-react';
 import { domainService } from '@/lib/domain-service';
 import { DomainConfiguration, DomainStatus } from '@/types/domain-config';
 import { AddDomainForm } from './AddDomainForm';
 import { DNSInstructionsDisplay } from './DNSInstructionsDisplay';
 import { DomainVerificationProgress } from './DomainVerificationProgress';
 import { DomainRemovalDialog } from './DomainRemovalDialog';
+import { VCHomeHospitalDomainSetup } from './VCHomeHospitalDomainSetup';
 import { useToast } from '@/hooks/use-toast';
 
 export function DomainManagement() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showVCHomeSetup, setShowVCHomeSetup] = useState(false);
   const [domainToDelete, setDomainToDelete] = useState<DomainConfiguration | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -113,8 +115,17 @@ export function DomainManagement() {
                 Refresh
               </Button>
               <Button
+                onClick={() => setShowVCHomeSetup(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Quick Setup
+              </Button>
+              <Button
                 onClick={() => setShowAddForm(true)}
                 size="sm"
+                variant="outline"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Domain
@@ -124,6 +135,19 @@ export function DomainManagement() {
         </CardHeader>
 
         <CardContent>
+          {showVCHomeSetup && (
+            <>
+              <VCHomeHospitalDomainSetup
+                onSuccess={() => {
+                  setShowVCHomeSetup(false);
+                  queryClient.invalidateQueries({ queryKey: ['domain-configurations'] });
+                }}
+                onCancel={() => setShowVCHomeSetup(false)}
+              />
+              <Separator className="my-6" />
+            </>
+          )}
+
           {showAddForm && (
             <>
               <AddDomainForm
