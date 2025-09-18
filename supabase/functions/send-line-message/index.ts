@@ -101,7 +101,7 @@ serve(async (req) => {
             type: "bubble",
             hero: {
               type: "image",
-              url: "https://9c116328-942e-4c36-bc79-61f41d6414de.lovableproject.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+              url: "/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
               size: "full",
               aspectRatio: "20:13",
               aspectMode: "cover"
