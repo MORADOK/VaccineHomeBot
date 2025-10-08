@@ -3,6 +3,7 @@ name: GitHub Pages
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -19,6 +20,9 @@ jobs:
       - run: npm install
       
       - run: npm run build
+      
+      - name: List build files
+        run: ls -la dist/
       
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
