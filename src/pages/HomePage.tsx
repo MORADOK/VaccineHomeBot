@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Bot, UserPlus, Users, Shield, User, LogOut, Activity, TrendingUp } from 'lucide-react';
+import { HospitalLogo } from '@/components/HospitalLogo';
+import { DebugInfo } from '@/components/DebugInfo';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -94,25 +96,7 @@ const HomePage = () => {
       <div className="mb-8">
         <div className="text-center mb-8">
           <div className="mb-6">
-            <img 
-              src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
-              alt="โรงพยาบาลโฮม" 
-              className="mx-auto h-32 w-auto object-contain animate-float"
-              onError={(e) => {
-                // Fallback images for GitHub Pages
-                const fallbacks = [
-                  `${import.meta.env.BASE_URL}images/home-hospital-logo.png`,
-                  `${import.meta.env.BASE_URL}favicon-hospital.png`,
-                  '/images/hospital-logo.png'
-                ]
-                const img = e.currentTarget as HTMLImageElement
-                const currentSrc = img.src
-                const nextFallback = fallbacks.find(url => !currentSrc.includes(url))
-                if (nextFallback) {
-                  img.src = nextFallback
-                }
-              }}
-            />
+            <HospitalLogo className="mx-auto animate-float" size={128} />
           </div>
           <h1 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">
             ระบบจัดการวัคซีน
