@@ -194,7 +194,7 @@ const AuthenticatedStaffPortal = () => {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
                 <img
-                  src="/images/hospital-logo.png"
+                  src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
                   alt="โลโก้โรงพยาบาลโฮม"
                   className="w-full h-full object-cover"
                 />

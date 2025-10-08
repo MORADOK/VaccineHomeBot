@@ -95,9 +95,23 @@ const HomePage = () => {
         <div className="text-center mb-8">
           <div className="mb-6">
             <img 
-              src="/images/hospital-logo.png" 
+              src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
               alt="โรงพยาบาลโฮม" 
               className="mx-auto h-32 w-auto object-contain animate-float"
+              onError={(e) => {
+                // Fallback images for GitHub Pages
+                const fallbacks = [
+                  `${import.meta.env.BASE_URL}images/home-hospital-logo.png`,
+                  `${import.meta.env.BASE_URL}favicon-hospital.png`,
+                  '/images/hospital-logo.png'
+                ]
+                const img = e.currentTarget as HTMLImageElement
+                const currentSrc = img.src
+                const nextFallback = fallbacks.find(url => !currentSrc.includes(url))
+                if (nextFallback) {
+                  img.src = nextFallback
+                }
+              }}
             />
           </div>
           <h1 className="text-4xl font-bold mb-4 bg-gradient-primary bg-clip-text text-transparent">

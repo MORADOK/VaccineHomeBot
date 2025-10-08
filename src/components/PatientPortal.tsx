@@ -154,7 +154,7 @@ const PatientPortal = () => {
             <CardContent className="p-8 text-center">
               <div className="mb-4">
                 <img 
-                  src="/images/hospital-logo.png" 
+                  src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
                   alt="โรงพยาบาลโฮม" 
                   className="mx-auto h-16 w-auto object-contain mb-4"
                 />
@@ -216,7 +216,7 @@ const PatientPortal = () => {
         <div className="text-center">
           <div className="mb-4">
             <img 
-              src="/images/hospital-logo.png" 
+              src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
               alt="โรงพยาบาลโฮม" 
               className="mx-auto h-24 w-auto object-contain"
             />
