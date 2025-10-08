@@ -39,11 +39,12 @@
 
 ## 🌐 **เข้าใช้ผ่าน Web Browser**
 
-### **🔗 Web Application:**
-- **[🌐 VCHome Hospital Web App](https://moradok.github.io/VaccineHomeBot)**
+### **🔗 Web Application (GitHub Pages):**
+- **[🌐 VCHome Hospital Web App](https://moradok.github.io/VaccineHomeBot/)**
   - ใช้งานผ่าน browser ได้เลย
   - ไม่ต้องติดตั้งอะไร
   - รองรับ mobile และ tablet
+  - อัพเดทอัตโนมัติจาก GitHub
 
 ---
 
