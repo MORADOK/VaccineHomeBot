@@ -14,6 +14,7 @@ import { Loader2, Zap, CheckCircle, Copy, ExternalLink, Globe, Shield, Clock } f
 import { domainService } from '@/lib/domain-service';
 import { useToast } from '@/hooks/use-toast';
 import { DOMAIN_PRESETS, RENDER_CONFIG } from '@/config/domain-presets';
+import { DomainMigrationHelper } from './DomainMigrationHelper';
 
 interface VCHomeHospitalDomainSetupProps {
   onSuccess?: () => void;
@@ -21,8 +22,9 @@ interface VCHomeHospitalDomainSetupProps {
 }
 
 export function VCHomeHospitalDomainSetup({ onSuccess, onCancel }: VCHomeHospitalDomainSetupProps) {
-  const [step, setStep] = useState<'setup' | 'instructions' | 'monitoring'>('setup');
+  const [step, setStep] = useState<'setup' | 'migration' | 'instructions' | 'monitoring'>('setup');
   const [selectedPreset, setSelectedPreset] = useState('vchomehospital-www');
+  const [setupType, setSetupType] = useState<'new' | 'migrate'>('migrate');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,7 +109,59 @@ export function VCHomeHospitalDomainSetup({ onSuccess, onCancel }: VCHomeHospita
         <CardContent>
           {step === 'setup' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <h3 className="font-medium">Choose Setup Type:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-colors ${
+                      setupType === 'migrate' 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'hover:border-gray-300'
+                    }`}
+                    onClick={() => setSetupType('migrate')}
+                  >
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <div className="font-medium text-sm">
+                          🔄 Migrate Existing Domain
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Switch from your current domain to www.vchomehospital.co.th
+                        </div>
+                        <Badge variant="default" className="text-xs">
+                          Recommended
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer transition-colors ${
+                      setupType === 'new' 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'hover:border-gray-300'
+                    }`}
+                    onClick={() => setSetupType('new')}
+                  >
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <div className="font-medium text-sm">
+                          ✨ New Domain Setup
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Add www.vchomehospital.co.th as additional domain
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          Advanced
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {setupType === 'new' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {DOMAIN_PRESETS.filter(p => p.domain === 'vchomehospital.co.th').map((presetOption) => (
                   <Card 
                     key={presetOption.id}
@@ -133,7 +187,8 @@ export function VCHomeHospitalDomainSetup({ onSuccess, onCancel }: VCHomeHospita
                     </CardContent>
                   </Card>
                 ))}
-              </div>
+                </div>
+              )}
 
               <Separator />
 
@@ -172,7 +227,13 @@ export function VCHomeHospitalDomainSetup({ onSuccess, onCancel }: VCHomeHospita
 
               <div className="flex gap-2">
                 <Button 
-                  onClick={handleSetupDomain}
+                  onClick={() => {
+                    if (setupType === 'migrate') {
+                      setStep('migration');
+                    } else {
+                      handleSetupDomain();
+                    }
+                  }}
                   disabled={addDomainMutation.isPending}
                   className="flex-1"
                 >
@@ -184,7 +245,7 @@ export function VCHomeHospitalDomainSetup({ onSuccess, onCancel }: VCHomeHospita
                   ) : (
                     <>
                       <Zap className="h-4 w-4 mr-2" />
-                      Setup Domain
+                      {setupType === 'migrate' ? 'Start Migration' : 'Setup Domain'}
                     </>
                   )}
                 </Button>
@@ -195,6 +256,20 @@ export function VCHomeHospitalDomainSetup({ onSuccess, onCancel }: VCHomeHospita
                 )}
               </div>
             </div>
+          )}
+
+          {step === 'migration' && (
+            <DomainMigrationHelper
+              currentDomain="your-render-app.onrender.com"
+              onMigrate={(newDomain) => {
+                toast({
+                  title: 'Migration Started',
+                  description: `Migrating to ${newDomain}`,
+                });
+                setStep('monitoring');
+                onSuccess?.();
+              }}
+            />
           )}
 
           {step === 'instructions' && (

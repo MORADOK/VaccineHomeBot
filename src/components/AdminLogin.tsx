@@ -116,14 +116,20 @@ export function AdminLogin({ onSuccess }: AdminLoginProps) {
           </form>
 
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Demo Accounts:</h4>
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Admin Access:</h4>
             <div className="text-xs text-gray-600 space-y-1">
               <div>
-                <strong>Admin:</strong> admin@vchomehospital.co.th / admin123
+                <strong>Existing Users:</strong> Use your regular login credentials
+              </div>
+              <div>
+                <strong>Demo Admin:</strong> admin@vchomehospital.co.th / admin123
               </div>
               <div>
                 <strong>Super Admin:</strong> superadmin@vchomehospital.co.th / superadmin123
               </div>
+            </div>
+            <div className="mt-2 text-xs text-blue-600">
+              💡 Admin access is granted to @vchomehospital.co.th emails
             </div>
           </div>
         </CardContent>
