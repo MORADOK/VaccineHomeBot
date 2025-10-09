@@ -137,6 +137,8 @@
       ]
     },
     "win": {
+      "verifyUpdateCodeSignature": false,
+      "signAndEditExecutable": false,
       "target": [
         {
           "target": "nsis",
