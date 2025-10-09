@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, LogOut, User, Calculator, Bell, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 import StaffPortal from './StaffPortal';
 import VaccineScheduleCalculator from './VaccineScheduleCalculator';
@@ -18,8 +19,8 @@ import EditPatientAppointment from './EditPatientAppointment';
 import NotificationTestPanel from './NotificationTestPanel';
 
 const AuthenticatedStaffPortal = () => {
-  const [user, setUser] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

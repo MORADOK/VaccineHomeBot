@@ -1,75 +1,57 @@
-```
- # Welcome to your Lovable project
+# VCHome Hospital Management System
 
-## Project info
+A comprehensive hospital vaccine management application for healthcare providers.
 
-**URL**: https://lovable.dev/projects/9c116328-942e-4c36-bc79-61f41d6414de
+## About
 
-## How can I edit this code?
+VCHome Hospital Management System helps healthcare facilities manage patient vaccinations, appointments, and records. The system provides web and desktop applications with LINE bot integration.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- Patient registration and vaccination tracking
+- Appointment scheduling and reminders
+- Staff portal for healthcare providers
+- LINE bot integration for patient communication
+- Domain management and custom branding
+- Google Sheets integration
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9c116328-942e-4c36-bc79-61f41d6414de) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Development Setup
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Follow these steps:
-
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone https://github.com/MORADOK/VaccineHomeBot.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to project directory
+cd VaccineHomeBot
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
-
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9c116328-942e-4c36-bc79-61f41d6414de) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 ```
+
+## Technologies
+
+- **Frontend:** React 18, TypeScript, Vite
+- **UI:** shadcn/ui, Tailwind CSS
+- **Backend:** Supabase (PostgreSQL)
+- **Desktop:** Electron
+- **Testing:** Vitest, Testing Library
+
+## Deployment
+
+See `DEPLOYMENT-GUIDE.md` for complete deployment instructions including:
+- Web deployment (GitHub Pages, Vercel, Netlify)
+- Desktop builds (Windows, macOS, Linux)
+- Supabase database setup
+
+## Desktop Application
+
+See `DESKTOP-APP-README.md` for desktop app build instructions and distribution.
+
+## License
+
+Copyright © 2024 VCHome Hospital. All rights reserved.

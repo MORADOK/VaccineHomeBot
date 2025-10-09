@@ -7,9 +7,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
+interface AppLayoutUser {
+  email?: string;
+  id?: string;
+}
+
 interface AppLayoutProps {
   children: React.ReactNode;
-  user?: any;
+  user?: AppLayoutUser;
   showSidebar?: boolean;
   title?: string;
 }

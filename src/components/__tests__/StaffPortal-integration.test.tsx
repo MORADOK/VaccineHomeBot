@@ -4,16 +4,9 @@
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi } from 'vitest';
+import { vi, describe, it, beforeEach, expect } from 'vitest';
 import StaffPortal from '../StaffPortal';
-import { it } from 'date-fns/locale';
-import { it } from 'date-fns/locale';
-import { it } from 'date-fns/locale';
-import { it } from 'date-fns/locale';
-import { it } from 'date-fns/locale';
-import { it } from 'date-fns/locale';
-import { beforeEach } from 'node:test';
-import { describe } from 'node:test';
+import React from 'react';
 
 // Mock the supabase client
 vi.mock('@/integrations/supabase/client', () => ({
@@ -42,6 +35,22 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: vi.fn()
   })
+}));
+
+// Mock Lucide React icons
+vi.mock('lucide-react', () => ({
+  Users: () => <div data-testid="users-icon" />,
+  Syringe: () => <div data-testid="syringe-icon" />,
+  Calendar: () => <div data-testid="calendar-icon" />,
+  Bell: () => <div data-testid="bell-icon" />,
+  Search: () => <div data-testid="search-icon" />,
+  Plus: () => <div data-testid="plus-icon" />,
+  Edit: () => <div data-testid="edit-icon" />,
+  Send: () => <div data-testid="send-icon" />,
+  CheckCircle: () => <div data-testid="check-circle-icon" />,
+  Clock: () => <div data-testid="clock-icon" />,
+  UserCheck: () => <div data-testid="user-check-icon" />,
+  FileText: () => <div data-testid="file-text-icon" />,
 }));
 
 describe('StaffPortal Integration', () => {

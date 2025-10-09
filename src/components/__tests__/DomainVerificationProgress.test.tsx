@@ -12,6 +12,18 @@ import { DomainConfiguration } from '@/types/domain-config';
 // Mock the hook
 vi.mock('@/hooks/use-domain-verification');
 
+// Mock Lucide React icons
+vi.mock('lucide-react', () => ({
+  CheckCircle: () => <div data-testid="check-circle-icon" />,
+  XCircle: () => <div data-testid="x-circle-icon" />,
+  Clock: () => <div data-testid="clock-icon" />,
+  RefreshCw: () => <div data-testid="refresh-icon" />,
+  AlertTriangle: () => <div data-testid="alert-triangle-icon" />,
+  Loader2: () => <div data-testid="loader-icon" />,
+  Play: () => <div data-testid="play-icon" />,
+  Square: () => <div data-testid="square-icon" />,
+}));
+
 describe('DomainVerificationProgress', () => {
   let mockDomain: DomainConfiguration;
   let mockHookReturn: ReturnType<typeof useDomainVerification>;

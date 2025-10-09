@@ -30,6 +30,7 @@ vi.mock('lucide-react', () => ({
   ExternalLink: () => <div data-testid="external-link-icon" />,
   Info: () => <div data-testid="info-icon" />,
   AlertTriangle: () => <div data-testid="alert-triangle-icon" />,
+  Settings: () => <div data-testid="settings-icon" />,
 }));
 
 // Mock clipboard API

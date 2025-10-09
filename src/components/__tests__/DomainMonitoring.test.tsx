@@ -28,6 +28,18 @@ vi.mock('@/hooks/use-domain-monitoring', () => ({
   useDomainMonitoring: () => mockUseDomainMonitoring,
 }));
 
+// Mock Lucide React icons
+vi.mock('lucide-react', () => ({
+  AlertTriangle: () => <div data-testid="alert-triangle-icon" />,
+  CheckCircle: () => <div data-testid="check-circle-icon" />,
+  XCircle: () => <div data-testid="x-circle-icon" />,
+  Clock: () => <div data-testid="clock-icon" />,
+  Shield: () => <div data-testid="shield-icon" />,
+  Activity: () => <div data-testid="activity-icon" />,
+  RefreshCw: () => <div data-testid="refresh-icon" />,
+  Bell: () => <div data-testid="bell-icon" />,
+}));
+
 describe('DomainMonitoring', () => {
   let queryClient: QueryClient;
 

@@ -13,6 +13,18 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
+// Mock Lucide React icons
+vi.mock('lucide-react', () => ({
+  Copy: () => <div data-testid="copy-icon" />,
+  Check: () => <div data-testid="check-icon" />,
+  ExternalLink: () => <div data-testid="external-link-icon" />,
+  Info: () => <div data-testid="info-icon" />,
+  AlertTriangle: () => <div data-testid="alert-triangle-icon" />,
+  Globe: () => <div data-testid="globe-icon" />,
+  Server: () => <div data-testid="server-icon" />,
+  Shield: () => <div data-testid="shield-icon" />,
+}));
+
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {

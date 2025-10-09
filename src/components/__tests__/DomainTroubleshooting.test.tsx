@@ -13,6 +13,19 @@ vi.mock('@/lib/dns-service', () => ({
   verifySSLCertificate: vi.fn()
 }));
 
+// Mock Lucide React icons
+vi.mock('lucide-react', () => ({
+  AlertTriangle: () => <div data-testid="alert-triangle-icon" />,
+  CheckCircle: () => <div data-testid="check-circle-icon" />,
+  XCircle: () => <div data-testid="x-circle-icon" />,
+  RefreshCw: () => <div data-testid="refresh-icon" />,
+  ExternalLink: () => <div data-testid="external-link-icon" />,
+  Copy: () => <div data-testid="copy-icon" />,
+  Mail: () => <div data-testid="mail-icon" />,
+  MessageCircle: () => <div data-testid="message-circle-icon" />,
+  Globe: () => <div data-testid="globe-icon" />,
+}));
+
 // Import the mocked functions
 const { validateDomain } = await import('@/lib/domain-validation');
 const { checkDNSPropagation, verifySSLCertificate } = await import('@/lib/dns-service');

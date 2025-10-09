@@ -40,6 +40,7 @@ vi.mock('lucide-react', () => ({
   ChevronDown: () => <div data-testid="chevron-down-icon" />,
   ChevronUp: () => <div data-testid="chevron-up-icon" />,
   Check: () => <div data-testid="check-icon" />,
+  Zap: () => <div data-testid="zap-icon" />,
 }));
 
 const mockDomains: DomainConfiguration[] = [

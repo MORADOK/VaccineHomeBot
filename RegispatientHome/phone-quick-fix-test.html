@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔧 Phone Input Quick Fix Test</title>
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin: 20px 0;
+    }
+    .label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      color: #333;
+    }
+    .input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: 'Sarabun', sans-serif;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+    .input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    .input.error {
+      border-color: #dc3545;
+      background-color: #fff5f5;
+    }
+    .error {
+      color: #dc3545;
+      font-size: 14px;
+      margin-top: 5px;
+      display: none;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Phone Input Quick Fix Test</h1>
+    <p><strong>ปัญหา:</strong> พิมพ์เลขเบอร์ไม่ครบช่องหายไป</p>
+    <p><strong>การแก้ไข:</strong> ลดความซับซ้อนของ formatting ลง</p>
+
+    <div class="info">
+      <strong>🧪 วิธีทดสอบ:</strong><br>
+      1. กรอกเบอร์โทรศัพท์ในช่องด้านล่าง<br>
+      2. ตรวจสอบว่าตัวเลขไม่หายไประหว่างพิมพ์<br>
+      3. ลอง focus/blur เพื่อดู formatting<br>
+      4. ทดสอบ validation
+    </div>
+
+    <div class="form-group">
+      <label class="label" for="testPhone">ทดสอบกรอกเบอร์โทรศัพท์:</label>
+      <input type="tel" id="testPhone" class="input" placeholder="กรอกเบอร์โทรศัพท์" maxlength="12">
+      <div class="error" id="phoneError">ข้อผิดพลาด</div>
+    </div>
+
+    <div id="status" class="info">
+      <strong>สถานะ:</strong> รอการกรอกข้อมูล...<br>
+      <strong>Raw Value:</strong> <span id="rawValue">-</span><br>
+      <strong>Display Value:</strong> <span id="displayValue">-</span><br>
+      <strong>Validation:</strong> <span id="validationStatus">-</span>
+    </div>
+
+    <div class="info">
+      <strong>📋 Test Cases:</strong><br>
+      • <strong>0812345678</strong> - เบอร์ปกติ<br>
+      • <strong>812345678</strong> - ไม่มี 0 ข้างหน้า<br>
+      • <strong>08123456789</strong> - ยาวเกินไป (ควรตัดเหลือ 10 หลัก)<br>
+      • <strong>081234567</strong> - สั้นเกินไป<br>
+      • <strong>0712345678</strong> - เบอร์บ้าน (ไม่ผ่าน)
+    </div>
+  </div>
+
+  <!-- Include validation service -->
+  <script src="./config.js"></script>
+  <script src="./validation.js"></script>
+
+  <script>
+    let validationService;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        validationService = new ValidationService();
+        console.log('✅ ValidationService initialized');
+        setupPhoneInput();
+      } catch (error) {
+        console.error('❌ Failed to initialize ValidationService:', error);
+        document.getElementById('status').innerHTML = '<strong style="color: red;">❌ ValidationService failed to load</strong>';
+      }
+    });
+
+    function setupPhoneInput() {
+      const elPhone = document.getElementById('testPhone');
+      const phoneError = document.getElementById('phoneError');
+      const rawValue = document.getElementById('rawValue');
+      const displayValue = document.getElementById('displayValue');
+      const validationStatus = document.getElementById('validationStatus');
+
+      // Same simplified logic as in main index.html
+      elPhone.addEventListener('input', (e) => {
+        console.log('Input event:', e.target.value);
+        
+        // เก็บเฉพาะตัวเลข และจำกัด 10 หลัก
+        const cleaned = e.target.value.replace(/[^\d]/g, '').substring(0, 10);
+        
+        // อัพเดทค่าโดยไม่ format (ให้ user เห็นตัวเลขเปล่าๆ)
+        e.target.value = cleaned;
+        
+        // เก็บ raw value
+        e.target.setAttribute('data-raw-value', cleaned);
+
+        // Update display
+        rawValue.textContent = cleaned || '-';
+        displayValue.textContent = e.target.value || '-';
+
+        // Real-time validation feedback (เฉพาะเมื่อมี 9+ หลัก)
+        if (validationService && cleaned.length >= 9) {
+          const validation = validationService.validatePhoneNumber(cleaned);
+          validationStatus.textContent = validation.isValid ? '✅ Valid' : '❌ ' + validation.errors[0];
+          
+          if (validation.isValid) {
+            e.target.classList.remove('error');
+            phoneError.style.display = 'none';
+          } else {
+            e.target.classList.add('error');
+            phoneError.textContent = validation.errors[0] || 'รูปแบบเบอร์โทรไม่ถูกต้อง';
+            phoneError.style.display = 'block';
+          }
+        } else {
+          // ยังกรอกไม่ครบ ไม่แสดง error
+          e.target.classList.remove('error');
+          phoneError.style.display = 'none';
+          validationStatus.textContent = cleaned.length > 0 ? `Typing... (${cleaned.length}/10)` : '-';
+        }
+      });
+
+      elPhone.addEventListener('blur', (e) => {
+        console.log('Blur event:', e.target.value);
+        
+        if (validationService) {
+          const rawVal = e.target.getAttribute('data-raw-value') || e.target.value.replace(/[^\d]/g, '');
+          const validation = validationService.validatePhoneNumber(rawVal);
+          
+          if (validation.isValid) {
+            // แสดงรูปแบบที่สวยงาม เฉพาะเมื่อ blur
+            const formatted = validation.sanitized.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3');
+            e.target.value = formatted;
+            e.target.setAttribute('data-raw-value', validation.sanitized);
+            e.target.classList.remove('error');
+            phoneError.style.display = 'none';
+            validationStatus.textContent = '✅ Valid: ' + validation.sanitized;
+            displayValue.textContent = formatted;
+          } else if (rawVal.length > 0) {
+            // แสดง error เมื่อ blur และมีข้อมูล
+            e.target.classList.add('error');
+            phoneError.textContent = validation.errors[0] || 'รูปแบบเบอร์โทรไม่ถูกต้อง';
+            phoneError.style.display = 'block';
+            validationStatus.textContent = '❌ Invalid: ' + validation.errors[0];
+          }
+        }
+      });
+
+      elPhone.addEventListener('focus', (e) => {
+        console.log('Focus event:', e.target.value);
+        
+        // เมื่อ focus ให้แสดงตัวเลขเปล่าๆ เพื่อง่ายต่อการแก้ไข
+        const rawVal = e.target.getAttribute('data-raw-value') || e.target.value.replace(/[^\d]/g, '');
+        e.target.value = rawVal;
+        displayValue.textContent = rawVal || '-';
+        validationStatus.textContent = rawVal.length > 0 ? `Editing... (${rawVal.length}/10)` : 'Ready for input';
+      });
+    }
+  </script>
+</body>
+</html>

@@ -11,12 +11,16 @@
 - [x] 2. Update component image references
 
 
-- [ ] 2.1 Update HomePage.tsx image reference
+- [x] 2.1 Update HomePage.tsx image reference
+
+
   - Replace `/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png` with `/images/hospital-logo.png`
   - Test component rendering with new image path
 
 
   - _Requirements: 2.1, 2.3_
+
+
 
 - [ ] 2.2 Update PatientPortal.tsx image references
   - Replace all lovable-uploads image paths with `/images/hospital-logo.png`

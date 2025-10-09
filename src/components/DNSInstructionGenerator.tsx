@@ -142,8 +142,8 @@ export function DNSInstructionGenerator({ domain, className }: DNSInstructionGen
     let name: string;
     let value: string;
     let instructions: string[];
-    let warnings: string[] = [];
-    let tips: string[] = [];
+    const warnings: string[] = [];
+    const tips: string[] = [];
 
     // Determine the name field based on domain type
     if (isRootDomainCheck) {
