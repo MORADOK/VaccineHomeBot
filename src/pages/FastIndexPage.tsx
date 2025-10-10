@@ -157,11 +157,10 @@ const FastIndexPage = () => {
           </h2>
 
           <p style={{
-            margin: '0',
+            margin: '0 auto',
             fontSize: '16px',
             color: '#64748b',
-            maxWidth: '500px',
-            margin: '0 auto'
+            maxWidth: '500px'
           }}>
             เลือกระบบที่คุณต้องการเข้าใช้งาน
           </p>

@@ -56,7 +56,7 @@ export class DNSConfigurationService {
    */
   parseDNSRecord(recordData: unknown): DNSRecord {
     const parsed = dnsRecordSchema.parse(recordData);
-    return parsed;
+    return parsed as DNSRecord;
   }
 
   /**
