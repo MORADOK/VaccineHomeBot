@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple React Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .counter {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="container">
+            <div class="header">
+                <h1>🔄 Loading React...</h1>
+                <p>กำลังโหลดและทดสอบ React</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [count, setCount] = useState(0);
+            const [status, setStatus] = useState('loading');
+            const [message, setMessage] = useState('กำลังเริ่มต้น React...');
+            const [tests, setTests] = useState([]);
+
+            useEffect(() => {
+                console.log('React App started successfully!');
+                
+                // Simulate loading and testing
+                setTimeout(() => {
+                    setStatus('success');
+                    setMessage('React ทำงานได้ปกติ! 🎉');
+                    
+                    setTests([
+                        { name: 'React Library', status: 'success', message: 'โหลดสำเร็จ' },
+                        { name: 'ReactDOM', status: 'success', message: 'โหลดสำเร็จ' },
+                        { name: 'Babel Transform', status: 'success', message: 'JSX ทำงานได้' },
+                        { name: 'State Management', status: 'success', message: 'useState ทำงานได้' },
+                        { name: 'Effect Hooks', status: 'success', message: 'useEffect ทำงานได้' }
+                    ]);
+                }, 1000);
+            }, []);
+
+            const handleIncrement = () => {
+                setCount(prev => prev + 1);
+                console.log('Counter incremented to:', count + 1);
+            };
+
+            const handleDecrement = () => {
+                setCount(prev => prev - 1);
+                console.log('Counter decremented to:', count - 1);
+            };
+
+            const handleReset = () => {
+                setCount(0);
+                console.log('Counter reset');
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>⚛️ React Test Application</h1>
+                        <p>{message}</p>
+                    </div>
+
+                    <div className={`test-card ${status === 'success' ? 'success' : ''}`}>
+                        <h3>📊 Test Results</h3>
+                        {tests.length === 0 ? (
+                            <p>กำลังทดสอบ...</p>
+                        ) : (
+                            <ul style={{listStyle: 'none', padding: 0}}>
+                                {tests.map((test, index) => (
+                                    <li key={index} style={{margin: '10px 0'}}>
+                                        <span style={{color: test.status === 'success' ? '#28a745' : '#dc3545'}}>
+                                            {test.status === 'success' ? '✅' : '❌'}
+                                        </span>
+                                        {' '}
+                                        <strong>{test.name}:</strong> {test.message}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <div className="test-card">
+                        <h3>🔢 Interactive Counter Test</h3>
+                        <div className="counter">
+                            Count: {count}
+                        </div>
+                        <div style={{textAlign: 'center'}}>
+                            <button onClick={handleDecrement}>➖ ลด</button>
+                            <button onClick={handleReset}>🔄 รีเซ็ต</button>
+                            <button onClick={handleIncrement}>➕ เพิ่ม</button>
+                        </div>
+                    </div>
+
+                    <div className="test-card">
+                        <h3>🎯 Component Features</h3>
+                        <ul>
+                            <li>✅ JSX Syntax</li>
+                            <li>✅ useState Hook</li>
+                            <li>✅ useEffect Hook</li>
+                            <li>✅ Event Handlers</li>
+                            <li>✅ Conditional Rendering</li>
+                            <li>✅ List Rendering</li>
+                            <li>✅ CSS Classes</li>
+                        </ul>
+                    </div>
+
+                    <div className="test-card">
+                        <h3>🔍 Debug Information</h3>
+                        <p><strong>React Version:</strong> {React.version}</p>
+                        <p><strong>Environment:</strong> {typeof window !== 'undefined' ? 'Browser' : 'Server'}</p>
+                        <p><strong>Timestamp:</strong> {new Date().toLocaleString('th-TH')}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        // Error boundary
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+
+            componentDidCatch(error, errorInfo) {
+                console.error('React Error Boundary caught an error:', error, errorInfo);
+            }
+
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="container">
+                            <div className="test-card error">
+                                <h3>❌ React Error Detected</h3>
+                                <p><strong>Error:</strong> {this.state.error?.message}</p>
+                                <p>กรุณาตรวจสอบ Console สำหรับรายละเอียดเพิ่มเติม</p>
+                                <button onClick={() => window.location.reload()}>
+                                    🔄 Reload Page
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return this.props.children;
+            }
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
+
+        console.log('React application initialized successfully!');
+    </script>
+</body>
+</html>

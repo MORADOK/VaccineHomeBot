@@ -11,6 +11,9 @@ import PatientPortalPage from "./pages/PatientPortalPage";
 import StaffPortalPage from "./pages/StaffPortalPage";
 import HomePage from "./pages/HomePage";
 import AuthPage from "./pages/AuthPage";
+import SimpleAuthPage from "./pages/SimpleAuthPage";
+import LoadingPage from "./pages/LoadingPage";
+import FastIndexPage from "./pages/FastIndexPage";
 import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
 import VaccineStatusPage from "./pages/VaccineStatusPage";
 
@@ -25,7 +28,10 @@ const App = () => (
         <BrowserRouter basename={import.meta.env.PROD ? '/VaccineHomeBot' : ''}>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/loading" element={<LoadingPage />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/auth" element={<SimpleAuthPage />} />
+            <Route path="/auth-full" element={<AuthPage />} />
             <Route path="/admin" element={<Index />} />
             <Route path="/line-bot" element={<LineBotPage />} />
             <Route path="/LineBot" element={<LineBotPage />} />

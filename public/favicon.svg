@@ -1,12 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="4" fill="white"/>
-  <!-- Green Medical Cross -->
-  <g transform="translate(16, 16)">
-    <!-- Vertical bar of cross -->
-    <rect x="-2.5" y="-10" width="5" height="20" rx="2.5" fill="#059669"/>
-    <!-- Horizontal bar of cross -->
-    <rect x="-10" y="-2.5" width="20" height="5" rx="2.5" fill="#059669"/>
-    <!-- Orange/Brown roof -->
-    <path d="M7 -6 L12 -8 L12 -3 L9 -2 Z" fill="#B45309"/>
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0fdfa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="crossGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14b8a6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="hospitalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  
+  <!-- Background with gradient -->
+  <rect width="32" height="32" rx="6" fill="url(#bgGradient)" stroke="#e5e7eb" stroke-width="0.5"/>
+  
+  <!-- Hospital building -->
+  <g transform="translate(16, 16)" filter="url(#shadow)">
+    <!-- Main building -->
+    <rect x="-8" y="-4" width="16" height="12" rx="1" fill="url(#hospitalGradient)" opacity="0.9"/>
+    
+    <!-- Windows -->
+    <rect x="-6" y="-2" width="2" height="2" rx="0.5" fill="white" opacity="0.8"/>
+    <rect x="-2" y="-2" width="2" height="2" rx="0.5" fill="white" opacity="0.8"/>
+    <rect x="2" y="-2" width="2" height="2" rx="0.5" fill="white" opacity="0.8"/>
+    <rect x="-6" y="2" width="2" height="2" rx="0.5" fill="white" opacity="0.8"/>
+    <rect x="2" y="2" width="2" height="2" rx="0.5" fill="white" opacity="0.8"/>
+    
+    <!-- Medical Cross (centered) -->
+    <g transform="translate(0, 0)">
+      <!-- Vertical bar -->
+      <rect x="-1.5" y="-6" width="3" height="12" rx="1.5" fill="url(#crossGradient)"/>
+      <!-- Horizontal bar -->
+      <rect x="-6" y="-1.5" width="12" height="3" rx="1.5" fill="url(#crossGradient)"/>
+    </g>
+    
+    <!-- Roof -->
+    <path d="M-8 -4 L0 -8 L8 -4 Z" fill="url(#hospitalGradient)" opacity="0.7"/>
+    
+    <!-- Door -->
+    <rect x="-1" y="4" width="2" height="4" rx="0.5" fill="white" opacity="0.9"/>
   </g>
+  
+  <!-- Subtle glow effect -->
+  <circle cx="16" cy="16" r="14" fill="none" stroke="url(#crossGradient)" stroke-width="0.5" opacity="0.3"/>
 </svg>

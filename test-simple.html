@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Test - VCHome Hospital</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #f0fdfa, #ffffff);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .container {
+        text-align: center;
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-width: 500px;
+      }
+      .logo {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #14b8a6, #0891b2);
+        border-radius: 20px;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+      }
+      h1 {
+        color: #14b8a6;
+        margin-bottom: 10px;
+      }
+      .status {
+        color: #059669;
+        font-weight: 600;
+        background: #d1fae5;
+        padding: 10px 20px;
+        border-radius: 25px;
+        display: inline-block;
+        margin-top: 20px;
+      }
+      .buttons {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .btn-primary {
+        background: #14b8a6;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #0d9488;
+        transform: translateY(-2px);
+      }
+      .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+      }
+      .btn-secondary:hover {
+        background: #e2e8f0;
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">🏥</div>
+      <h1>ระบบจัดการวัคซีน</h1>
+      <h2 style="color: #64748b; margin-bottom: 20px;">VCHome Hospital</h2>
+      <p style="color: #64748b; line-height: 1.6;">
+        ระบบจัดการที่ครบครันสำหรับการดูแลผู้ป่วยและการจัดการวัคซีน
+      </p>
+      
+      <div class="status">✅ ระบบพร้อมใช้งาน</div>
+      
+      <div class="buttons">
+        <a href="#/staff-portal" class="btn btn-primary">เจ้าหน้าที่</a>
+        <a href="#/PatientPortal" class="btn btn-secondary">ผู้ป่วย</a>
+        <a href="#/LineBot" class="btn btn-secondary">LINE Bot</a>
+      </div>
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+        <p style="color: #94a3b8; font-size: 14px;">
+          🔒 ปลอดภัย | 📱 ใช้งานง่าย | ⚡ รวดเร็ว
+        </p>
+      </div>
+    </div>
+
+    <script>
+      console.log('Simple test page loaded successfully');
+      
+      // Test basic JavaScript functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded');
+        
+        // Add click handlers
+        document.querySelectorAll('.btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            console.log('Button clicked:', this.textContent);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

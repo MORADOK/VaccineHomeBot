@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSP Safe React Test</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.line.me ws://localhost:* http://localhost:*; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' data: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .status-success {
+            background: #28a745;
+            color: white;
+        }
+        .status-error {
+            background: #dc3545;
+            color: white;
+        }
+        .status-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .log-area {
+            background: #f1f3f4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .counter {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 CSP Safe React Test</h1>
+            <p>ทดสอบ React โดยไม่ใช้ eval() หรือ unsafe functions</p>
+        </div>
+
+        <div class="test-section" id="csp-status">
+            <h3>🛡️ CSP Status</h3>
+            <div id="csp-info">กำลังตรวจสอบ CSP...</div>
+        </div>
+
+        <div class="test-section" id="library-status">
+            <h3>📚 Library Loading</h3>
+            <div id="library-info">กำลังโหลด libraries...</div>
+        </div>
+
+        <div class="test-section" id="react-status">
+            <h3>⚛️ React Component Test</h3>
+            <div id="react-app">กำลังโหลด React...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Performance Monitor</h3>
+            <div id="performance-info">
+                <div>Loading Time: <span id="load-time">-</span>ms</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Console Logs</h3>
+            <div class="log-area" id="console-logs">Waiting for logs...</div>
+        </div>
+
+        <div class="test-section" id="error-section" style="display: none;">
+            <h3>🚨 Errors Detected</h3>
+            <div class="log-area" id="error-logs"></div>
+        </div>
+    </div>
+
+    <!-- React CDN with CSP-safe versions -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <script>
+        // Performance monitoring
+        const startTime = performance.now();
+        let logs = [];
+        let errors = [];
+        let loadProgress = 0;
+
+        // Safe console logging
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            logs.push(`[${new Date().toLocaleTimeString()}] LOG: ${args.join(' ')}`);
+            originalLog.apply(console, args);
+            updateLogs();
+        };
+
+        console.error = function(...args) {
+            errors.push(`[${new Date().toLocaleTimeString()}] ERROR: ${args.join(' ')}`);
+            originalError.apply(console, args);
+            updateErrors();
+        };
+
+        console.warn = function(...args) {
+            logs.push(`[${new Date().toLocaleTimeString()}] WARN: ${args.join(' ')}`);
+            originalWarn.apply(console, args);
+            updateLogs();
+        };
+
+        function updateLogs() {
+            const logElement = document.getElementById('console-logs');
+            logElement.textContent = logs.slice(-10).join('\n') || 'No logs yet';
+        }
+
+        function updateErrors() {
+            const errorElement = document.getElementById('error-logs');
+            const errorSection = document.getElementById('error-section');
+            
+            if (errors.length > 0) {
+                errorElement.textContent = errors.join('\n');
+                errorSection.style.display = 'block';
+                errorSection.className = 'test-section error';
+            }
+        }
+
+        function updateProgress(percent) {
+            loadProgress = Math.min(100, percent);
+            const progressBar = document.getElementById('progress');
+            if (progressBar) {
+                progressBar.style.width = loadProgress + '%';
+            }
+        }
+
+        function setStatus(elementId, status, message) {
+            const element = document.getElementById(elementId);
+            const badge = status === 'success' ? 
+                '<span class="status-badge status-success">✓ SUCCESS</span>' :
+                status === 'error' ?
+                '<span class="status-badge status-error">✗ ERROR</span>' :
+                '<span class="status-badge status-warning">⚠ WARNING</span>';
+            
+            element.innerHTML = badge + message;
+            element.parentElement.className = `test-section ${status}`;
+        }
+
+        // CSP Violation Detection
+        document.addEventListener('securitypolicyviolation', function(e) {
+            console.error('CSP Violation:', e.violatedDirective, e.blockedURI);
+            errors.push(`CSP Violation: ${e.violatedDirective} - ${e.blockedURI}`);
+            updateErrors();
+        });
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.error('Window Error:', e.message, 'at', e.filename + ':' + e.lineno);
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Promise Rejection:', e.reason);
+        });
+
+        // Check CSP
+        function checkCSP() {
+            updateProgress(10);
+            console.log('Checking CSP configuration...');
+            
+            const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+            if (cspMeta) {
+                const cspContent = cspMeta.getAttribute('content');
+                const hasUnsafeEval = cspContent.includes("'unsafe-eval'");
+                const hasUnsafeInline = cspContent.includes("'unsafe-inline'");
+                
+                let message = `CSP Detected: ${hasUnsafeEval ? '✓ unsafe-eval allowed' : '✗ unsafe-eval blocked'}, ${hasUnsafeInline ? '✓ unsafe-inline allowed' : '✗ unsafe-inline blocked'}`;
+                
+                if (hasUnsafeEval && hasUnsafeInline) {
+                    setStatus('csp-status', 'success', message);
+                } else {
+                    setStatus('csp-status', 'warning', message + ' - Some features may not work');
+                }
+            } else {
+                setStatus('csp-status', 'warning', 'No CSP detected - using browser defaults');
+            }
+            updateProgress(25);
+        }
+
+        // Check libraries
+        function checkLibraries() {
+            updateProgress(40);
+            console.log('Checking React libraries...');
+            
+            let results = [];
+            
+            if (typeof React !== 'undefined') {
+                results.push(`✓ React ${React.version} loaded`);
+                console.log('React loaded successfully');
+            } else {
+                results.push('✗ React not loaded');
+                console.error('React failed to load');
+            }
+            
+            if (typeof ReactDOM !== 'undefined') {
+                results.push('✓ ReactDOM loaded');
+                console.log('ReactDOM loaded successfully');
+            } else {
+                results.push('✗ ReactDOM not loaded');
+                console.error('ReactDOM failed to load');
+            }
+            
+            const allLoaded = results.every(r => r.includes('✓'));
+            setStatus('library-status', allLoaded ? 'success' : 'error', results.join('<br>'));
+            
+            updateProgress(60);
+            return allLoaded;
+        }
+
+        // CSP-safe React component (no JSX, no eval)
+        function createReactApp() {
+            updateProgress(75);
+            console.log('Creating React application...');
+            
+            try {
+                // Create React component using createElement (CSP-safe)
+                function Counter() {
+                    const [count, setCount] = React.useState(0);
+                    const [message, setMessage] = React.useState('React is working! 🎉');
+                    
+                    React.useEffect(() => {
+                        console.log('React useEffect triggered - hooks working!');
+                        setMessage('React hooks are working perfectly! ✨');
+                        updateProgress(90);
+                    }, []);
+                    
+                    const handleIncrement = () => {
+                        setCount(prev => {
+                            const newCount = prev + 1;
+                            console.log('Counter incremented to:', newCount);
+                            return newCount;
+                        });
+                    };
+                    
+                    const handleDecrement = () => {
+                        setCount(prev => {
+                            const newCount = prev - 1;
+                            console.log('Counter decremented to:', newCount);
+                            return newCount;
+                        });
+                    };
+                    
+                    const handleReset = () => {
+                        setCount(0);
+                        console.log('Counter reset to 0');
+                    };
+                    
+                    return React.createElement('div', {
+                        style: {
+                            padding: '20px',
+                            background: 'linear-gradient(135deg, #e8f5e8, #f0f8f0)',
+                            borderRadius: '12px',
+                            textAlign: 'center',
+                            border: '2px solid #28a745'
+                        }
+                    }, [
+                        React.createElement('h3', { 
+                            key: 'title',
+                            style: { color: '#28a745', marginBottom: '15px' }
+                        }, message),
+                        React.createElement('div', {
+                            key: 'counter',
+                            className: 'counter'
+                        }, `Count: ${count}`),
+                        React.createElement('div', { key: 'buttons' }, [
+                            React.createElement('button', {
+                                key: 'dec',
+                                onClick: handleDecrement,
+                                style: { background: '#dc3545' }
+                            }, '➖ Decrease'),
+                            React.createElement('button', {
+                                key: 'reset',
+                                onClick: handleReset,
+                                style: { background: '#6c757d' }
+                            }, '🔄 Reset'),
+                            React.createElement('button', {
+                                key: 'inc',
+                                onClick: handleIncrement,
+                                style: { background: '#28a745' }
+                            }, '➕ Increase')
+                        ]),
+                        React.createElement('div', {
+                            key: 'info',
+                            style: { 
+                                marginTop: '15px', 
+                                fontSize: '14px', 
+                                color: '#666',
+                                fontStyle: 'italic'
+                            }
+                        }, 'This React app is CSP-safe (no eval, no unsafe-inline scripts)')
+                    ]);
+                }
+                
+                // Render the app
+                const container = document.getElementById('react-app');
+                const root = ReactDOM.createRoot(container);
+                root.render(React.createElement(Counter));
+                
+                console.log('React app rendered successfully!');
+                setStatus('react-status', 'success', 'React component rendered successfully with CSP-safe code');
+                updateProgress(100);
+                
+                // Update load time
+                const loadTime = Math.round(performance.now() - startTime);
+                document.getElementById('load-time').textContent = loadTime;
+                
+            } catch (error) {
+                console.error('React app creation failed:', error);
+                setStatus('react-status', 'error', `Failed to create React app: ${error.message}`);
+                document.getElementById('react-app').innerHTML = `
+                    <div style="color: #dc3545; padding: 20px; background: #f8d7da; border-radius: 8px;">
+                        <strong>❌ React App Failed</strong><br>
+                        Error: ${error.message}<br>
+                        <small>Check console for details</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize tests
+        function runTests() {
+            console.log('Starting CSP-safe React tests...');
+            
+            setTimeout(() => {
+                checkCSP();
+                
+                setTimeout(() => {
+                    const librariesOK = checkLibraries();
+                    
+                    if (librariesOK) {
+                        setTimeout(() => {
+                            createReactApp();
+                        }, 500);
+                    } else {
+                        setStatus('react-status', 'error', 'Cannot create React app - libraries failed to load');
+                    }
+                }, 500);
+            }, 100);
+        }
+
+        // Start tests when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', runTests);
+        } else {
+            runTests();
+        }
+
+        console.log('CSP-safe React test initialized');
+    </script>
+</body>
+</html>

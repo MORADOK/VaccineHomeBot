@@ -1,43 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="th">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="./images/hospital-logo.png" />
-    <title>ระบบจัดการวัคซีน - โรงพยาบาลโฮม</title>
-    <meta name="author" content="โรงพยาบาลโฮม" />
-    <meta name="description" content="ระบบจัดการวัคซีนและนัดหมายการฉีดวัคซีน - โรงพยาบาลโฮม" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.line.me ws://localhost:* http://localhost:*; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' data: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';" />
+    <title>VCHome Hospital Management System</title>
 
-    <meta property="og:title" content="ระบบจัดการวัคซีน - โรงพยาบาลโฮม" />
-    <meta property="og:description" content="ระบบจัดการวัคซีนและนัดหมายการฉีดวัคซีน - โรงพยาบาลโฮม" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="./images/hospital-logo.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@HomeHospital" />
-    <meta name="twitter:title" content="ระบบจัดการวัคซีน - โรงพยาบาลโฮม" />
-    <meta name="twitter:description" content="ระบบจัดการวัคซีนและนัดหมายการฉีดวัคซีน" />
-    <meta name="twitter:image" content="./images/hospital-logo.png" />
+    <!-- โหลดสไตล์ของหน้ารอโหลดจาก /public ล่วงหน้า (ไม่ต้อง unsafe-inline) -->
+    <link rel="stylesheet" href="/loader.css" />
   </head>
-
   <body>
-    <!-- GitHub Pages SPA redirect script -->
-    <script type="text/javascript">
-      (function(l) {
-        if (l.search[1] === '/' ) {
-          var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&')
-          }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      }(window.location))
-    </script>
-    
-    <div id="root"></div>
+    <div id="root">
+      <!-- Enhanced Loading screen -->
+      <div class="vhc-wrap">
+        <div class="vhc-card">
+          <div class="vhc-spinner"></div>
+          <h1 class="vhc-title">🏥 ระบบจัดการวัคซีน</h1>
+          <p class="vhc-sub">VCHome Hospital</p>
+          <p class="vhc-note">กำลังโหลดระบบ</p>
+          <div class="vhc-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สำคัญ: ให้ Vite แปลง/บันเดิลผ่าน main.tsx ไม่ใช่ .tsx ของเพจ -->
     <script type="module" src="/src/main.tsx"></script>
+
+    <noscript>
+      ต้องเปิดใช้งาน JavaScript เพื่อใช้งานระบบนี้
+    </noscript>
   </body>
 </html>
