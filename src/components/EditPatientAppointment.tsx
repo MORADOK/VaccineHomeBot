@@ -74,7 +74,18 @@ const EditPatientAppointment = () => {
         .eq('active', true);
 
       if (error) throw error;
-      setVaccineSchedules(data || []);
+      
+      // Transform the data to match our interface
+      const transformed = data?.map(item => ({
+        ...item,
+        dose_intervals: Array.isArray(item.dose_intervals) 
+          ? item.dose_intervals 
+          : typeof item.dose_intervals === 'string'
+          ? JSON.parse(item.dose_intervals)
+          : []
+      })) || [];
+      
+      setVaccineSchedules(transformed as VaccineSchedule[]);
     } catch (error) {
       console.error('Error loading vaccine schedules:', error);
     }
@@ -84,10 +95,7 @@ const EditPatientAppointment = () => {
     const schedule = vaccineSchedules.find(s => s.vaccine_type === vaccineType);
     if (!schedule) return '';
 
-    const intervals = Array.isArray(schedule.dose_intervals) ? 
-      schedule.dose_intervals : 
-      JSON.parse(schedule.dose_intervals?.toString() || '[]');
-
+    const intervals = schedule.dose_intervals;
     const intervalIndex = doseNumber - 2; // สำหรับเข็มที่ 2 ใช้ interval[0], เข็มที่ 3 ใช้ interval[1]
     const intervalDays = intervals[intervalIndex] || 30;
 

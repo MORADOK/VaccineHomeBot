@@ -135,28 +135,12 @@ const NotificationTestPanel = () => {
 
       // Test 6: Check CRON job status
       try {
-        const { data: cronJobs, error } = await supabase
-          .from('cron.job')
-          .select('*')
-          .eq('jobname', 'process-notifications');
-
-        if (error) {
-          // ถ้าไม่สามารถเข้าถึงตาราง cron ได้ (ปกติ)
-          results.push({ 
-            test: 'CRON Job Status', 
-            status: 'warning', 
-            message: 'ไม่สามารถตรวจสอบสถานะ CRON job ได้ (ต้องใช้สิทธิ์ admin)'
-          });
-        } else {
-          results.push({ 
-            test: 'CRON Job Status', 
-            status: cronJobs && cronJobs.length > 0 ? 'success' : 'warning', 
-            message: cronJobs && cronJobs.length > 0 ? 
-              `CRON job ทำงานอยู่: ${cronJobs[0].schedule}` : 
-              'ไม่พบ CRON job process-notifications',
-            details: cronJobs
-          });
-        }
+        // CRON jobs are not accessible from client side
+        results.push({ 
+          test: 'CRON Job Status', 
+          status: 'warning', 
+          message: 'ไม่สามารถตรวจสอบสถานะ CRON job ได้ (ต้องใช้สิทธิ์ admin หรือเข้าถึงจาก server-side)'
+        });
       } catch (error: any) {
         results.push({ 
           test: 'CRON Job Status', 
@@ -199,8 +183,9 @@ const NotificationTestPanel = () => {
 
         if (error) throw error;
         
-        const pendingJobs = notificationJobs?.filter(job => !job.processed_at) || [];
-        results.push({ 
+        // Filter pending jobs based on status
+        const pendingJobs = notificationJobs?.filter(job => job.status === 'pending') || [];
+        results.push({
           test: 'Notification Jobs Queue', 
           status: 'success', 
           message: `พบงานแจ้งเตือน ${notificationJobs?.length || 0} รายการ (รอดำเนินการ: ${pendingJobs.length})`,

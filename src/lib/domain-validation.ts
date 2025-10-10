@@ -87,6 +87,17 @@ export function validateDomainFormat(domain: string): DomainValidationResult {
 }
 
 /**
+ * Simple validation wrapper for backward compatibility
+ */
+export function validateDomain(domain: string): { isValid: boolean; error?: string } {
+  const result = validateDomainFormat(domain);
+  return {
+    isValid: result.isValid,
+    error: result.errors.length > 0 ? result.errors[0] : undefined
+  };
+}
+
+/**
  * Detects the appropriate DNS record type based on domain and provider capabilities
  */
 export function detectDNSRecordType(domain: string, isApexDomain: boolean = true): DNSRecordDetectionResult {

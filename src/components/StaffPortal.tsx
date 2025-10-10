@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DomainManagement } from './DomainManagement';
-import { DomainMonitoring } from './DomainMonitoring';
 import { ProtectedRoute } from './ProtectedRoute';
 import { VaccineSettings } from './VaccineSettings';
 import React from 'react';

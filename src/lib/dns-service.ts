@@ -515,3 +515,34 @@ export class DNSConfigurationService {
 
 // Export singleton instance
 export const dnsService = new DNSConfigurationService();
+
+// Export convenience functions for backward compatibility
+export async function checkDNSPropagation(domain: string): Promise<{ 
+  isResolved: boolean; 
+  resolvedIPs?: string[];
+  error?: string;
+}> {
+  try {
+    const result = await dnsService.checkDNSPropagation(domain, 'A', '');
+    return {
+      isResolved: result.propagated,
+      resolvedIPs: result.actualValues,
+    };
+  } catch (error) {
+    return {
+      isResolved: false,
+      error: error instanceof Error ? error.message : 'DNS check failed'
+    };
+  }
+}
+
+export async function verifySSLCertificate(domain: string): Promise<{ 
+  isValid: boolean; 
+  error?: string;
+}> {
+  const result = await dnsService.verifySSLCertificate(domain);
+  return {
+    isValid: result.valid,
+    error: result.error
+  };
+}

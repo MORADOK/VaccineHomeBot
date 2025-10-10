@@ -6,7 +6,6 @@ import StaffDashboard from '@/components/StaffDashboard';
 import PatientRegistration from '@/components/PatientRegistration';
 import SetupGuide from '@/components/SetupGuide';
 import RenderSetupGuide from '@/components/RenderSetupGuide';
-import TroubleshootingGuide from '@/components/TroubleshootingGuide';
 import LineBot from '@/components/LineBot';
 import PatientPortal from '@/components/PatientPortal';
 import StaffPortal from '@/components/StaffPortal';
@@ -17,7 +16,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Tabs defaultValue="designer" className="w-full">
         <div className="container mx-auto pt-6">
-          <TabsList className="grid w-full grid-cols-10 max-w-7xl mx-auto">
+          <TabsList className="grid w-full grid-cols-8 max-w-7xl mx-auto">
             <TabsTrigger value="setup">คู่มือติดตั้ง</TabsTrigger>
             <TabsTrigger value="designer">Workflow Designer</TabsTrigger>
             <TabsTrigger value="analyzer">Analyzer</TabsTrigger>
@@ -26,8 +25,6 @@ const Index = () => {
             <TabsTrigger value="StaffPortal">เจ้าหน้าที่</TabsTrigger>
             <TabsTrigger value="googlesheets">Google Sheets</TabsTrigger>
             <TabsTrigger value="staff">Dashboard เดิม</TabsTrigger>
-            <TabsTrigger value="patient">LINE เดิม</TabsTrigger>
-            <TabsTrigger value="troubleshooting">แก้ไขปัญหา</TabsTrigger>
           </TabsList>
         </div>
         
@@ -65,10 +62,6 @@ const Index = () => {
         
         <TabsContent value="googlesheets" className="mt-0">
           <GoogleSheetsIntegration />
-        </TabsContent>
-        
-        <TabsContent value="troubleshooting" className="mt-0">
-          <TroubleshootingGuide />
         </TabsContent>
       </Tabs>
     </div>
