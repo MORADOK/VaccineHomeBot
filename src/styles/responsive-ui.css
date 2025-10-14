@@ -1,0 +1,616 @@
+/* Responsive UI Improvements */
+
+/* Enhanced Cursor improvements */
+.cursor-pointer {
+    cursor: pointer !important;
+}
+
+.cursor-not-allowed {
+    cursor: not-allowed !important;
+}
+
+.cursor-wait {
+    cursor: wait !important;
+}
+
+.cursor-text {
+    cursor: text !important;
+}
+
+.cursor-grab {
+    cursor: grab !important;
+}
+
+.cursor-grab:active {
+    cursor: grabbing !important;
+}
+
+.cursor-help {
+    cursor: help !important;
+}
+
+.cursor-crosshair {
+    cursor: crosshair !important;
+}
+
+.cursor-move {
+    cursor: move !important;
+}
+
+.cursor-zoom-in {
+    cursor: zoom-in !important;
+}
+
+.cursor-zoom-out {
+    cursor: zoom-out !important;
+}
+
+/* Interactive elements cursor - Enhanced */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+.btn:not(:disabled),
+[data-clickable="true"] {
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+.btn:disabled,
+[data-clickable="false"] {
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+button:not(:disabled):hover,
+[role="button"]:not([aria-disabled="true"]):hover,
+.btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
+textarea,
+[contenteditable="true"] {
+    cursor: text !important;
+}
+
+select,
+[role="combobox"],
+[role="listbox"] {
+    cursor: pointer !important;
+}
+
+a,
+[role="link"] {
+    cursor: pointer !important;
+}
+
+/* Drag and drop */
+[draggable="true"] {
+    cursor: grab !important;
+}
+
+[draggable="true"]:active {
+    cursor: grabbing !important;
+}
+
+/* Resize handles */
+.resize-handle {
+    cursor: nw-resize !important;
+}
+
+.resize-handle-n {
+    cursor: n-resize !important;
+}
+
+.resize-handle-s {
+    cursor: s-resize !important;
+}
+
+.resize-handle-e {
+    cursor: e-resize !important;
+}
+
+.resize-handle-w {
+    cursor: w-resize !important;
+}
+
+/* Loading states */
+.loading,
+[data-loading="true"] {
+    cursor: wait !important;
+    pointer-events: none;
+}
+
+/* Interactive cards */
+.card-clickable,
+[data-card-clickable="true"] {
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+}
+
+.card-clickable:hover,
+[data-card-clickable="true"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading states */
+.loading {
+    cursor: wait;
+}
+
+/* Responsive improvements */
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+
+    /* Touch devices */
+    button,
+    [role="button"],
+    .btn,
+    a,
+    [role="link"],
+    select,
+    [role="combobox"] {
+        min-height: 44px !important;
+        min-width: 44px !important;
+        padding: 0.75rem 1rem !important;
+    }
+
+    /* Remove hover effects on touch devices */
+    button:hover,
+    [role="button"]:hover,
+    .btn:hover,
+    .card-clickable:hover,
+    [data-card-clickable="true"]:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Larger tap targets */
+    input[type="checkbox"],
+    input[type="radio"] {
+        min-height: 20px !important;
+        min-width: 20px !important;
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* Mobile-first responsive adjustments */
+    .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    /* Scrollable tabs for mobile */
+    .tabs-scrollable {
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .tabs-scrollable::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Card improvements */
+    .card-mobile {
+        margin: 0.5rem 0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
+
+    /* Button improvements */
+    .button-mobile,
+    button,
+    .btn {
+        min-height: 48px;
+        /* Larger touch target */
+        font-size: 0.875rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+    }
+
+    /* Form improvements */
+    .form-mobile input,
+    .form-mobile select,
+    .form-mobile textarea,
+    input,
+    select,
+    textarea {
+        min-height: 48px;
+        font-size: 16px;
+        /* Prevent zoom on iOS */
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+    }
+
+    /* Text size adjustments */
+    .text-mobile-sm {
+        font-size: 0.75rem;
+    }
+
+    .text-mobile-base {
+        font-size: 0.875rem;
+    }
+
+    .text-mobile-lg {
+        font-size: 1rem;
+    }
+
+    /* Spacing adjustments */
+    .gap-mobile {
+        gap: 0.5rem;
+    }
+
+    .p-mobile {
+        padding: 0.75rem;
+    }
+
+    .m-mobile {
+        margin: 0.5rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+    /* Tablet adjustments */
+    .tabs-list-tablet {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+    }
+}
+
+@media (min-width: 1025px) {
+
+    /* Desktop adjustments */
+    .tabs-list-desktop {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 0.5rem;
+    }
+}
+
+/* Hover states for better UX */
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus improvements for accessibility */
+.focus-ring:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Text selection improvements */
+.select-none {
+    user-select: none;
+}
+
+.select-text {
+    user-select: text;
+}
+
+/* Scrollbar improvements */
+.scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Loading spinner improvements */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Toast/notification positioning */
+.toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        top: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+    }
+}
+
+/* Modal improvements */
+.modal-overlay {
+    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Card hover effects */
+.card-interactive {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.card-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Status indicators */
+.status-online {
+    position: relative;
+}
+
+.status-online::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+/* Responsive text sizes */
+.text-responsive {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+.heading-responsive {
+    font-size: clamp(1.25rem, 4vw, 1.875rem);
+}
+
+/* Enhanced Grid improvements */
+.grid-responsive {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid-responsive-sm {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.grid-responsive-lg {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* Enhanced Flex improvements */
+.flex-responsive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.flex-responsive-start {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.flex-responsive-center {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-responsive-between {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+
+    .flex-responsive,
+    .flex-responsive-start,
+    .flex-responsive-center,
+    .flex-responsive-between {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .flex-responsive-mobile-row {
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+}
+
+/* Container improvements */
+.container-responsive {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+    .container-responsive {
+        padding: 0 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container-responsive {
+        padding: 0 2rem;
+    }
+}
+
+/* Responsive visibility */
+.show-mobile {
+    display: block;
+}
+
+.show-tablet {
+    display: none;
+}
+
+.show-desktop {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .show-mobile {
+        display: none;
+    }
+
+    .show-tablet {
+        display: block;
+    }
+
+    .hide-tablet {
+        display: none;
+    }
+}
+
+@media (min-width: 1024px) {
+    .show-tablet {
+        display: none;
+    }
+
+    .show-desktop {
+        display: block;
+    }
+
+    .hide-desktop {
+        display: none;
+    }
+}
+
+/* Responsive text alignment */
+.text-center-mobile {
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .text-center-mobile {
+        text-align: left;
+    }
+}
+
+/* Responsive spacing */
+.space-y-responsive>*+* {
+    margin-top: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .space-y-responsive>*+* {
+        margin-top: 1rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .space-y-responsive>*+* {
+        margin-top: 1.5rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-break {
+        page-break-after: always;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 2px solid currentColor;
+    }
+
+    .button {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Dark mode improvements */
+@media (prefers-color-scheme: dark) {
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: #374151;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #6b7280;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+}

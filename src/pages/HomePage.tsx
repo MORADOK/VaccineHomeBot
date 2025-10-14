@@ -187,7 +187,7 @@ const HomePage = () => {
               หน้าสำหรับเจ้าหน้าที่จัดการนัดหมายผู้ป่วยและติดตามการฉีดวัคซีน พร้อมระบบแจ้งเตือนและรายงานแบบเรียลไทม์
             </p>
             <Button asChild className="w-full">
-              <Link to="/staff-portal">
+              <Link to="/auth-full">
                 <Activity className="h-4 w-4 mr-2" />
                 เข้าสู่ระบบ
               </Link>

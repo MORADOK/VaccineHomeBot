@@ -9,7 +9,6 @@
 @import './styles/layout-stability.css';
 
 /* Enhanced Design System for Medical Application */
-
 @layer base {
   :root {
     /* Core Medical Palette - Balanced & Professional */
@@ -34,14 +33,14 @@
     --balance-800: 210 30% 15%;
     --balance-900: 210 35% 8%;
 
-    /* Status Colors - High Contrast but Balanced */
+    /* Status Colors */
     --status-scheduled: 210 85% 60%;
     --status-completed: 145 75% 45%;
     --status-cancelled: 0 75% 55%;
     --status-pending: 40 85% 55%;
     --status-in-progress: 170 65% 50%;
 
-    /* Elegant Gradients */
+    /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--medical-primary)), hsl(var(--medical-secondary)));
     --gradient-success: linear-gradient(135deg, hsl(var(--medical-success)), hsl(var(--medical-accent)));
     --gradient-hero: linear-gradient(135deg, hsl(var(--balance-50)), hsl(210 40% 100%));
@@ -49,7 +48,7 @@
     --gradient-sidebar: linear-gradient(180deg, hsl(var(--balance-100)), hsl(var(--balance-50)));
     --gradient-glass: linear-gradient(145deg, hsl(0 0% 100% / 0.9), hsl(var(--balance-100) / 0.8));
 
-    /* Balanced Shadows for Depth */
+    /* Shadows */
     --shadow-xs: 0 1px 3px hsl(var(--balance-800) / 0.08), 0 1px 2px hsl(var(--balance-800) / 0.04);
     --shadow-sm: 0 4px 12px hsl(var(--balance-800) / 0.12), 0 2px 4px hsl(var(--balance-800) / 0.06);
     --shadow-md: 0 8px 24px hsl(var(--balance-800) / 0.16), 0 4px 8px hsl(var(--balance-800) / 0.08);
@@ -58,14 +57,14 @@
     --shadow-glow: 0 0 40px hsl(var(--medical-primary) / 0.3);
     --shadow-inner: inset 0 2px 4px hsl(var(--balance-800) / 0.06);
 
-    /* Smooth & Balanced Animations */
+    /* Transitions */
     --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-    /* Typography Scale - Balanced */
+    /* Typography */
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;
@@ -75,7 +74,7 @@
     --font-size-3xl: 1.875rem;
     --font-size-4xl: 2.25rem;
 
-    /* Spacing Scale - Harmonious */
+    /* Spacing */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
@@ -84,7 +83,7 @@
     --spacing-2xl: 3rem;
     --spacing-3xl: 4rem;
 
-    /* Balanced shadcn Design Tokens */
+    /* shadcn tokens */
     --background: 210 40% 98%;
     --foreground: 210 25% 15%;
 
@@ -115,7 +114,7 @@
 
     --radius: 0.75rem;
 
-    /* Sidebar Design Tokens */
+    /* Sidebar tokens */
     --sidebar-background: 210 40% 98%;
     --sidebar-foreground: 210 25% 15%;
     --sidebar-primary: 170 50% 45%;
@@ -167,34 +166,38 @@
 }
 
 @layer base {
-  * {
-    @apply border-border transition-colors;
-  }
+  * { @apply border-border transition-colors; }
 
-  html {
-    scroll-behavior: smooth;
-  }
+  html, body, #root { height: 100%; }
+
+  html { scroll-behavior: smooth; }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Enhanced scrollbar */
+  /* ===== Enhanced Scrollbar (WebKit/Blink: Chrome, Edge, Safari) ===== */
   ::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
   }
-  
   ::-webkit-scrollbar-track {
-    @apply bg-muted;
+    background-color: hsl(var(--muted));
   }
-  
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
   }
-  
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
+    /* ใช้ CSS ตรงแทน @apply bg-muted-foreground/50 */
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* ===== Firefox Fallback ===== */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) hsl(var(--muted));
   }
 }
 
@@ -203,52 +206,44 @@
   .glass-card {
     @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg;
   }
-
   .glass-sidebar {
     @apply bg-white/90 backdrop-blur-2xl border-r border-white/30;
   }
 
-  /* Balanced Button Variants */
+  /* Buttons */
   .btn-balanced {
     @apply px-6 py-3 rounded-xl font-medium transition-all duration-200 
            hover:scale-105 active:scale-95 focus:outline-none 
            focus:ring-2 focus:ring-primary/50 focus:ring-offset-2;
   }
-
   .btn-primary {
     @apply btn-balanced bg-gradient-to-r from-primary to-primary/90 
            text-primary-foreground shadow-md hover:shadow-lg;
   }
-
   .btn-secondary {
     @apply btn-balanced bg-secondary text-secondary-foreground 
            border border-border hover:bg-secondary/80;
   }
 
-  /* Enhanced Card Styles */
+  /* Cards */
   .card-balanced {
     @apply bg-card border border-border rounded-2xl shadow-sm 
            hover:shadow-md transition-all duration-300;
   }
+  .card-glass { @apply glass-card rounded-2xl p-6; }
 
-  .card-glass {
-    @apply glass-card rounded-2xl p-6;
-  }
-
-  /* Navigation Styles */
+  /* Navigation */
   .nav-link {
     @apply flex items-center gap-3 px-4 py-3 rounded-xl 
            text-muted-foreground hover:text-foreground 
            hover:bg-accent/50 transition-all duration-200
            focus:outline-none focus:bg-accent/70;
   }
-
   .nav-link-active {
-    @apply nav-link bg-primary/10 text-primary font-medium 
-           border border-primary/20;
+    @apply nav-link bg-primary/10 text-primary font-medium border border-primary/20;
   }
 
-  /* Form Enhancement */
+  /* Forms */
   .form-input {
     @apply w-full px-4 py-3 rounded-xl border border-input 
            bg-background text-foreground placeholder-muted-foreground
@@ -256,25 +251,18 @@
            focus:border-primary transition-all duration-200;
   }
 
-  /* Status Indicators */
+  /* Status Badges */
   .status-indicator {
-    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full 
-           text-sm font-medium;
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
   }
+  .status-scheduled { @apply status-indicator bg-blue-50 text-blue-700 border border-blue-200; }
+  .status-completed { @apply status-indicator bg-green-50 text-green-700 border border-green-200; }
+  .status-cancelled { @apply status-indicator bg-red-50 text-red-700 border border-red-200; }
+  .status-pending   { @apply status-indicator bg-amber-50 text-amber-700 border border-amber-200; }
 
-  .status-scheduled {
-    @apply status-indicator bg-blue-50 text-blue-700 border border-blue-200;
-  }
-
-  .status-completed {
-    @apply status-indicator bg-green-50 text-green-700 border border-green-200;
-  }
-
-  .status-cancelled {
-    @apply status-indicator bg-red-50 text-red-700 border border-red-200;
-  }
-
-  .status-pending {
-    @apply status-indicator bg-amber-50 text-amber-700 border border-amber-200;
+  /* Utility: drop into any panel that should scroll */
+  .scroll-area {
+    max-height: 100dvh;
+    overflow: auto;
   }
 }

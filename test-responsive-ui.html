@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Responsive UI Test - Staff Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="src/styles/responsive-ui.css">
+    <style>
+        /* Test-specific styles */
+        .test-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border: 2px dashed #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        
+        .test-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #374151;
+        }
+        
+        /* Cursor test styles */
+        .cursor-demo {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            background: white;
+        }
+        
+        /* Responsive grid demo */
+        .demo-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* Touch target demo */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #3b82f6;
+            color: white;
+            border-radius: 0.375rem;
+            margin: 0.25rem;
+        }
+        
+        /* Scrollable tabs demo */
+        .tabs-demo {
+            display: flex;
+            overflow-x: auto;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: #f3f4f6;
+            border-radius: 0.5rem;
+            scrollbar-width: thin;
+        }
+        
+        .tab-demo {
+            flex-shrink: 0;
+            padding: 0.5rem 1rem;
+            background: white;
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            white-space: nowrap;
+        }
+        
+        .tab-demo.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 via-green-100/30 to-white min-h-screen">
+    <div class="container-responsive">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">
+            Responsive UI & Cursor Test
+        </h1>
+        
+        <!-- Cursor Test Section -->
+        <div class="test-section">
+            <h2 class="test-title">🖱️ Cursor Tests</h2>
+            <div class="flex flex-wrap gap-2">
+                <div class="cursor-demo cursor-pointer">Pointer (Click me)</div>
+                <div class="cursor-demo cursor-text">Text (Select me)</div>
+                <div class="cursor-demo cursor-not-allowed">Not Allowed</div>
+                <div class="cursor-demo cursor-wait">Wait</div>
+                <div class="cursor-demo cursor-help">Help</div>
+                <div class="cursor-demo cursor-grab">Grab</div>
+                <div class="cursor-demo cursor-move">Move</div>
+                <div class="cursor-demo cursor-zoom-in">Zoom In</div>
+            </div>
+        </div>
+
+        <!-- Header Test -->
+        <div class="test-section">
+            <h2 class="test-title">📱 Responsive Header</h2>
+            <div class="bg-white border-b shadow-sm rounded-lg">
+                <div class="px-2 sm:px-4 py-3 sm:py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md flex-shrink-0 bg-blue-500">
+                                <div class="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">
+                                    H
+                                </div>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h1 class="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                                    ระบบจัดการวัคซีน
+                                </h1>
+                                <p class="text-xs sm:text-sm text-gray-600 truncate">
+                                    โรงพยาบาลโฮม
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                            <div class="text-right hidden lg:block">
+                                <p class="text-sm font-medium truncate max-w-[200px]" title="admin@vchomehospital.co.th">
+                                    admin@vchomehospital.co.th
+                                </p>
+                                <p class="text-xs text-gray-600">ผู้ดูแลระบบ</p>
+                            </div>
+                            <div class="flex items-center gap-1 sm:gap-2">
+                                <button class="lg:hidden p-2 rounded-md border border-gray-300 hover:bg-gray-50 cursor-pointer transition-smooth" 
+                                        title="admin@vchomehospital.co.th - ผู้ดูแลระบบ">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                </button>
+                                <button class="px-2 sm:px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-smooth">
+                                    <svg class="h-4 w-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                    </svg>
+                                    <span class="hidden sm:inline">ออกจากระบบ</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Tabs Test -->
+        <div class="test-section">
+            <h2 class="test-title">📋 Scrollable Tabs (Mobile)</h2>
+            <div class="tabs-demo">
+                <div class="tab-demo active cursor-pointer">นัดวันนี้</div>
+                <div class="tab-demo cursor-pointer">รายการลงทะเบียน</div>
+                <div class="tab-demo cursor-pointer">นัดครั้งถัดไป</div>
+                <div class="tab-demo cursor-pointer">ประวัติการฉีด</div>
+                <div class="tab-demo cursor-pointer">แก้ไขนัดหมาย</div>
+                <div class="tab-demo cursor-pointer">คำนวณวัคซีน</div>
+                <div class="tab-demo cursor-pointer">จัดการสิทธิ์</div>
+                <div class="tab-demo cursor-pointer">ตั้งค่าระบบ</div>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">
+                💡 ลองเลื่อนซ้าย-ขวาบนมือถือ
+            </p>
+        </div>
+
+        <!-- Touch Targets Test -->
+        <div class="test-section">
+            <h2 class="test-title">👆 Touch Targets (44px minimum)</h2>
+            <div class="flex flex-wrap gap-2">
+                <div class="touch-target cursor-pointer">✓</div>
+                <div class="touch-target cursor-pointer">✗</div>
+                <div class="touch-target cursor-pointer">⚙️</div>
+                <div class="touch-target cursor-pointer">👤</div>
+                <div class="touch-target cursor-pointer">📊</div>
+                <div class="touch-target cursor-pointer">🔍</div>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">
+                💡 ปุ่มทั้งหมดมีขนาดขั้นต่ำ 44px สำหรับการแตะ
+            </p>
+        </div>
+
+        <!-- Responsive Grid Test -->
+        <div class="test-section">
+            <h2 class="test-title">📐 Responsive Grid</h2>
+            <div class="grid-responsive">
+                <div class="demo-card cursor-pointer hover-lift">
+                    <h3 class="font-semibold mb-2">Card 1</h3>
+                    <p class="text-sm text-gray-600">This card adapts to screen size</p>
+                </div>
+                <div class="demo-card cursor-pointer hover-lift">
+                    <h3 class="font-semibold mb-2">Card 2</h3>
+                    <p class="text-sm text-gray-600">Minimum width: 280px</p>
+                </div>
+                <div class="demo-card cursor-pointer hover-lift">
+                    <h3 class="font-semibold mb-2">Card 3</h3>
+                    <p class="text-sm text-gray-600">Auto-fit layout</p>
+                </div>
+                <div class="demo-card cursor-pointer hover-lift">
+                    <h3 class="font-semibold mb-2">Card 4</h3>
+                    <p class="text-sm text-gray-600">Responsive gaps</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Elements Test -->
+        <div class="test-section">
+            <h2 class="test-title">📝 Form Elements</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Text Input</label>
+                        <input type="text" placeholder="Type here..." class="w-full p-3 border border-gray-300 rounded-md cursor-text">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Select</label>
+                        <select class="w-full p-3 border border-gray-300 rounded-md cursor-pointer">
+                            <option>Option 1</option>
+                            <option>Option 2</option>
+                            <option>Option 3</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Textarea</label>
+                    <textarea placeholder="Write something..." rows="3" class="w-full p-3 border border-gray-300 rounded-md cursor-text"></textarea>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <button class="px-4 py-2 bg-blue-500 text-white rounded-md cursor-pointer hover-lift transition-smooth">
+                        Primary Button
+                    </button>
+                    <button class="px-4 py-2 border border-gray-300 rounded-md cursor-pointer hover-lift transition-smooth">
+                        Secondary Button
+                    </button>
+                    <button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed">
+                        Disabled Button
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Responsive Visibility Test -->
+        <div class="test-section">
+            <h2 class="test-title">👁️ Responsive Visibility</h2>
+            <div class="space-y-2">
+                <div class="show-mobile bg-red-100 p-2 rounded">📱 Mobile Only (< 768px)</div>
+                <div class="show-tablet bg-yellow-100 p-2 rounded">📟 Tablet Only (768px - 1024px)</div>
+                <div class="show-desktop bg-green-100 p-2 rounded">🖥️ Desktop Only (> 1024px)</div>
+            </div>
+        </div>
+
+        <!-- Loading States Test -->
+        <div class="test-section">
+            <h2 class="test-title">⏳ Loading States</h2>
+            <div class="flex flex-wrap gap-4">
+                <button class="px-4 py-2 bg-blue-500 text-white rounded-md cursor-pointer">
+                    Normal Button
+                </button>
+                <button class="px-4 py-2 bg-blue-500 text-white rounded-md loading cursor-wait" disabled>
+                    <span class="spinner inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                    Loading...
+                </button>
+            </div>
+        </div>
+
+        <!-- Screen Size Indicator -->
+        <div class="test-section">
+            <h2 class="test-title">📏 Current Screen Size</h2>
+            <div class="text-center">
+                <div class="show-mobile text-red-600 font-bold text-xl">📱 Mobile (< 768px)</div>
+                <div class="show-tablet text-yellow-600 font-bold text-xl">📟 Tablet (768px - 1024px)</div>
+                <div class="show-desktop text-green-600 font-bold text-xl">🖥️ Desktop (> 1024px)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add interactive functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching
+            const tabs = document.querySelectorAll('.tab-demo');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // Button click feedback
+            const buttons = document.querySelectorAll('button:not([disabled])');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
+
+            // Card click feedback
+            const cards = document.querySelectorAll('.demo-card');
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.style.backgroundColor = '#f3f4f6';
+                    setTimeout(() => {
+                        this.style.backgroundColor = '';
+                    }, 200);
+                });
+            });
+        });
+    </script>

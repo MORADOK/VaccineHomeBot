@@ -1,3 +1,4 @@
+// App.tsx — stable Router placement + BASE_URL basename
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTop from "@/components/ScrollToTop";
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LineBotPage from "./pages/LineBotPage";
@@ -20,33 +22,56 @@ import VaccineStatusPage from "./pages/VaccineStatusPage";
 
 const queryClient = new QueryClient();
 
+// ใช้ BASE_URL ของ Vite (กำหนดใน vite.config.ts: base: '/VaccineHomeBot/')
+const BASENAME = import.meta.env.BASE_URL;
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename={import.meta.env.PROD ? '/VaccineHomeBot' : ''}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/loading" element={<LoadingPage />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/auth" element={<SimpleAuthPage />} />
-            <Route path="/auth-full" element={<AuthPage />} />
-            <Route path="/admin" element={<Index />} />
-            <Route path="/line-bot" element={<LineBotPage />} />
-            <Route path="/LineBot" element={<LineBotPage />} />
-            <Route path="/patient-portal" element={<PatientPortalPage />} />
-            <Route path="/PatientPortal" element={<PatientPortalPage />} />
-            <Route path="/staff-portal" element={<StaffPortalPage />} />
-            <Route path="/StaffPortal" element={<StaffPortalPage />} />
-            <Route path="/liff-patient-portal" element={<LiffPatientPortalPage />} />
-            <Route path="/vaccine-status" element={<VaccineStatusPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+
+        {/* ScrollToTop ต้องอยู่ภายใน Router */}
+        <BrowserRouter basename={BASENAME}>
+          <ScrollToTop />
+
+          <div className="min-h-screen flex flex-col bg-background text-foreground">
+            <main className="flex-1 scroll-area">
+              <Routes>
+                {/* Home */}
+                <Route path="/" element={<HomePage />} />
+                <Route path="/home" element={<HomePage />} />
+                <Route path="/loading" element={<LoadingPage />} />
+
+                {/* Auth */}
+                <Route path="/auth" element={<SimpleAuthPage />} />
+                <Route path="/auth-full" element={<AuthPage />} />
+
+                {/* Admin/Staff */}
+                <Route path="/admin" element={<Index />} />
+                <Route path="/staff-portal" element={<StaffPortalPage />} />
+                <Route path="/StaffPortal" element={<StaffPortalPage />} />
+
+                {/* Patient */}
+                <Route path="/patient-portal" element={<PatientPortalPage />} />
+                <Route path="/PatientPortal" element={<PatientPortalPage />} />
+                <Route path="/liff-patient-portal" element={<LiffPatientPortalPage />} />
+                <Route path="/vaccine-status" element={<VaccineStatusPage />} />
+
+                {/* Line bot (รองรับทั้งตัวเล็ก/ใหญ่) */}
+                <Route path="/line-bot" element={<LineBotPage />} />
+                <Route path="/LineBot" element={<LineBotPage />} />
+
+                {/* Optional fast page */}
+                <Route path="/fast" element={<FastIndexPage />} />
+
+                {/* Catch-all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
         </BrowserRouter>
-        <ScrollToTop />
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>

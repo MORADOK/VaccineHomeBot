@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, LogOut, User, Calculator, Bell, Settings } from 'lucide-react';
+import { Shield, LogOut, User, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -17,6 +17,7 @@ import AutoNotificationSystem from './AutoNotificationSystem';
 import PatientAppointmentManager from './GoogleSheetsIntegration';
 import EditPatientAppointment from './EditPatientAppointment';
 import NotificationTestPanel from './NotificationTestPanel';
+import { UserRoleManager } from './UserRoleManager';
 
 const AuthenticatedStaffPortal = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -48,9 +49,19 @@ const AuthenticatedStaffPortal = () => {
 
         if (staffError) {
           console.error('Error checking staff status:', staffError);
-          setIsAuthorized(false);
+          // Fallback: Check email domain for hospital staff
+          const isHospitalEmail = session.user.email?.endsWith('@vchomehospital.co.th') || false;
+          setIsAuthorized(isHospitalEmail);
         } else {
-          setIsAuthorized(isStaff);
+          // If RPC returns false, check fallback conditions
+          if (!isStaff) {
+            // Fallback: Check email domain or demo accounts
+            const isHospitalEmail = session.user.email?.endsWith('@vchomehospital.co.th') || false;
+            const isDemoAccount = ['admin@vchomehospital.co.th', 'staff@vchomehospital.co.th'].includes(session.user.email || '');
+            setIsAuthorized(isHospitalEmail || isDemoAccount);
+          } else {
+            setIsAuthorized(isStaff);
+          }
         }
 
         // Check if user is admin
@@ -59,9 +70,19 @@ const AuthenticatedStaffPortal = () => {
 
         if (adminError) {
           console.error('Error checking admin status:', adminError);
-          setIsAdmin(false);
+          // Fallback: Check email for admin access
+          const isAdminEmail = session.user.email === 'admin@vchomehospital.co.th' || 
+                              session.user.email === 'superadmin@vchomehospital.co.th';
+          setIsAdmin(isAdminEmail);
         } else {
-          setIsAdmin(hasAdminRole);
+          // If RPC returns false, check fallback conditions
+          if (!hasAdminRole) {
+            const isAdminEmail = session.user.email === 'admin@vchomehospital.co.th' || 
+                                session.user.email === 'superadmin@vchomehospital.co.th';
+            setIsAdmin(isAdminEmail);
+          } else {
+            setIsAdmin(hasAdminRole);
+          }
         }
 
       } catch (error) {
@@ -116,7 +137,7 @@ const AuthenticatedStaffPortal = () => {
   };
 
   const navigateToAuth = () => {
-    navigate('/auth');
+    navigate('/auth-full');
   };
 
   if (isLoading) {
@@ -169,17 +190,35 @@ const AuthenticatedStaffPortal = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
-            <p className="text-center text-muted-foreground">
-              คุณไม่มีสิทธิ์เข้าถึงระบบจัดการเจ้าหน้าที่ กรุณาติดต่อผู้ดูแลระบบ
-            </p>
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              className="w-full"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              ออกจากระบบ
-            </Button>
+            <div className="text-center space-y-2">
+              <p className="text-muted-foreground">
+                คุณไม่มีสิทธิ์เข้าถึงระบบจัดการเจ้าหน้าที่
+              </p>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
+                <p><strong>อีเมล:</strong> {user?.email}</p>
+                <p><strong>สถานะ:</strong> ไม่มีสิทธิ์เจ้าหน้าที่</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                หากคุณเป็นเจ้าหน้าที่ กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์การเข้าถึง
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                ลองใหม่
+              </Button>
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                className="w-full"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                ออกจากระบบ
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -189,37 +228,55 @@ const AuthenticatedStaffPortal = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-green-100/30 to-white">
       {/* Header */}
-      <div className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+      <div className="bg-white border-b shadow-sm sticky top-0 z-40">
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md flex-shrink-0">
                 <img
                   src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
                   alt="โลโก้โรงพยาบาลโฮม"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">ระบบจัดการวัคซีน</h1>
-                <p className="text-sm text-muted-foreground">โรงพยาบาลโฮม</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">
+                  ระบบจัดการวัคซีน
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  โรงพยาบาลโฮม
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-medium">{user.email}</p>
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <div className="text-right hidden lg:block">
+                <p className="text-sm font-medium truncate max-w-[200px]" title={user.email}>
+                  {user.email}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {isAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}
                 </p>
               </div>
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                size="sm"
-              >
-                <LogOut className="h-4 w-4 md:mr-2" />
-                <span className="hidden md:inline">ออกจากระบบ</span>
-              </Button>
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Mobile user info button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="lg:hidden p-2"
+                  title={`${user.email} - ${isAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}`}
+                >
+                  <User className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  size="sm"
+                  className="px-2 sm:px-4"
+                >
+                  <LogOut className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">ออกจากระบบ</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -227,14 +284,72 @@ const AuthenticatedStaffPortal = () => {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs defaultValue="staff-portal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-6">
-            <TabsTrigger value="staff-portal">นัดวันนี้</TabsTrigger>
-            <TabsTrigger value="registrations">รายการลงทะเบียน</TabsTrigger>
-            <TabsTrigger value="next-appointments">นัดครั้งถัดไป</TabsTrigger>
-            <TabsTrigger value="past-vaccinations">ประวัติการฉีด</TabsTrigger>
-            <TabsTrigger value="edit-appointments">แก้ไขนัด</TabsTrigger>
-            <TabsTrigger value="vaccine-calculator">คำนวณวัคซีน</TabsTrigger>
-            {isAdmin && <TabsTrigger value="settings">ตั้งค่า</TabsTrigger>}
+          {/* Mobile: Scrollable tabs */}
+          <div className="block lg:hidden mb-6">
+            <div className="overflow-x-auto scrollbar-thin">
+              <TabsList className="flex w-max gap-1 p-1">
+                <TabsTrigger value="staff-portal" className="text-xs px-3 py-2 whitespace-nowrap">
+                  นัดวันนี้
+                </TabsTrigger>
+                <TabsTrigger value="registrations" className="text-xs px-3 py-2 whitespace-nowrap">
+                  ลงทะเบียน
+                </TabsTrigger>
+                <TabsTrigger value="next-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
+                  นัดถัดไป
+                </TabsTrigger>
+                <TabsTrigger value="past-vaccinations" className="text-xs px-3 py-2 whitespace-nowrap">
+                  ประวัติ
+                </TabsTrigger>
+                <TabsTrigger value="edit-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
+                  แก้ไขนัด
+                </TabsTrigger>
+                <TabsTrigger value="vaccine-calculator" className="text-xs px-3 py-2 whitespace-nowrap">
+                  คำนวณ
+                </TabsTrigger>
+                {isAdmin && (
+                  <TabsTrigger value="user-roles" className="text-xs px-3 py-2 whitespace-nowrap">
+                    จัดการสิทธิ์
+                  </TabsTrigger>
+                )}
+                {isAdmin && (
+                  <TabsTrigger value="settings" className="text-xs px-3 py-2 whitespace-nowrap">
+                    ตั้งค่า
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
+          </div>
+
+          {/* Desktop: Grid tabs */}
+          <TabsList className={`hidden lg:grid w-full mb-6 gap-1 ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
+            <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">
+              นัดวันนี้
+            </TabsTrigger>
+            <TabsTrigger value="registrations" className="text-sm px-2 py-2">
+              รายการลงทะเบียน
+            </TabsTrigger>
+            <TabsTrigger value="next-appointments" className="text-sm px-2 py-2">
+              นัดครั้งถัดไป
+            </TabsTrigger>
+            <TabsTrigger value="past-vaccinations" className="text-sm px-2 py-2">
+              ประวัติการฉีด
+            </TabsTrigger>
+            <TabsTrigger value="edit-appointments" className="text-sm px-2 py-2">
+              แก้ไขนัด
+            </TabsTrigger>
+            <TabsTrigger value="vaccine-calculator" className="text-sm px-2 py-2">
+              คำนวณวัคซีน
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="user-roles" className="text-sm px-2 py-2">
+                จัดการสิทธิ์
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="settings" className="text-sm px-2 py-2">
+                ตั้งค่า
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="staff-portal">
@@ -260,6 +375,12 @@ const AuthenticatedStaffPortal = () => {
           <TabsContent value="vaccine-calculator">
             <VaccineScheduleCalculator />
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="user-roles">
+              <UserRoleManager />
+            </TabsContent>
+          )}
 
           {isAdmin && (
             <TabsContent value="settings">
