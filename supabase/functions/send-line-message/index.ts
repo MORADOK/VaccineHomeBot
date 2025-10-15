@@ -110,7 +110,7 @@ serve(async (req) => {
                   contents: [
                     {
                       type: "image",
-                      url: "https://your-domain.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+                      url: "https://moradok.github.io/VaccineHomeBot/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
                       flex: 0,
                       size: "sm",
                       aspectRatio: "1:1",
@@ -376,7 +376,7 @@ serve(async (req) => {
                   contents: [
                     {
                       type: "image",
-                      url: "https://your-domain.com/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
+                      url: "https://moradok.github.io/VaccineHomeBot/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png",
                       flex: 0,
                       size: "sm",
                       aspectRatio: "1:1",

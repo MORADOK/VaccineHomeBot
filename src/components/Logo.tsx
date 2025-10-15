@@ -4,7 +4,8 @@ import React from 'react'
 const getLogoUrl = () => {
   const baseUrl = import.meta.env.BASE_URL || '/'
   const logoPath = 'images/hospital-logo.png'
-  return baseUrl + logoPath
+  // Ensure proper path concatenation
+  return baseUrl.endsWith('/') ? baseUrl + logoPath : baseUrl + '/' + logoPath
 }
 
 const resolvedUrl =
@@ -19,15 +20,17 @@ export default function Logo({ className = 'w-full h-full object-contain object-
       alt="โลโก้โรงพยาบาลโฮม"
       className={className}
       onError={(e) => { 
-        // Fallback to different logo paths
+        // Fallback to different logo paths with proper base URL
+        const baseUrl = import.meta.env.BASE_URL || '/'
+        const basePath = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'
         const fallbacks = [
-          getLogoUrl(),
-          '/images/hospital-logo.png',
-          '/images/home-hospital-logo.png',
-          '/favicon-hospital.png'
+          basePath + 'images/hospital-logo.png',
+          basePath + 'images/home-hospital-logo.png',
+          basePath + 'images/home-hospital-logo.svg',
+          basePath + 'favicon-hospital.png'
         ]
         const currentSrc = (e.currentTarget as HTMLImageElement).src
-        const currentIndex = fallbacks.findIndex(url => currentSrc.includes(url.split('/').pop() || ''))
+        const currentIndex = fallbacks.findIndex(url => currentSrc === url)
         if (currentIndex < fallbacks.length - 1) {
           (e.currentTarget as HTMLImageElement).src = fallbacks[currentIndex + 1]
         }
