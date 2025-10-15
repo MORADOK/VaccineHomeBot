@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>การแจ้งเตือนวัคซีนแบบใหม่</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .line-message {
+            max-width: 320px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            margin: 1rem auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .message-header {
+            background: #F8F9FA;
+            padding: 16px;
+            border-bottom: 2px solid #1DB446;
+        }
+        
+        .message-header.overdue {
+            background: #FFF5F5;
+            border-bottom: 2px solid #FF6B6B;
+        }
+        
+        .hospital-logo {
+            width: 48px;
+            height: 48px;
+            background: url('/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png') center/cover;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(29, 180, 70, 0.3);
+        }
+        
+        .hospital-logo.overdue {
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+        }
+        
+        .message-body {
+            padding: 16px;
+        }
+        
+        .info-box {
+            background: #F8F9FA;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            border-left: 4px solid #1DB446;
+        }
+        
+        .info-box.overdue {
+            background: #FFF5F5;
+            border-left: 4px solid #FF6B6B;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .info-label {
+            color: #666666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 2;
+        }
+        
+        .info-value {
+            font-weight: bold;
+            color: #333333;
+            text-align: right;
+            flex: 3;
+        }
+        
+        .info-value.overdue-date {
+            color: #FF6B6B;
+        }
+        
+        .message-footer {
+            padding: 16px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .btn-primary {
+            flex: 1;
+            background: #1DB446;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+        }
+        
+        .btn-primary:hover {
+            background: #17a03a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(29, 180, 70, 0.3);
+        }
+        
+        .btn-primary.overdue {
+            background: #FF6B6B;
+        }
+        
+        .btn-primary.overdue:hover {
+            background: #ff5252;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+        
+        .btn-secondary {
+            flex: 1;
+            background: white;
+            color: #666666;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+        }
+        
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .footer-text {
+            font-size: 12px;
+            color: #666666;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .alert-text {
+            color: #FF6B6B;
+            font-weight: bold;
+            text-align: center;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+        
+        .demo-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        
+        .phone-frame {
+            max-width: 375px;
+            margin: 0 auto;
+            background: #000;
+            border-radius: 25px;
+            padding: 8px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .phone-screen {
+            background: linear-gradient(180deg, #00C851 0%, #00B248 100%);
+            border-radius: 20px;
+            padding: 20px 16px;
+            min-height: 600px;
+        }
+        
+        .line-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .line-avatar {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            overflow: hidden;
+        }
+        
+        .comparison-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px auto;
+            max-width: 800px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .highlight-new {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #155724;
+        }
+        
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .before-after {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .feature-badge {
+            display: inline-block;
+            background: #1DB446;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        
+        .feature-badge.overdue {
+            background: #FF6B6B;
+        }
+    </style>
+</head>
+<body class="demo-container">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white mb-4">
+            🏥การแจ้งเตือนวัคซีนแบบใหม่
+        </h1>
+        <p class="text-xl text-white/90">
+            ใช้โลโก้โรงพยาบาลและรูปแบบที่ทันสมัย
+        </p>
+    </div>
+    
+    <!-- Phone Frame Demo -->
+    <div class="phone-frame mb-8">
+        <div class="phone-screen">
+            <div class="line-header">
+                <div class="line-avatar">
+                    <img src="/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png" 
+                         alt="รพ.โฮม Logo" 
+                         style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div>
+                    <div class="font-bold">โรงพยาบาลโฮม</div>
+                    <div class="text-sm opacity-90">VCHome Hospital</div>
+                </div>
+            </div>
+            
+            <!-- Updated Reminder Message -->
+            <div class="line-message">
+                <div class="message-header">
+                    <div class="flex items-center gap-3">
+                        <div class="hospital-logo"></div>
+                        <div>
+                            <div class="font-bold text-lg" style="color: #1DB446;">
+                                <span class="highlight-new">โรงพยาบาลโฮม</span>
+                            </div>
+                            <div class="text-sm text-gray-600">VCHome Hospital</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="message-body">
+                    <div class="font-bold text-lg mb-2" style="color: #1DB446;">
+                        🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน
+                    </div>
+                    <hr class="my-3">
+                    
+                    <div class="font-bold text-base mb-3">สวัสดีคุณ มรดก มาลี</div>
+                    
+                    <div class="info-box">
+                        <div class="info-row">
+                            <div class="info-label">📅 วันที่นัด</div>
+                            <div class="info-value">5/2/2569</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">⏰ เวลา</div>
+                            <div class="info-value">10:00 น.</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">💉 วัคซีน</div>
+                            <div class="info-value">วัคซีนไวรัสตับอักเสบบี</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">🏥 สถานที่</div>
+                            <div class="info-value">โรงพยาบาลโฮม</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="message-footer">
+                    <div class="button-row">
+                        <a href="tel:038-511-123" class="btn-primary">📞 โทรติดต่อ</a>
+                        <a href="https://maps.google.com/?q=โรงพยาบาลโฮม" class="btn-secondary">📍 ดูแผนที่</a>
+                    </div>
+                    <div class="footer-text">
+                        ⚠️ กรุณามาตามเวลานัดหมาย หากมีข้อสงสัยสามารถติดต่อ 038-511-123
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comparison Section -->
+    <div class="comparison-section">
+        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">
+            🔄 การเปรียบเทียบก่อนและหลังการปรับปรุง
+        </h2>
+        
+        <div class="before-after">
+            <div>
+                <h3 class="text-lg font-bold mb-4 text-center text-red-600">❌ ก่อนแก้ไข</h3>
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <div class="text-sm font-mono text-gray-700">
+                        🏥 แจ้งเตือนการนัดหมายฉีดวัคซีน<br>
+                        โรงพยาบาลโฮม<br><br>
+                        สวัสดีคุณ สมชาย ใจดี<br><br>
+                        📅 วันที่: 20/12/2567<br>
+                        ⏰ เวลา: 09:00 น.<br>
+                        💉 วัคซีน: COVID-19 Booster<br>
+                        🏥 สถานที่: โรงพยาบาลโฮม<br><br>
+                        กรุณามาตามเวลานัดหมาย
+                    </div>
+                </div>
+                <div class="mt-3 text-sm text-gray-600">
+                    <div class="font-semibold mb-2">ปัญหา:</div>
+                    <ul class="space-y-1">
+                        <li>• ไม่มี "รพ.โฮม" หน้าชื่อ</li>
+                        <li>• ไม่มีโลโก้โรงพยาบาล</li>
+                        <li>• รูปแบบธรรมดา</li>
+                        <li>• ไม่มีปุ่มกดโทร</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-bold mb-4 text-center text-green-600">✅ หลังแก้ไข</h3>
+                <div class="line-message">
+                    <div class="message-header">
+                        <div class="flex items-center gap-3">
+                            <div class="hospital-logo"></div>
+                            <div>
+                                <div class="font-bold text-sm" style="color: #1DB446;">โรงพยาบาลโฮม</div>
+                                <div class="text-xs text-gray-600">VCHome Hospital</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="message-body">
+                        <div class="font-bold text-sm mb-2" style="color: #1DB446;">
+                            🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน
+                        </div>
+                        <hr class="my-2">
+                        
+                        <div class="font-bold text-sm mb-2">สวัสดีคุณ มรดก มาลี</div>
+                        
+                        <div class="info-box">
+                            <div class="info-row">
+                                <div class="info-label text-xs">📅 วันที่นัด</div>
+                                <div class="info-value text-xs">5/2/2569</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label text-xs">⏰ เวลา</div>
+                                <div class="info-value text-xs">10:00 น.</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label text-xs">💉 วัคซีน</div>
+                                <div class="info-value text-xs">วัคซีนไวรัสตับอักเสบบี</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">🏥 สถานที่</div>
+                                <div class="info-value">โรงพยาบาลโฮม</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="message-footer">
+                        <div class="button-row">
+                            <button class="btn-primary text-xs">📞 โทรติดต่อ</button>
+                            <button class="btn-secondary text-xs">📍 ดูแผนที่</button>
+                        </div>
+                        <div class="footer-text text-xs">
+                            📞 ติดต่อ: 038-511-123
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-sm text-gray-600">
+                    <div class="font-semibold mb-2">ปรับปรุง:</div>
+                    <ul class="space-y-1">
+                        <li>• ✅ เพิ่ม "รพ.โฮม" หน้าชื่อ</li>
+                        <li>• ✅ ใช้โลโก้โรงพยาบาล</li>
+                        <li>• ✅ Rich Message ทันสมัย</li>
+                        <li>• ✅ ปุ่มกดโทรได้ทันที</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overdue Message Demo -->
+    <div class="comparison-section">
+        <h2 class="text-xl font-bold text-center mb-4 text-gray-800">
+            ⚠️ ข้อความเกินกำหนด
+        </h2>
+        
+        <div class="line-message">
+            <div class="message-header overdue">
+                <div class="flex items-center gap-3">
+                    <div class="hospital-logo overdue"></div>
+                    <div>
+                        <div class="font-bold text-lg" style="color: #FF6B6B;">
+                            <span class="highlight-new">โรงพยาบาลโฮม</span>
+                        </div>
+                        <div class="text-sm text-gray-600">VCHome Hospital</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="message-body">
+                <div class="font-bold text-lg mb-2" style="color: #FF6B6B;">
+                    ⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด
+                </div>
+                <hr class="my-3">
+                
+                <div class="font-bold text-sm mb-2">สวัสดีคุณ มรดก มาลี</div>
+                
+                <div class="info-box overdue">
+                    <div class="info-row">
+                        <div class="info-label">📅 วันที่นัดเดิม</div>
+                        <div class="info-value overdue-date">15/12/2567</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label text-xs">💉 วัคซีน</div>
+                                <div class="info-value text-xs">วัคซีนไวรัสตับอักเสบบี</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">🏥 สถานที่</div>
+                        <div class="info-value">
+                            <div class="info-value">โรงพยาบาลโฮม</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert-text">
+                    ⚠️ การนัดหมายของคุณเกินกำหนดแล้ว
+                </div>
+                <div class="text-center text-sm text-gray-600">
+                    กรุณาติดต่อโรงพยาบาลเพื่อนัดหมายใหม่
+                </div>
+            </div>
+            
+            <div class="message-footer">
+                <div class="button-row">
+                    <a href="tel:038-511-123" class="btn-primary overdue">📞 โทรนัดใหม่</a>
+                    <a href="https://maps.google.com/?q=โรงพยาบาลโฮม" class="btn-secondary">📍 ดูแผนที่</a>
+                </div>
+                <div class="footer-text">
+                    📞 ติดต่อ: 038-511-123 เพื่อนัดหมายใหม่
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Features Summary -->
+    <div class="comparison-section">
+        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">
+            ✨ คุณสมบัติใหม่ที่เพิ่มขึ้น
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="text-center">
+                <div class="feature-badge">รพ.โฮม</div>
+                <div class="text-sm mt-2">เพิ่มชื่อย่อหน้าชื่อโรงพยาบาล</div>
+            </div>
+            <div class="text-center">
+                <div class="feature-badge">🏥 โลโก้</div>
+                <div class="text-sm mt-2">ใช้โลโก้โรงพยาบาลจริง</div>
+            </div>
+            <div class="text-center">
+                <div class="feature-badge">📞 โทรได้</div>
+                <div class="text-sm mt-2">กดโทร 038-511-123 ได้ทันที</div>
+            </div>
+            <div class="text-center">
+                <div class="feature-badge">📍 แผนที่</div>
+                <div class="text-sm mt-2">ปุ่มดูแผนที่โรงพยาบาล</div>
+            </div>
+            <div class="text-center">
+                <div class="feature-badge overdue">⚠️ เกินกำหนด</div>
+                <div class="text-sm mt-2">ข้อความแจ้งเตือนพิเศษ</div>
+            </div>
+            <div class="text-center">
+                <div class="feature-badge">🎨 ทันสมัย</div>
+                <div class="text-sm mt-2">ดีไซน์สวยงามและเป็นมืออาชีพ</div>
+            </div>
+        </div>
+        
+        <div class="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
+            <h3 class="font-bold text-green-800 mb-3 text-center">🎯 ผลลัพธ์ที่ได้</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-700">
+                <ul class="space-y-2">
+                    <li>✅ ผู้ป่วยจดจำ "รพ.โฮม" ได้ง่าย</li>
+                    <li>✅ ความน่าเชื่อถือเพิ่มขึ้น</li>
+                    <li>✅ การสื่อสารที่เป็นมืออาชีพ</li>
+                </ul>
+                <ul class="space-y-2">
+                    <li>✅ ลดการโทรสอบถามซ้ำ</li>
+                    <li>✅ เพิ่มความสะดวกในการติดต่อ</li>
+                    <li>✅ ภาพลักษณ์โรงพยาบาลดีขึ้น</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Demo animation
+        window.addEventListener('load', function() {
+            const messages = document.querySelectorAll('.line-message');
+            messages.forEach((message, index) => {
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                    message.style.transform = 'translateY(20px) scale(0.95)';
+                    message.style.transition = 'all 0.6s ease';
+                    
+                    setTimeout(() => {
+                        message.style.opacity = '1';
+                        message.style.transform = 'translateY(0) scale(1)';
+                    }, 100);
+                }, index * 300);
+            });
+        });
+    </script>
+</body>
+</html>

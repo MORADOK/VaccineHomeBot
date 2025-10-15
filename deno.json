@@ -1,7 +1,17 @@
 {
-  "imports": {
-    "std/http/server.ts": "https://deno.land/std@0.190.0/http/server.ts",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.54.0"
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": false
   },
-  "compilerOptions": { "strict": true }
+  "fmt": {
+    "files": {
+      "include": ["supabase/functions/"]
+    }
+  },
+  "lint": {
+    "files": {
+      "include": ["supabase/functions/"]
+    }
+  }
 }

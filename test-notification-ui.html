@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification UI Test - ทดสอบ UI การแจ้งเตือน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animation for notifications */
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes progressBar {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .animate-slide-out {
+            animation: slideOutRight 0.3s ease-in;
+        }
+        
+        .animate-progress {
+            animation: progressBar 5s linear;
+        }
+        
+        /* Custom scrollbar */
+        .scrollbar-thin {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Hover effects */
+        .hover-lift {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 via-green-100/30 to-white min-h-screen">
+    <div class="container mx-auto p-4 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">
+            🔔 ทดสอบ UI การแจ้งเตือนนัดคนไข้
+        </h1>
+        
+        <!-- Control Panel -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                🎛️ Panel ควบคุมการทดสอบ
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <button onclick="showNotification('success', 'ส่งการแจ้งเตือนสำเร็จ', 'ส่งข้อความแจ้งเตือนให้ผู้ป่วย 3 รายแล้ว')" 
+                        class="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    ✅ Success Toast
+                </button>
+                
+                <button onclick="showNotification('error', 'เกิดข้อผิดพลาด', 'ไม่สามารถส่งการแจ้งเตือนได้ กรุณาลองใหม่')" 
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    ❌ Error Toast
+                </button>
+                
+                <button onclick="showNotification('warning', 'คำเตือน', 'พบนัดหมายเกินกำหนด 2 รายการ')" 
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    ⚠️ Warning Toast
+                </button>
+                
+                <button onclick="showNotification('info', 'ข้อมูล', 'ระบบจะตรวจสอบการแจ้งเตือนทุก 8 ชั่วโมง')" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    ℹ️ Info Toast
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="simulateAutoNotification()" 
+                        class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    🤖 จำลองระบบอัตโนมัติ
+                </button>
+                
+                <button onclick="simulateTestSystem()" 
+                        class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    🧪 จำลองการทดสอบ
+                </button>
+                
+                <button onclick="clearAllNotifications()" 
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors hover-lift">
+                    🗑️ ล้างการแจ้งเตือน
+                </button>
+            </div>
+        </div>
+        
+        <!-- Auto Notification System Demo -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                ⚡ ระบบแจ้งเตือนอัตโนมัติ (Demo)
+            </h2>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-4 h-4 bg-blue-500 rounded-full"></div>
+                    <span class="text-sm font-medium text-blue-800">
+                        ระบบจะตรวจสอบและส่งการแจ้งเตือนล่วงหน้าอัตโนมัติ:
+                    </span>
+                </div>
+                <ul class="text-sm text-blue-700 ml-6 space-y-1">
+                    <li>• แจ้งเตือน 1 วันก่อนวันนัด และ 8 ชั่วโมงก่อนวันนัด</li>
+                    <li>• ตรวจสอบการนัดเกินกำหนดและส่งการแจ้งเตือน</li>
+                </ul>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                <button id="triggerBtn" onclick="triggerNotificationSystem()" 
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors hover-lift flex items-center justify-center gap-2">
+                    <span id="triggerIcon">📤</span>
+                    <span id="triggerText">เรียกใช้ระบบแจ้งเตือน</span>
+                </button>
+                
+                <button onclick="refreshHistory()" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors hover-lift flex items-center justify-center gap-2">
+                    🔄 รีเฟรช
+                </button>
+            </div>
+            
+            <!-- Statistics Display -->
+            <div id="statsDisplay" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border">
+                <h3 class="font-medium text-base mb-3 flex items-center gap-2">
+                    <div class="w-4 h-4 bg-green-500 rounded-full"></div>
+                    ผลการทำงานล่าสุด
+                </h3>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                    <div class="text-center">
+                        <div id="appointmentsChecked" class="font-semibold text-lg">12</div>
+                        <div class="text-gray-600">นัดพรุ่งนี้</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="overdueChecked" class="font-semibold text-lg">3</div>
+                        <div class="text-gray-600">นัดเกินกำหนด</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="notificationsSent" class="font-semibold text-lg text-green-600">8</div>
+                        <div class="text-gray-600">ส่งสำเร็จ</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="errorsCount" class="font-semibold text-lg text-red-600">1</div>
+                        <div class="text-gray-600">ข้อผิดพลาด</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                    เมื่อ: <span id="lastRunTime">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification History Demo -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                📋 ประวัติการแจ้งเตือน (<span id="historyCount">5</span>)
+            </h2>
+            
+            <div id="notificationHistory" class="space-y-3">
+                <!-- Sample notification history items -->
+                <div class="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 text-blue-500">⏰</div>
+                            <span class="font-medium">แจ้งเตือนล่วงหน้า</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-green-100 text-green-800 border-green-200 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
+                            <span class="text-xs text-gray-500">วันนี้ 14:30</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-2">
+                        ส่งถึง: คุณสมชาย ใจดี (LINE)
+                    </div>
+                    <div class="text-sm bg-gray-100 p-2 rounded border max-h-20 overflow-y-auto">
+                        🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน<br><br>
+                        สวัสดีคุณสมชาย ใจดี<br><br>
+                        📅 วันที่: 2024-01-16<br>
+                        ⏰ เวลา: 10:00<br>
+                        💉 วัคซีน: COVID-19 Pfizer<br>
+                        🏥 สถานที่: โรงพยาบาลโฮม
+                    </div>
+                </div>
+                
+                <div class="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 text-red-500">⚠️</div>
+                            <span class="font-medium">การนัดเกินกำหนด</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-red-100 text-red-800 border-red-200 px-2 py-1 rounded text-xs">ไม่สำเร็จ</span>
+                            <span class="text-xs text-gray-500">วันนี้ 13:15</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-2">
+                        ส่งถึง: คุณสมหญิง รักสุข (โทรศัพท์)
+                    </div>
+                    <div class="text-sm bg-gray-100 p-2 rounded border max-h-20 overflow-y-auto">
+                        ⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด<br><br>
+                        คุณสมหญิง รักสุข<br><br>
+                        📅 วันที่นัด: 2024-01-14<br>
+                        💉 วัคซีน: Influenza<br>
+                        🏥 สถานที่: โรงพยาบาลโฮม
+                    </div>
+                </div>
+                
+                <div class="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 text-blue-500">⏰</div>
+                            <span class="font-medium">แจ้งเตือนล่วงหน้า</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="bg-green-100 text-green-800 border-green-200 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
+                            <span class="text-xs text-gray-500">วันนี้ 12:00</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-2">
+                        ส่งถึง: คุณสมศรี มีสุข (LINE)
+                    </div>
+                    <div class="text-sm bg-gray-100 p-2 rounded border max-h-20 overflow-y-auto">
+                        🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน<br><br>
+                        สวัสดีคุณสมศรี มีสุข<br><br>
+                        📅 วันที่: 2024-01-16<br>
+                        ⏰ เวลา: 14:30<br>
+                        💉 วัคซีน: Hepatitis B<br>
+                        🏥 สถานที่: โรงพยาบาลโฮม
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test System Demo -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                🧪 ทดสอบระบบแจ้งเตือนอัตโนมัติ
+            </h2>
+            
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-4 h-4 bg-gray-500 rounded-full"></div>
+                    <span class="text-sm font-medium text-gray-800">
+                        เครื่องมือนี้จะทดสอบการทำงานของระบบแจ้งเตือนอัตโนมัติ
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600 ml-6">
+                    รวมถึงการเชื่อมต่อฐานข้อมูล, การตรวจสอบนัดหมาย, และการทำงานของฟังก์ชันแจ้งเตือน
+                </p>
+            </div>
+            
+            <button id="testBtn" onclick="runSystemTest()" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors hover-lift flex items-center justify-center gap-2 mb-6">
+                <span id="testIcon">🧪</span>
+                <span id="testText">เริ่มทดสอบระบบ</span>
+            </button>
+            
+            <div id="testResults" class="hidden space-y-3">
+                <h3 class="font-medium text-lg mb-3">ผลการทดสอบ:</h3>
+                <!-- Test results will be populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+        <!-- Toasts will be added here -->
+    </div>
+    
+    <script>
+        let toastCounter = 0;
+        
+        function showNotification(type, title, message) {
+            const toastId = `toast-${++toastCounter}`;
+            const container = document.getElementById('toastContainer');
+            
+            const variants = {
+                success: {
+                    bg: 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200',
+                    icon: '✅',
+                    titleColor: 'text-green-800',
+                    messageColor: 'text-green-700'
+                },
+                error: {
+                    bg: 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200',
+                    icon: '❌',
+                    titleColor: 'text-red-800',
+                    messageColor: 'text-red-700'
+                },
+                warning: {
+                    bg: 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200',
+                    icon: '⚠️',
+                    titleColor: 'text-amber-800',
+                    messageColor: 'text-amber-700'
+                },
+                info: {
+                    bg: 'bg-gradient-to-r from-blue-50 to-sky-50 border-blue-200',
+                    icon: 'ℹ️',
+                    titleColor: 'text-blue-800',
+                    messageColor: 'text-blue-700'
+                }
+            };
+            
+            const variant = variants[type];
+            
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = `rounded-2xl border p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl animate-slide-in ${variant.bg}`;
+            
+            toast.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 mt-0.5 text-lg">
+                        ${variant.icon}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold text-sm mb-1 ${variant.titleColor}">
+                            ${title}
+                        </h4>
+                        <p class="text-sm leading-relaxed ${variant.messageColor}">
+                            ${message}
+                        </p>
+                    </div>
+                    <button onclick="closeToast('${toastId}')" class="flex-shrink-0 p-1 rounded-lg hover:bg-black/5 transition-colors">
+                        <span class="text-gray-500">✕</span>
+                    </button>
+                </div>
+                <div class="mt-3 h-1 bg-black/10 rounded-full overflow-hidden">
+                    <div class="h-full bg-current opacity-30 animate-progress"></div>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                closeToast(toastId);
+            }, 5000);
+        }
+        
+        function closeToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                toast.classList.remove('animate-slide-in');
+                toast.classList.add('animate-slide-out');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }
+        
+        function clearAllNotifications() {
+            const container = document.getElementById('toastContainer');
+            const toasts = container.querySelectorAll('[id^="toast-"]');
+            toasts.forEach(toast => {
+                closeToast(toast.id);
+            });
+        }
+        
+        function triggerNotificationSystem() {
+            const btn = document.getElementById('triggerBtn');
+            const icon = document.getElementById('triggerIcon');
+            const text = document.getElementById('triggerText');
+            const stats = document.getElementById('statsDisplay');
+            
+            // Show loading state
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+            icon.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full spinner"></div>';
+            text.textContent = 'กำลังดำเนินการ...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Reset button
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                icon.textContent = '📤';
+                text.textContent = 'เรียกใช้ระบบแจ้งเตือน';
+                
+                // Show stats
+                stats.classList.remove('hidden');
+                document.getElementById('lastRunTime').textContent = new Date().toLocaleString('th-TH');
+                
+                // Show success notification
+                showNotification('success', 'ระบบแจ้งเตือนทำงานสำเร็จ', 'ส่งการแจ้งเตือน 8 รายการ');
+            }, 2000);
+        }
+        
+        function refreshHistory() {
+            showNotification('info', 'รีเฟรชข้อมูล', 'โหลดประวัติการแจ้งเตือนใหม่แล้ว');
+        }
+        
+        function runSystemTest() {
+            const btn = document.getElementById('testBtn');
+            const icon = document.getElementById('testIcon');
+            const text = document.getElementById('testText');
+            const results = document.getElementById('testResults');
+            
+            // Show loading state
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+            icon.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full spinner"></div>';
+            text.textContent = 'กำลังทดสอบ...';
+            
+            // Clear previous results
+            results.innerHTML = '<h3 class="font-medium text-lg mb-3">ผลการทดสอบ:</h3>';
+            results.classList.remove('hidden');
+            
+            const tests = [
+                { name: 'Database Connection', status: 'success', message: 'เชื่อมต่อฐานข้อมูลสำเร็จ' },
+                { name: 'Notifications Table', status: 'success', message: 'ตาราง appointment_notifications พร้อมใช้งาน' },
+                { name: 'Tomorrow Appointments', status: 'success', message: 'พบนัดหมายพรุ่งนี้ 12 รายการ' },
+                { name: 'Overdue Appointments', status: 'warning', message: 'พบนัดเกินกำหนด 3 รายการ' },
+                { name: 'Notification Function', status: 'success', message: 'ฟังก์ชันแจ้งเตือนทำงานได้' },
+                { name: 'CRON Job Status', status: 'warning', message: 'ไม่สามารถตรวจสอบสถานะ CRON job ได้' },
+                { name: 'Recent Notifications', status: 'success', message: 'พบการแจ้งเตือนล่าสุด 5 รายการ' },
+                { name: 'Notification Jobs Queue', status: 'error', message: 'ไม่สามารถตรวจสอบ notification_jobs ได้' }
+            ];
+            
+            // Simulate test execution
+            tests.forEach((test, index) => {
+                setTimeout(() => {
+                    addTestResult(test);
+                    
+                    // If last test, reset button
+                    if (index === tests.length - 1) {
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-75');
+                            icon.textContent = '🧪';
+                            text.textContent = 'เริ่มทดสอบระบบ';
+                            
+                            // Show summary
+                            const successCount = tests.filter(t => t.status === 'success').length;
+                            const errorCount = tests.filter(t => t.status === 'error').length;
+                            const warningCount = tests.filter(t => t.status === 'warning').length;
+                            
+                            showNotification(
+                                errorCount > 0 ? 'error' : 'success',
+                                'การทดสอบเสร็จสิ้น',
+                                `สำเร็จ: ${successCount}, เตือน: ${warningCount}, ข้อผิดพลาด: ${errorCount}`
+                            );
+                        }, 500);
+                    }
+                }, (index + 1) * 300);
+            });
+        }
+        
+        function addTestResult(test) {
+            const results = document.getElementById('testResults');
+            
+            const statusColors = {
+                success: 'bg-green-100 text-green-800 border-green-200',
+                warning: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                error: 'bg-red-100 text-red-800 border-red-200'
+            };
+            
+            const statusIcons = {
+                success: '✅',
+                warning: '⚠️',
+                error: '❌'
+            };
+            
+            const statusTexts = {
+                success: 'สำเร็จ',
+                warning: 'เตือน',
+                error: 'ข้อผิดพลาด'
+            };
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'border rounded-lg p-4 animate-slide-in';
+            resultDiv.innerHTML = `
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">${statusIcons[test.status]}</span>
+                        <span class="font-medium">${test.name}</span>
+                    </div>
+                    <span class="px-2 py-1 rounded text-xs ${statusColors[test.status]}">
+                        ${statusTexts[test.status]}
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600">${test.message}</p>
+            `;
+            
+            results.appendChild(resultDiv);
+        }
+        
+        function simulateAutoNotification() {
+            showNotification('info', 'จำลองระบบอัตโนมัติ', 'กำลังจำลองการทำงานของระบบแจ้งเตือนอัตโนมัติ...');
+            
+            setTimeout(() => {
+                showNotification('success', 'ระบบอัตโนมัติทำงานสำเร็จ', 'ตรวจสอบนัดหมาย 15 รายการ ส่งแจ้งเตือน 8 รายการ');
+            }, 2000);
+        }
+        
+        function simulateTestSystem() {
+            showNotification('info', 'เริ่มการทดสอบ', 'กำลังทดสอบระบบการแจ้งเตือนทั้งหมด...');
+            
+            setTimeout(() => {
+                showNotification('warning', 'ผลการทดสอบ', 'พบปัญหาเล็กน้อย: LINE Token ไม่ได้ตั้งค่า');
+            }, 3000);
+        }
+        
+        // Auto-demo on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                showNotification('info', 'ยินดีต้อนรับ', 'ระบบทดสอบ UI การแจ้งเตือนพร้อมใช้งาน');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

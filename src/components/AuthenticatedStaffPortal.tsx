@@ -232,11 +232,21 @@ const AuthenticatedStaffPortal = () => {
         <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md flex-shrink-0 bg-gradient-to-br from-blue-50 to-blue-100 p-1">
                 <img
                   src={`${import.meta.env.BASE_URL}images/hospital-logo.png`}
                   alt="โลโก้โรงพยาบาลโฮม"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    // Fallback to other hospital logos
+                    const target = e.target as HTMLImageElement;
+                    const baseUrl = import.meta.env.BASE_URL || '/';
+                    if (target.src.includes('hospital-logo.png')) {
+                      target.src = `${baseUrl}images/home-hospital-logo.png`;
+                    } else if (target.src.includes('home-hospital-logo.png')) {
+                      target.src = `${baseUrl}favicon-hospital.png`;
+                    }
+                  }}
                 />
               </div>
               <div className="min-w-0 flex-1">

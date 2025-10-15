@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ทดสอบโลโก้โรงพยาบาล - Hospital Logo Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .logo-container {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 1rem;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .logo-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(14, 165, 233, 0.2);
+        }
+        
+        .logo-img {
+            transition: all 0.3s ease;
+        }
+        
+        .logo-img:hover {
+            transform: scale(1.05);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
+        }
+        
+        .hospital-card {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .hospital-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto p-6 max-w-6xl">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                🏥 ทดสอบโลโก้โรงพยาบาล
+            </h1>
+            <p class="text-lg text-gray-600">
+                แสดงการใช้งานโลโก้โรงพยาบาลแทนรูปรถมอเตอร์ไซ
+            </p>
+        </div>
+        
+        <!-- Main Hospital Logo Display -->
+        <div class="hospital-card p-8 mb-8">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-gray-800">
+                โลโก้หลักของโรงพยาบาล
+            </h2>
+            
+            <div class="flex justify-center mb-6">
+                <div class="logo-container">
+                    <img 
+                        src="/images/hospital-logo.png" 
+                        alt="โลโก้โรงพยาบาลโฮม"
+                        class="logo-img w-32 h-32 object-contain"
+                        onerror="handleLogoError(this)"
+                    />
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <h3 class="text-xl font-semibold text-blue-800 mb-2">
+                    โรงพยาบาลโฮม VCHome Hospital
+                </h3>
+                <p class="text-gray-600">
+                    ระบบจัดการวัคซีนและการนัดหมาย
+                </p>
+            </div>
+        </div>
+        
+        <!-- Logo Variations -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="hospital-card p-6">
+                <h3 class="text-lg font-semibold text-center mb-4 text-gray-800">
+                    โลโก้หลัก
+                </h3>
+                <div class="flex justify-center mb-4">
+                    <div class="logo-container w-24 h-24">
+                        <img 
+                            src="/images/hospital-logo.png" 
+                            alt="Hospital Logo"
+                            class="logo-img w-full h-full object-contain"
+                            onerror="handleLogoError(this)"
+                        />
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 text-center">
+                    hospital-logo.png
+                </p>
+            </div>
+            
+            <div class="hospital-card p-6">
+                <h3 class="text-lg font-semibold text-center mb-4 text-gray-800">
+                    โลโก้สำรอง 1
+                </h3>
+                <div class="flex justify-center mb-4">
+                    <div class="logo-container w-24 h-24">
+                        <img 
+                            src="/images/home-hospital-logo.png" 
+                            alt="Home Hospital Logo"
+                            class="logo-img w-full h-full object-contain"
+                            onerror="handleLogoError(this)"
+                        />
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 text-center">
+                    home-hospital-logo.png
+                </p>
+            </div>
+            
+            <div class="hospital-card p-6">
+                <h3 class="text-lg font-semibold text-center mb-4 text-gray-800">
+                    โลโก้สำรอง 2
+                </h3>
+                <div class="flex justify-center mb-4">
+                    <div class="logo-container w-24 h-24">
+                        <img 
+                            src="/favicon-hospital.png" 
+                            alt="Favicon Hospital"
+                            class="logo-img w-full h-full object-contain"
+                            onerror="handleLogoError(this)"
+                        />
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 text-center">
+                    favicon-hospital.png
+                </p>
+            </div>
+        </div>
+        
+        <!-- Usage Examples -->
+        <div class="hospital-card p-8 mb-8">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-gray-800">
+                ตัวอย่างการใช้งานในระบบ
+            </h2>
+            
+            <!-- Header Example -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                    🔸 Header ของระบบ Staff Portal
+                </h3>
+                <div class="bg-white border-b shadow-sm rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden shadow-md bg-gradient-to-br from-blue-50 to-blue-100 p-1">
+                                <img
+                                    src="/images/hospital-logo.png"
+                                    alt="โลโก้โรงพยาบาลโฮม"
+                                    class="w-full h-full object-contain"
+                                    onerror="handleLogoError(this)"
+                                />
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold text-gray-900">
+                                    ระบบจัดการวัคซีน
+                                </h1>
+                                <p class="text-sm text-gray-600">
+                                    โรงพยาบาลโฮม
+                                </p>
+                            </div>
+                        </div>
+                        <button class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                            ออกจากระบบ
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Home Page Example -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                    🔸 หน้าแรกของระบบ
+                </h3>
+                <div class="bg-gradient-to-br from-teal-50 via-white to-cyan-50 rounded-2xl p-8 border border-teal-200/50">
+                    <div class="text-center">
+                        <div class="mb-6 flex justify-center">
+                            <div class="logo-container w-32 h-32">
+                                <img 
+                                    src="/images/hospital-logo.png" 
+                                    alt="VCHome Hospital Logo"
+                                    class="logo-img w-full h-full object-contain"
+                                    onerror="handleLogoError(this)"
+                                />
+                            </div>
+                        </div>
+                        
+                        <h1 class="text-4xl font-bold bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 bg-clip-text text-transparent mb-4">
+                            ระบบจัดการวัคซีน
+                        </h1>
+                        
+                        <div class="flex items-center justify-center gap-3 text-2xl font-semibold text-gray-700 mb-4">
+                            <span class="text-red-500">❤️</span>
+                            <span>VCHome Hospital</span>
+                            <span class="text-yellow-500">✨</span>
+                        </div>
+                        
+                        <p class="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                            ระบบจัดการที่ครบครันสำหรับการดูแลผู้ป่วยและการจัดการวัคซีน 
+                            พร้อมเทคโนโลยีที่ทันสมัย ปลอดภัย และใช้งานง่าย
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Example -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                    🔸 แสดงผลบนมือถือ
+                </h3>
+                <div class="max-w-sm mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg overflow-hidden bg-white/20 p-1">
+                                <img
+                                    src="/images/hospital-logo.png"
+                                    alt="โลโก้โรงพยาบาล"
+                                    class="w-full h-full object-contain"
+                                    onerror="handleLogoError(this)"
+                                />
+                            </div>
+                            <div class="text-white">
+                                <h2 class="font-semibold">VCHome Hospital</h2>
+                                <p class="text-sm opacity-90">ระบบจัดการวัคซีน</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600 text-sm">
+                            แสดงตัวอย่างการใช้งานโลโก้บนอุปกรณ์มือถือ
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technical Information -->
+        <div class="hospital-card p-8">
+            <h2 class="text-2xl font-semibold text-center mb-6 text-gray-800">
+                ข้อมูลทางเทคนิค
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">
+                        📁 ไฟล์โลโก้ที่ใช้
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li>✅ <code>/images/hospital-logo.png</code> - โลโก้หลัก</li>
+                        <li>🔄 <code>/images/home-hospital-logo.png</code> - โลโก้สำรอง 1</li>
+                        <li>🔄 <code>/images/home-hospital-logo.svg</code> - โลโก้ SVG</li>
+                        <li>🔄 <code>/favicon-hospital.png</code> - Favicon โรงพยาบาล</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">
+                        🔧 Components ที่อัปเดต
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li>✅ <code>HospitalLogo.tsx</code> - Component โลโก้หลัก</li>
+                        <li>✅ <code>AuthenticatedStaffPortal.tsx</code> - Header ระบบ</li>
+                        <li>✅ <code>Logo.tsx</code> - Component โลโก้ทั่วไป</li>
+                        <li>✅ Fallback mechanism - ระบบสำรอง</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 class="font-semibold text-green-800 mb-2">
+                    ✅ การเปลี่ยนแปลงที่ทำ
+                </h4>
+                <ul class="text-sm text-green-700 space-y-1">
+                    <li>• เปลี่ยนจากรูปใน lovable-uploads เป็นโลโก้โรงพยาบาล</li>
+                    <li>• เพิ่มระบบ fallback สำหรับโลโก้สำรอง</li>
+                    <li>• ปรับปรุง styling ให้เหมาะสมกับโลโก้โรงพยาบาล</li>
+                    <li>• รองรับการแสดงผลบนอุปกรณ์ต่างๆ</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function handleLogoError(img) {
+            console.log('Logo failed to load:', img.src);
+            
+            // Fallback sequence
+            const fallbacks = [
+                '/images/hospital-logo.png',
+                '/images/home-hospital-logo.png',
+                '/images/home-hospital-logo.svg',
+                '/favicon-hospital.png',
+                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iOCIgZmlsbD0iIzMzOTlGRiIvPgo8cGF0aCBkPSJNMzIgMTZWNDhNMTYgMzJINDgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo='
+            ];
+            
+            const currentSrc = img.src;
+            const currentIndex = fallbacks.findIndex(url => currentSrc.includes(url.split('/').pop()));
+            
+            if (currentIndex < fallbacks.length - 1) {
+                img.src = fallbacks[currentIndex + 1];
+            } else if (currentIndex === -1 && fallbacks.length > 0) {
+                img.src = fallbacks[0];
+            }
+        }
+        
+        // Test all logos on page load
+        window.addEventListener('load', function() {
+            console.log('Testing hospital logos...');
+            
+            const logos = document.querySelectorAll('img[alt*="โลโก้"], img[alt*="Logo"], img[alt*="Hospital"]');
+            logos.forEach((logo, index) => {
+                console.log(`Logo ${index + 1}:`, logo.src);
+            });
+        });
+    </script>
+</body>
+</html>
