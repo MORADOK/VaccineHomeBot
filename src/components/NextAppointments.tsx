@@ -342,6 +342,38 @@ const NextAppointments = () => {
 
     setSendingReminder(patientTracking.id);
     try {
+      // ตรวจสอบ authentication ก่อนเรียก Edge Function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error('Authentication error:', sessionError);
+        toast({
+          title: "ไม่สามารถส่งได้",
+          description: "กรุณาเข้าสู่ระบบก่อนใช้งาน",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // ตรวจสอบว่าผู้ใช้เป็น healthcare staff หรือไม่
+      const { data: isStaff, error: roleError } = await supabase.rpc('is_healthcare_staff', {
+        _user_id: session.user.id
+      });
+
+      if (roleError) {
+        console.error('Role check error:', roleError);
+      }
+
+      if (!isStaff) {
+        toast({
+          title: "ไม่มีสิทธิ์เข้าถึง",
+          description: "คุณไม่มีสิทธิ์ส่งข้อความแจ้งเตือน (ต้องการสิทธิ์ healthcare staff)",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // เรียก Edge Function พร้อม authentication
       const { error } = await supabase.functions.invoke('send-line-message', {
         body: {
           userId: patientTracking.line_user_id,
@@ -349,17 +381,36 @@ const NextAppointments = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
       toast({
         title: "ส่งข้อความแล้ว",
         description: `ส่งข้อความแจ้งเตือนไปยัง ${patientTracking.patient_name} แล้ว`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending reminder:', error);
+
+      // แสดง error message ที่ละเอียดขึ้น
+      let errorMessage = "ไม่สามารถส่งข้อความแจ้งเตือนได้";
+
+      if (error?.message) {
+        if (error.message.includes('LINE')) {
+          errorMessage = "ไม่สามารถเชื่อมต่อ LINE API ได้ กรุณาตรวจสอบการตั้งค่า";
+        } else if (error.message.includes('authentication') || error.message.includes('auth')) {
+          errorMessage = "เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่";
+        } else if (error.message.includes('Access denied') || error.message.includes('role')) {
+          errorMessage = "ไม่มีสิทธิ์เข้าถึงฟังก์ชันนี้";
+        } else {
+          errorMessage = `เกิดข้อผิดพลาด: ${error.message}`;
+        }
+      }
+
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่งข้อความแจ้งเตือนได้",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
