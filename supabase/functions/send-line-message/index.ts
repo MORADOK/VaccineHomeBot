@@ -102,6 +102,28 @@ function listInvalidUris(obj: any): string[] {
   visit(obj);
   return bad;
 }
+
+/** Redact PII from logs (message text) */
+function redact(obj: any): string {
+  return JSON.stringify(obj, (k, v) => k === 'text' ? '[redacted]' : v, 2);
+}
+
+/** Optional: Strip bad URI actions instead of failing entire request */
+function stripBadUriActions(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(stripBadUriActions);
+  if (obj && typeof obj === 'object') {
+    if (obj.type === 'uri') {
+      try {
+        new URL(obj.uri ?? obj.linkUri ?? obj.url);
+      } catch {
+        // Replace bad action with placeholder text
+        return { type: 'text', text: '(ลิงก์ไม่ถูกต้อง ถูกตัดออกชั่วคราว)' };
+      }
+    }
+    for (const k of Object.keys(obj)) obj[k] = stripBadUriActions(obj[k]);
+  }
+  return obj;
+}
 // ---------------------------------------------------------------------------------------------
 
 serve(async (req) => {
@@ -226,11 +248,14 @@ serve(async (req) => {
     const suspicious = listInvalidUris(messages);
     if (suspicious.length) console.warn("[LINE] suspicious URIs:", suspicious);
 
-    console.log("[LINE] messages[0] BEFORE:", JSON.stringify(messages?.[0], null, 2));
+    // Log with PII redaction
+    console.log("[LINE] messages[0] BEFORE:", redact(messages?.[0]));
 
     let safeMessages;
     try {
       safeMessages = walkAndFixActions(messages, BASE);
+      // Optional fallback: uncomment to strip bad actions instead of failing
+      // safeMessages = stripBadUriActions(safeMessages);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[LINE] URI Sanitization Failed:", msg);
@@ -242,7 +267,8 @@ serve(async (req) => {
       }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    console.log("[LINE] messages[0] AFTER :", JSON.stringify(safeMessages?.[0], null, 2));
+    // Log with PII redaction
+    console.log("[LINE] messages[0] AFTER :", redact(safeMessages?.[0]));
 
     const sanitizedBody = { ...messageBody, messages: safeMessages };
 
