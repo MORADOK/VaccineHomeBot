@@ -430,8 +430,7 @@ serve(async (req) => {
                   wrap: true,
                   size: "md",
                   color: "#333333",
-                  margin: "lg",
-                  lineSpacing: "sm"
+                  margin: "lg"
                 }
               ],
               paddingAll: "lg"
