@@ -88,6 +88,61 @@ serve(async (req) => {
       return vaccineMap[vaccineType] || vaccineType;
     }
 
+    // ========== URI Sanitization Helpers ==========
+    function normalizeLiff(uri: string) {
+      const m = (uri ?? '').toString().trim().match(/^(?:line|liff):\/\/app\/([A-Za-z0-9._-]+)/);
+      return m ? `https://liff.line.me/${m[1]}` : uri;
+    }
+
+    function absolutize(uri: string, base?: string) {
+      if (uri && uri.startsWith('/') && base) return new URL(uri, base).toString();
+      return uri;
+    }
+
+    function isAllowedScheme(u: URL) {
+      return ['http:', 'https:', 'tel:', 'mailto:', 'line:'].includes(u.protocol);
+    }
+
+    function sanitizeUri(raw: string, base?: string): string {
+      const trimmed = (raw ?? '').toString().trim();
+      if (!trimmed) throw new Error('Invalid action URI: empty string');
+      const fixed = encodeURI(absolutize(normalizeLiff(trimmed), base));
+      let u: URL;
+      try { u = new URL(fixed); } catch { throw new Error(`Invalid action URI: ${raw}`); }
+      if (!isAllowedScheme(u)) throw new Error(`Invalid action URI scheme: ${u.protocol}`);
+      return u.toString();
+    }
+
+    function walkAndFixActions(obj: any, base?: string): any {
+      if (Array.isArray(obj)) return obj.map(x => walkAndFixActions(x, base));
+      if (obj && typeof obj === 'object') {
+        if (obj.type === 'uri') {
+          if (!obj.uri && obj.url) obj.uri = obj.url;        // fix legacy key
+          if (typeof obj.uri === 'string') obj.uri = sanitizeUri(obj.uri, base);
+          if (obj.altUri?.desktop) obj.altUri.desktop = sanitizeUri(obj.altUri.desktop, base);
+        }
+        for (const k of Object.keys(obj)) obj[k] = walkAndFixActions(obj[k], base);
+      }
+      return obj;
+    }
+
+    function listInvalidUris(obj: any): string[] {
+      const bad: string[] = [];
+      const visit = (x: any, path = 'messages') => {
+        if (Array.isArray(x)) { x.forEach((v, i) => visit(v, `${path}[${i}]`)); return; }
+        if (x && typeof x === 'object') {
+          if (x.type === 'uri') {
+            const value = x.uri ?? x.url;
+            try { new URL(String(value)); } catch { bad.push(`${path}.action.uri=${value}`); }
+          }
+          for (const k of Object.keys(x)) visit(x[k], `${path}.${k}`);
+        }
+      };
+      visit(obj);
+      return bad;
+    }
+    // ========== End URI Sanitization Helpers ==========
+
     let messageBody;
 
     if (type === 'template' && templateData) {
@@ -123,15 +178,51 @@ serve(async (req) => {
     }
 
     console.log('[LINE] Sending message to:', userId);
-    console.log('[LINE] Message body:', JSON.stringify(messageBody, null, 2));
 
+    // Get base URL for relative path resolution
+    const BASE = Deno.env.get('PUBLIC_BASE_URL') ?? Deno.env.get('SITE_URL') ?? undefined;
+
+    // Check for suspicious URIs before sanitization
+    const messages = messageBody.messages;
+    const suspicious = listInvalidUris(messages);
+    if (suspicious.length) console.warn('[LINE] suspicious URIs:', suspicious);
+
+    // Log BEFORE sanitization
+    console.log('[LINE] messages[0] BEFORE:', JSON.stringify(messages?.[0], null, 2));
+
+    // Sanitize all action URIs
+    let safeMessages;
+    try {
+      safeMessages = walkAndFixActions(messages, BASE);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[LINE] URI Sanitization Failed:', msg);
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid action URI',
+          message: msg,
+          base: BASE,
+          suspicious
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Log AFTER sanitization
+    console.log('[LINE] messages[0] AFTER :', JSON.stringify(safeMessages?.[0], null, 2));
+
+    // Send to LINE API with sanitized messages
+    const sanitizedBody = { ...messageBody, messages: safeMessages };
     const response = await fetch("https://api.line.me/v2/bot/message/push", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${channelAccessToken}`,
       },
-      body: JSON.stringify(messageBody),
+      body: JSON.stringify(sanitizedBody),
     });
 
     if (!response.ok) {
