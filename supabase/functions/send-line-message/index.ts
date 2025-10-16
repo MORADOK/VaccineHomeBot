@@ -114,8 +114,7 @@ serve(async (req) => {
                       flex: 0,
                       size: "sm",
                       aspectRatio: "1:1",
-                      aspectMode: "cover",
-                      cornerRadius: "8px"
+                      aspectMode: "cover"
                     },
                     {
                       type: "box",
@@ -380,8 +379,7 @@ serve(async (req) => {
                       flex: 0,
                       size: "sm",
                       aspectRatio: "1:1",
-                      aspectMode: "cover",
-                      cornerRadius: "8px"
+                      aspectMode: "cover"
                     },
                     {
                       type: "box",
