@@ -161,267 +161,20 @@ serve(async (req: Request) => {
           continue
         }
 
-        // Create modern Rich Message for LINE (based on test-final-hospital-notification.html)
+        // Create simple text message for LINE (temporary fix for Invalid action URI)
         const richMessage = {
-          type: 'flex',
-          altText: `🏥 โรงพยาบาลโฮม - แจ้งเตือนการนัดฉีดวัคซีน - คุณ${appointment.patient_name}`,
-          contents: {
-            type: 'bubble',
-            size: 'kilo',
-            header: {
-              type: 'box',
-              layout: 'vertical',
-              contents: [
-                {
-                  type: 'box',
-                  layout: 'horizontal',
-                  contents: [
-                    {
-                      type: 'image',
-                      url: 'https://moradok.github.io/VaccineHomeBot/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png',
-                      flex: 0,
-                      size: 'sm',
-                      aspectRatio: '1:1',
-                      aspectMode: 'cover',
-                      cornerRadius: '8px'
-                    },
-                    {
-                      type: 'box',
-                      layout: 'vertical',
-                      contents: [
-                        {
-                          type: 'text',
-                          text: 'โรงพยาบาลโฮม',
-                          weight: 'bold',
-                          size: 'lg',
-                          color: '#1DB446'
-                        },
-                        {
-                          type: 'text',
-                          text: 'VCHome Hospital',
-                          size: 'sm',
-                          color: '#666666'
-                        }
-                      ],
-                      flex: 1,
-                      margin: 'md'
-                    }
-                  ]
-                }
-              ],
-              backgroundColor: '#F8F9FA',
-              paddingAll: 'lg'
-            },
-            body: {
-              type: 'box',
-              layout: 'vertical',
-              contents: [
-                {
-                  type: 'text',
-                  text: '🔔 แจ้งเตือนการนัดหมายฉีดวัคซีน',
-                  weight: 'bold',
-                  size: 'lg',
-                  color: '#1DB446',
-                  margin: 'none'
-                },
-                {
-                  type: 'separator',
-                  margin: 'md'
-                },
-                {
-                  type: 'box',
-                  layout: 'vertical',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: `สวัสดีคุณ ${appointment.patient_name}`,
-                      size: 'md',
-                      color: '#333333',
-                      weight: 'bold',
-                      margin: 'md'
-                    },
-                    {
-                      type: 'box',
-                      layout: 'vertical',
-                      contents: [
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '📅',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'วันที่นัด',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: appointment.appointment_date,
-                              size: 'sm',
-                              color: '#333333',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end'
-                            }
-                          ],
-                          margin: 'md'
-                        },
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '⏰',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'เวลา',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: appointment.appointment_time || 'ไม่ระบุ',
-                              size: 'sm',
-                              color: '#333333',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end'
-                            }
-                          ],
-                          margin: 'sm'
-                        },
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '💉',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'วัคซีน',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: appointment.vaccine_type,
-                              size: 'sm',
-                              color: '#333333',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end',
-                              wrap: true
-                            }
-                          ],
-                          margin: 'sm'
-                        },
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '🏥',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'สถานที่',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: 'โรงพยาบาลโฮม',
-                              size: 'sm',
-                              color: '#333333',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end'
-                            }
-                          ],
-                          margin: 'sm'
-                        }
-                      ],
-                      backgroundColor: '#F8F9FA',
-                      cornerRadius: '8px',
-                      paddingAll: 'md',
-                      margin: 'md'
-                    }
-                  ]
-                }
-              ],
-              paddingAll: 'lg'
-            },
-            footer: {
-              type: 'box',
-              layout: 'vertical',
-              contents: [
-                {
-                  type: 'separator',
-                  margin: 'none'
-                },
-                {
-                  type: 'box',
-                  layout: 'horizontal',
-                  contents: [
-                    {
-                      type: 'button',
-                      action: {
-                        type: 'uri',
-                        label: '📞 โทรติดต่อ',
-                        uri: 'tel:038-511-123'
-                      },
-                      style: 'primary',
-                      color: '#1DB446',
-                      flex: 1
-                    },
-                    {
-                      type: 'button',
-                      action: {
-                        type: 'uri',
-                        label: '📍 ดูแผนที่',
-                        uri: 'https://maps.google.com/?q=13.7563,100.5018'
-                      },
-                      style: 'secondary',
-                      flex: 1
-                    }
-                  ],
-                  spacing: 'sm',
-                  margin: 'md'
-                },
-                {
-                  type: 'text',
-                  text: '⚠️ กรุณามาตามเวลานัดหมาย หากมีข้อสงสัยสามารถติดต่อ 038-511-123',
-                  size: 'xs',
-                  color: '#666666',
-                  wrap: true,
-                  margin: 'md',
-                  align: 'center'
-                }
-              ],
-              paddingAll: 'lg'
-            }
-          }
+          type: 'text',
+          text: `🏥 โรงพยาบาลโฮม - แจ้งเตือนการนัดฉีดวัคซีน
+
+สวัสดีคุณ ${appointment.patient_name}
+
+📅 วันที่นัด: ${appointment.appointment_date}
+⏰ เวลา: ${appointment.appointment_time || 'ไม่ระบุ'}
+💉 วัคซีน: ${appointment.vaccine_type}
+🏥 สถานที่: โรงพยาบาลโฮม
+
+⚠️ กรุณามาตามเวลานัดหมาย
+📞 ติดต่อ: 038-511-123`
         }
 
         // Fallback text message for older LINE versions (based on test-final-hospital-notification.html)
@@ -452,13 +205,7 @@ serve(async (req: Request) => {
               },
               body: JSON.stringify({
                 to: appointment.line_user_id,
-                messages: [
-                  richMessage,
-                  {
-                    type: 'text',
-                    text: fallbackMessage
-                  }
-                ]
+                messages: [richMessage]
               })
             })
 
@@ -530,255 +277,20 @@ serve(async (req: Request) => {
           continue
         }
 
-        // Create Rich Message for overdue appointment
+        // Create simple text message for overdue appointment (temporary fix for Invalid action URI)
         const overdueRichMessage = {
-          type: 'flex',
-          altText: `⚠️ การนัดเกินกำหนด - คุณ${appointment.patient_name}`,
-          contents: {
-            type: 'bubble',
-            size: 'kilo',
-            header: {
-              type: 'box',
-              layout: 'vertical',
-              contents: [
-                {
-                  type: 'box',
-                  layout: 'horizontal',
-                  contents: [
-                    {
-                      type: 'image',
-                      url: 'https://moradok.github.io/VaccineHomeBot/lovable-uploads/1b8e7853-1bde-4b32-b01d-6dad1be1008c.png',
-                      flex: 0,
-                      size: 'sm',
-                      aspectRatio: '1:1',
-                      aspectMode: 'cover',
-                      cornerRadius: '8px'
-                    },
-                    {
-                      type: 'box',
-                      layout: 'vertical',
-                      contents: [
-                        {
-                          type: 'text',
-                          text: 'โรงพยาบาลโฮม',
-                          weight: 'bold',
-                          size: 'lg',
-                          color: '#FF6B6B'
-                        },
-                        {
-                          type: 'text',
-                          text: 'VCHome Hospital',
-                          size: 'sm',
-                          color: '#666666'
-                        }
-                      ],
-                      flex: 1,
-                      margin: 'md'
-                    }
-                  ]
-                }
-              ],
-              backgroundColor: '#FFF5F5',
-              paddingAll: 'lg'
-            },
-            body: {
-              type: 'box',
-              layout: 'vertical',
-              contents: [
-                {
-                  type: 'text',
-                  text: '⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด',
-                  weight: 'bold',
-                  size: 'lg',
-                  color: '#FF6B6B',
-                  margin: 'none'
-                },
-                {
-                  type: 'separator',
-                  margin: 'md'
-                },
-                {
-                  type: 'box',
-                  layout: 'vertical',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: `คุณ ${appointment.patient_name}`,
-                      size: 'md',
-                      color: '#333333',
-                      weight: 'bold',
-                      margin: 'md'
-                    },
-                    {
-                      type: 'box',
-                      layout: 'vertical',
-                      contents: [
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '📅',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'วันที่นัดเดิม',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: appointment.appointment_date,
-                              size: 'sm',
-                              color: '#FF6B6B',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end'
-                            }
-                          ],
-                          margin: 'md'
-                        },
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '💉',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'วัคซีน',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: appointment.vaccine_type,
-                              size: 'sm',
-                              color: '#333333',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end',
-                              wrap: true
-                            }
-                          ],
-                          margin: 'sm'
-                        },
-                        {
-                          type: 'box',
-                          layout: 'horizontal',
-                          contents: [
-                            {
-                              type: 'text',
-                              text: '🏥',
-                              size: 'sm',
-                              flex: 0
-                            },
-                            {
-                              type: 'text',
-                              text: 'สถานที่',
-                              size: 'sm',
-                              color: '#666666',
-                              flex: 2
-                            },
-                            {
-                              type: 'text',
-                              text: 'โรงพยาบาลโฮม',
-                              size: 'sm',
-                              color: '#333333',
-                              weight: 'bold',
-                              flex: 3,
-                              align: 'end'
-                            }
-                          ],
-                          margin: 'sm'
-                        }
-                      ],
-                      backgroundColor: '#FFF5F5',
-                      cornerRadius: '8px',
-                      paddingAll: 'md',
-                      margin: 'md'
-                    },
-                    {
-                      type: 'text',
-                      text: '⚠️ การนัดหมายของคุณเกินกำหนดแล้ว',
-                      size: 'md',
-                      color: '#FF6B6B',
-                      weight: 'bold',
-                      margin: 'md',
-                      align: 'center'
-                    },
-                    {
-                      type: 'text',
-                      text: 'กรุณาติดต่อโรงพยาบาลเพื่อนัดหมายใหม่',
-                      size: 'sm',
-                      color: '#666666',
-                      margin: 'sm',
-                      align: 'center'
-                    }
-                  ]
-                }
-              ],
-              paddingAll: 'lg'
-            },
-            footer: {
-              type: 'box',
-              layout: 'vertical',
-              contents: [
-                {
-                  type: 'separator',
-                  margin: 'none'
-                },
-                {
-                  type: 'box',
-                  layout: 'horizontal',
-                  contents: [
-                    {
-                      type: 'button',
-                      action: {
-                        type: 'uri',
-                        label: '📞 โทรนัดใหม่',
-                        uri: 'tel:038-511-123'
-                      },
-                      style: 'primary',
-                      color: '#FF6B6B',
-                      flex: 1
-                    },
-                    {
-                      type: 'button',
-                      action: {
-                        type: 'uri',
-                        label: '📍 ดูแผนที่',
-                        uri: 'https://maps.google.com/?q=13.7563,100.5018'
-                      },
-                      style: 'secondary',
-                      flex: 1
-                    }
-                  ],
-                  spacing: 'sm',
-                  margin: 'md'
-                },
-                {
-                  type: 'text',
-                  text: '📞 ติดต่อ: 038-511-123 เพื่อนัดหมายใหม่',
-                  size: 'xs',
-                  color: '#666666',
-                  wrap: true,
-                  margin: 'md',
-                  align: 'center'
-                }
-              ],
-              paddingAll: 'lg'
-            }
-          }
+          type: 'text',
+          text: `⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด - โรงพยาบาลโฮม
+
+คุณ ${appointment.patient_name}
+
+📅 วันที่นัดเดิม: ${appointment.appointment_date}
+💉 วัคซีน: ${appointment.vaccine_type}
+🏥 สถานที่: โรงพยาบาลโฮม
+
+⚠️ การนัดหมายของคุณเกินกำหนดแล้ว
+กรุณาติดต่อโรงพยาบาลเพื่อนัดหมายใหม่
+📞 ติดต่อ: 038-511-123`
         }
 
         // Fallback text message for overdue (based on test-final-hospital-notification.html)
@@ -809,13 +321,7 @@ serve(async (req: Request) => {
               },
               body: JSON.stringify({
                 to: appointment.line_user_id,
-                messages: [
-                  overdueRichMessage,
-                  {
-                    type: 'text',
-                    text: overdueFallbackMessage
-                  }
-                ]
+                messages: [overdueRichMessage]
               })
             })
 
