@@ -74,7 +74,7 @@ serve(async (req) => {
   }
 
   // Get public base URL for converting relative paths to absolute
-  const publicBaseUrl = Deno.env.get("PUBLIC_BASE_URL") || "https://moradok.github.io/VaccineHomeBot";
+  const publicBaseUrl = Deno.env.get("PUBLIC_BASE_URL") ?? Deno.env.get("SITE_URL") ?? "https://moradok.github.io/VaccineHomeBot";
   console.log('[ENV] PUBLIC_BASE_URL:', publicBaseUrl);
 
   // Helper function to convert vaccine type to Thai name
@@ -96,7 +96,7 @@ serve(async (req) => {
   // Convert LINE/LIFF app URLs to https://liff.line.me format
   function normalizeLiff(uri: string): string {
     // line://app/XXXX หรือ liff://app/XXXX -> https://liff.line.me/XXXX
-    const m = uri.match(/^(?:line|liff):\/\/app\/([A-Za-z0-9._-]+)/);
+    const m = (uri ?? '').toString().trim().match(/^(?:line|liff):\/\/app\/([A-Za-z0-9._-]+)/);
     return m ? `https://liff.line.me/${m[1]}` : uri;
   }
 
@@ -151,18 +151,25 @@ serve(async (req) => {
     }
 
     if (obj && typeof obj === 'object') {
-      // Fix action.uri
-      if (obj.type === 'uri' && typeof obj.uri === 'string') {
-        try {
-          obj.uri = sanitizeUri(obj.uri, base);
+      // Fix action.uri (handle legacy 'url' field)
+      if (obj.type === 'uri') {
+        // Map legacy 'url' to 'uri' if uri is missing
+        if (!obj.uri && obj.url) {
+          obj.uri = obj.url;
+        }
 
-          // Fix altUri.desktop if exists
-          if (obj.altUri?.desktop && typeof obj.altUri.desktop === 'string') {
-            obj.altUri.desktop = sanitizeUri(obj.altUri.desktop, base);
+        if (typeof obj.uri === 'string') {
+          try {
+            obj.uri = sanitizeUri(obj.uri, base);
+
+            // Fix altUri.desktop if exists
+            if (obj.altUri?.desktop && typeof obj.altUri.desktop === 'string') {
+              obj.altUri.desktop = sanitizeUri(obj.altUri.desktop, base);
+            }
+          } catch (e) {
+            console.error('[URI Sanitization Error]', e instanceof Error ? e.message : String(e));
+            throw e;
           }
-        } catch (e) {
-          console.error('[URI Sanitization Error]', e instanceof Error ? e.message : String(e));
-          throw e;
         }
       }
 
