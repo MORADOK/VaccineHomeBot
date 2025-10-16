@@ -400,7 +400,7 @@ serve(async (req: Request) => {
                       action: {
                         type: 'uri',
                         label: '📍 ดูแผนที่',
-                        uri: 'https://maps.google.com/?q=โรงพยาบาลโฮม'
+                        uri: 'https://maps.google.com/?q=13.7563,100.5018'
                       },
                       style: 'secondary',
                       flex: 1
@@ -757,7 +757,7 @@ serve(async (req: Request) => {
                       action: {
                         type: 'uri',
                         label: '📍 ดูแผนที่',
-                        uri: 'https://maps.google.com/?q=โรงพยาบาลโฮม'
+                        uri: 'https://maps.google.com/?q=13.7563,100.5018'
                       },
                       style: 'secondary',
                       flex: 1
