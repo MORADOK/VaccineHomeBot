@@ -25,7 +25,7 @@ function absolutize(uri: string, base?: string) {
   return uri;
 }
 function isAllowedScheme(u: URL) {
-  return ["http:", "https:", "tel:", "mailto:", "line:"].includes(u.protocol);
+  return ["http:", "https:", "line:", "tel:"].includes(u.protocol);
 }
 function sanitizeUri(raw: string, base?: string): string {
   const trimmed = (raw ?? "").toString().trim();
