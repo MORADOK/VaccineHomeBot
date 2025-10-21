@@ -30,6 +30,7 @@ function buildCspPolicy(isDev: boolean) {
       "wss://*.supabase.co",
       "https://*.supabase.in",
       "wss://*.supabase.in",
+      "https://api.line.me"
     ],
     "frame-ancestors": ["'none'"],
     "form-action": ["'self'"],
@@ -38,17 +39,19 @@ function buildCspPolicy(isDev: boolean) {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode, command }) => {
-  const isProd = mode === "production";
   const isDev = command === "serve";
+  const isTauri = mode === "tauri";         // tauri build runs: vite build --mode tauri
+  const isProdWeb = mode === "production";  // GitHub Pages build
 
   return {
-    // ✅ ถ้าจะ build เป็นเดสก์ท็อปด้วย Tauri ในอนาคต ให้ใช้เงื่อนไขนี้
-    base: mode === "tauri" ? "./" : (isProd ? "/VaccineHomeBot/" : "/"),
+    // base path per target
+    base: isTauri ? "./" : (isProdWeb ? "/VaccineHomeBot/" : "/"),
 
     server: {
       host: "0.0.0.0",
       port: 5173,
       strictPort: true,
+      // hmr: { host: "localhost" } // ปกติไม่ต้องตั้ง แต่ถ้า HMR เพี้ยนค่อยเปิดบรรทัดนี้
     },
 
     preview: {
@@ -58,9 +61,10 @@ export default defineConfig(({ mode, command }) => {
 
     plugins: [
       react(),
+      // ใช้ CSP meta เฉพาะงานเว็บ (dev/prod). สำหรับ Tauri ไปคุมใน tauri.conf.json
       cspPlugin({
-        enabled: true,
-        policy: buildCspPolicy(isDev), // ✅ ใช้ CSP ที่กำหนด
+        enabled: !isTauri,
+        policy: buildCspPolicy(isDev),
       }),
       ghPages404Plugin(),
     ],
@@ -71,10 +75,17 @@ export default defineConfig(({ mode, command }) => {
       },
     },
 
+    css: {
+      devSourcemap: isDev,
+    },
+
     build: {
       outDir: "dist",
-      emptyOutDir: true, // ✅ แนะนำให้ล้างทุกครั้ง เพื่อกัน asset เก่าค้าง
+      emptyOutDir: true,
       chunkSizeWarningLimit: 1000,
+      target: ["es2021", "chrome105", "safari13"], // เหมาะกับ Tauri/WebView2
+      minify: (isProdWeb || isTauri) ? "esbuild" : false,
+      sourcemap: isDev ? "inline" : false,
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, "index.html"),
@@ -96,11 +107,14 @@ export default defineConfig(({ mode, command }) => {
           },
         },
       },
-      minify: isProd ? "esbuild" : false,
       // @ts-ignore
       esbuild: {
-        drop: isProd ? ["console", "debugger"] : [],
+        drop: (isProdWeb || isTauri) ? ["console", "debugger"] : [],
       },
+    },
+
+    define: {
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? "0.0.0"),
     },
 
     publicDir: "public",
