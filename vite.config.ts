@@ -63,11 +63,7 @@ export default defineConfig(({ mode, command }) => {
 
     plugins: [
       react(),
-      // ปรับรูปแบบ options ตาม API ของปลั๊กอิน cspPlugin ของคุณ
-      cspPlugin({
-        enabled: true,
-        policy: buildCspPolicy(isDev),
-      }),
+      cspPlugin(),
       ghPages404Plugin(),
     ],
 

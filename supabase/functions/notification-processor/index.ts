@@ -191,11 +191,11 @@ serve(async (req) => {
               sent_at: new Date().toISOString()
             })
 
-          // Mark job as completed
+          // Mark job as sent
           await supabase
             .from('notification_jobs')
             .update({ 
-              status: 'completed',
+              status: 'sent',
               updated_at: new Date().toISOString()
             })
             .eq('id', job.id)

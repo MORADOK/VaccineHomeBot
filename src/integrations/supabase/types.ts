@@ -229,6 +229,7 @@ export type Database = {
           line_user_id: string
           notes: string | null
           phone: string
+          registration_date: string | null
           registration_id: string
           source: string
           status: string
@@ -244,6 +245,7 @@ export type Database = {
           line_user_id: string
           notes?: string | null
           phone: string
+          registration_date?: string | null
           registration_id?: string
           source?: string
           status?: string
@@ -259,6 +261,7 @@ export type Database = {
           line_user_id?: string
           notes?: string | null
           phone?: string
+          registration_date?: string | null
           registration_id?: string
           source?: string
           status?: string
@@ -589,6 +592,7 @@ export type Database = {
           line_user_id: string
           notes: string | null
           phone: string
+          registration_date: string | null
           registration_id: string
           source: string
           status: string
@@ -647,7 +651,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "healthcare_staff" | "patient"
+      app_role: "admin" | "healthcare_staff" | "patient" | "doctor" | "nurse"
       notification_status:
         | "pending"
         | "processing"
@@ -781,7 +785,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "healthcare_staff", "patient"],
+      app_role: ["admin", "healthcare_staff", "patient", "doctor", "nurse"],
       notification_status: [
         "pending",
         "processing",
