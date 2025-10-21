@@ -10,11 +10,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:web": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "build:tauri": "vite build --mode tauri && tauri build",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
+    "dev:tauri": "tauri dev",
     "electron": "electron .",
     "electron-dev": "node scripts/electron-dev.js",
     "electron-dev-simple": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
@@ -61,6 +64,8 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@supabase/supabase-js": "^2.54.0",
     "@tanstack/react-query": "^5.56.2",
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-log": "^2.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -86,6 +91,7 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@tauri-apps/cli": "^2.9.0",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -95,9 +101,6 @@
     "@vitejs/plugin-react-swc": "^3.5.0",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
-    "concurrently": "^9.2.1",
-    "electron": "^38.2.2",
-    "electron-builder": "^26.0.12",
     "electron-is-dev": "^3.0.1",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
@@ -109,8 +112,7 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vitest": "^3.2.4",
-    "wait-on": "^9.0.1"
+    "vitest": "^3.2.4"
   },
   "build": {
     "appId": "com.vchomehospital.vaccine-app",

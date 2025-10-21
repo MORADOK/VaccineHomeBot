@@ -20,13 +20,10 @@ function ghPages404Plugin() {
 function buildCspPolicy(isDev: boolean) {
   return {
     "default-src": ["'self'"],
-    // Vite dev uses eval for HMR; enable only in dev
     "script-src": ["'self'", ...(isDev ? ["'unsafe-eval'"] : [])],
-    // Radix UI / shadcn บางจุดใช้ inline styles
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", "https:"],
     "font-src": ["'self'", "data:"],
-    // Supabase REST/WebSocket
     "connect-src": [
       "'self'",
       "https://*.supabase.co",
@@ -34,10 +31,8 @@ function buildCspPolicy(isDev: boolean) {
       "https://*.supabase.in",
       "wss://*.supabase.in",
     ],
-    // กันถูกฝังใน iframe (ถ้าต้องการให้ฝังเปลี่ยนเป็น 'self')
     "frame-ancestors": ["'none'"],
     "form-action": ["'self'"],
-    // เพิ่มได้หากต้องการ: "upgrade-insecure-requests": []
   };
 }
 
@@ -47,8 +42,8 @@ export default defineConfig(({ mode, command }) => {
   const isDev = command === "serve";
 
   return {
-    // GitHub Pages base path (ให้ตรงกับชื่อ repo)
-    base: isProd ? "/VaccineHomeBot/" : "/",
+    // ✅ ถ้าจะ build เป็นเดสก์ท็อปด้วย Tauri ในอนาคต ให้ใช้เงื่อนไขนี้
+    base: mode === "tauri" ? "./" : (isProd ? "/VaccineHomeBot/" : "/"),
 
     server: {
       host: "0.0.0.0",
@@ -63,7 +58,10 @@ export default defineConfig(({ mode, command }) => {
 
     plugins: [
       react(),
-      cspPlugin(),
+      cspPlugin({
+        enabled: true,
+        policy: buildCspPolicy(isDev), // ✅ ใช้ CSP ที่กำหนด
+      }),
       ghPages404Plugin(),
     ],
 
@@ -75,8 +73,7 @@ export default defineConfig(({ mode, command }) => {
 
     build: {
       outDir: "dist",
-      // คงไว้ตามเดิมเพื่อลดปัญหาไฟล์ล็อกบน Windows; ถ้าต้องการล้างทุกครั้งให้เปลี่ยนเป็น true
-      emptyOutDir: false,
+      emptyOutDir: true, // ✅ แนะนำให้ล้างทุกครั้ง เพื่อกัน asset เก่าค้าง
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         input: {
@@ -99,8 +96,6 @@ export default defineConfig(({ mode, command }) => {
           },
         },
       },
-      // ลดขนาด production build (ตัด console/debugger ออก)
-      // terser ไม่จำเป็น เพราะ Vite ใช้ esbuild
       minify: isProd ? "esbuild" : false,
       // @ts-ignore
       esbuild: {

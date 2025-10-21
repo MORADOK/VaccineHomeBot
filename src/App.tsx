@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import ScrollToTop from "@/components/ScrollToTop";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -32,10 +31,7 @@ const App = () => (
         <Toaster />
         <Sonner />
 
-        {/* ScrollToTop ต้องอยู่ภายใน Router */}
         <BrowserRouter basename={BASENAME}>
-          <ScrollToTop />
-
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 scroll-area">
               <Routes>
@@ -45,8 +41,9 @@ const App = () => (
                 <Route path="/loading" element={<LoadingPage />} />
 
                 {/* Auth */}
-                <Route path="/auth" element={<SimpleAuthPage />} />
-                <Route path="/auth-full" element={<AuthPage />} />
+                <Route path="/auth" element={<AuthPage />} />            {/* ✅ ใช้หน้าเต็ม */}
+                <Route path="/Auth" element={<AuthPage />} />            {/* เผื่อพิมพ์ตัวใหญ่ */}
+                <Route path="/auth-simple" element={<SimpleAuthPage />} /> {/* เก็บหน้าแบบย่อไว้ใช้งานอื่น */}
 
                 {/* Admin/Staff */}
                 <Route path="/admin" element={<Index />} />

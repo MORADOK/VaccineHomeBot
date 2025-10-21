@@ -296,7 +296,7 @@ const AuthenticatedStaffPortal = () => {
         <Tabs defaultValue="staff-portal" className="w-full">
           {/* Mobile: Scrollable tabs */}
           <div className="block lg:hidden mb-6">
-            <div className="overflow-x-auto scrollbar-thin">
+            <div className="overflow-x-auto">
               <TabsList className="flex w-max gap-1 p-1">
                 <TabsTrigger value="staff-portal" className="text-xs px-3 py-2 whitespace-nowrap">
                   นัดวันนี้
