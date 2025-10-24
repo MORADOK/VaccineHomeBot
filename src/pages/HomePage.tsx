@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Bot, UserPlus, Users, Shield, Activity, TrendingUp, Sparkles, Heart, Calendar, Settings, Bell, BarChart3 } from 'lucide-react';
+import { Bot, UserPlus, Users, Shield, Activity, TrendingUp, Sparkles, Heart, Calendar, Settings, Bell, BarChart3, Download } from 'lucide-react';
 import { HospitalLogo } from '@/components/HospitalLogo';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -311,6 +311,14 @@ const HomePage = () => {
               >
                 <Bell className="h-4 w-4 mr-3" />
                 จัดการการแจ้งเตือน
+              </Button>
+              
+              <Button 
+                className="w-full justify-start h-12 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
+                onClick={() => navigate('/download')}
+              >
+                <Download className="h-4 w-4 mr-3" />
+                ดาวน์โหลด Desktop App
               </Button>
             </div>
           </CardContent>

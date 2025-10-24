@@ -18,6 +18,7 @@ import LoadingPage from "./pages/LoadingPage";
 import FastIndexPage from "./pages/FastIndexPage";
 import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
 import VaccineStatusPage from "./pages/VaccineStatusPage";
+import DownloadPage from "./pages/DownloadPage";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,9 @@ const App = () => (
                 {/* Line bot (รองรับทั้งตัวเล็ก/ใหญ่) */}
                 <Route path="/line-bot" element={<LineBotPage />} />
                 <Route path="/LineBot" element={<LineBotPage />} />
+
+                {/* Download */}
+                <Route path="/download" element={<DownloadPage />} />
 
                 {/* Optional fast page */}
                 <Route path="/fast" element={<FastIndexPage />} />
