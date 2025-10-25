@@ -32,7 +32,7 @@ function buildCspPolicy(isDev: boolean) {
       "wss://*.supabase.in",
       "https://api.line.me"
     ],
-    "frame-ancestors": ["'none'"],
+    // Note: frame-ancestors removed - only works in HTTP headers, not meta tags
     "form-action": ["'self'"],
   };
 }
@@ -40,12 +40,16 @@ function buildCspPolicy(isDev: boolean) {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode, command }) => {
   const isDev = command === "serve";
-  const isTauri = mode === "tauri";         // tauri build runs: vite build --mode tauri
-  const isProdWeb = mode === "production";  // GitHub Pages build
+  const isTauri = mode === "tauri";              // tauri build runs: vite build --mode tauri
+  const isGitHubPages = mode === "github-pages"; // GitHub Pages build
+  const isProdWeb = mode === "production";       // Web server deployment (Vercel/Netlify/Railway)
 
   return {
     // base path per target
-    base: isTauri ? "./" : (isProdWeb ? "/VaccineHomeBot/" : "/"),
+    // - Tauri: "./" (relative paths for local files)
+    // - GitHub Pages: "/VaccineHomeBot/" (subdirectory deployment)
+    // - Web Server (default production): "/" (root deployment)
+    base: isTauri ? "./" : (isGitHubPages ? "/VaccineHomeBot/" : "/"),
 
     server: {
       host: "0.0.0.0",
@@ -83,7 +87,7 @@ export default defineConfig(({ mode, command }) => {
       emptyOutDir: true,
       chunkSizeWarningLimit: 1000,
       target: ["es2021", "chrome105", "safari13"], // เหมาะกับ Tauri/WebView2
-      minify: (isProdWeb || isTauri) ? "esbuild" : false,
+      minify: (isProdWeb || isGitHubPages || isTauri) ? "esbuild" : false,
       sourcemap: isDev ? "inline" : false,
       rollupOptions: {
         input: {
@@ -108,7 +112,7 @@ export default defineConfig(({ mode, command }) => {
       },
       // @ts-ignore
       esbuild: {
-        drop: (isProdWeb || isTauri) ? ["console", "debugger"] : [],
+        drop: (isProdWeb || isGitHubPages || isTauri) ? ["console", "debugger"] : [],
       },
     },
 

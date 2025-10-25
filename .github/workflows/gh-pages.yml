@@ -18,9 +18,10 @@ jobs:
           node-version: 18
           
       - run: npm install
-      
-      - run: npm run build
-      
+
+      - name: Build for GitHub Pages
+        run: npm run build:github
+
       - name: List build files
         run: ls -la dist/
       

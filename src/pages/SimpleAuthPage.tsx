@@ -16,7 +16,7 @@ const SimpleAuthPage = () => {
   const handleStaffLogin = () => {
     setIsLoading(true);
     setTimeout(() => {
-      navigate('/auth-full'); // Redirect to real login page
+      navigate('/auth'); // Redirect to login page
     }, 500);
   };
 

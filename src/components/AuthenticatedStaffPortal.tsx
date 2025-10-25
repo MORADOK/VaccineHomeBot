@@ -137,7 +137,7 @@ const AuthenticatedStaffPortal = () => {
   };
 
   const navigateToAuth = () => {
-    navigate('/auth-full');
+    navigate('/auth');
   };
 
   if (isLoading) {
