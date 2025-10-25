@@ -49,9 +49,8 @@ export default defineConfig(({ mode, command }) => {
 
     server: {
       host: "0.0.0.0",
-      port: 5173,
+      port: 8080,
       strictPort: true,
-      // hmr: { host: "localhost" } // ปกติไม่ต้องตั้ง แต่ถ้า HMR เพี้ยนค่อยเปิดบรรทัดนี้
     },
 
     preview: {
