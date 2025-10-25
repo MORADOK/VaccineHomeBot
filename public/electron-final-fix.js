@@ -1,9 +1,18 @@
-const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
-const path = require('path');
+import { app, BrowserWindow, Menu, shell } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow;
 
 function createWindow() {
+  // Determine if we're in development mode
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -14,8 +23,12 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      webSecurity: true,
-      devTools: true // Always enable for debugging
+      // Only disable webSecurity in dev mode for file:// protocol
+      // In packaged app, this will be true for better security
+      webSecurity: !isDev,
+      devTools: isDev, // Only enable in dev mode
+      allowRunningInsecureContent: false,
+      sandbox: true,
     },
     icon: path.join(__dirname, 'favicon.ico'),
     show: false,
@@ -28,7 +41,6 @@ function createWindow() {
   
   // Check if we have dist-electron folder (built app)
   const distElectronPath = path.join(__dirname, '..', 'dist-electron', 'index.html');
-  const fs = require('fs');
   
   if (fs.existsSync(distElectronPath)) {
     // Load from dist-electron (production build)
