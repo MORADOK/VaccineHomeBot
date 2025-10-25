@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/VaccineHomeBot/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in wss://*.supabase.in https://api.line.me; form-action 'self';" />
+    <title>VCHome Hospital Management System</title>
+
+    <!-- โหลดสไตล์ของหน้ารอโหลดจาก /public ล่วงหน้า (ไม่ต้อง unsafe-inline) -->
+    <link rel="stylesheet" href="/VaccineHomeBot/loader.css" />
+    <script type="module" crossorigin src="/VaccineHomeBot/assets/main-DYlvLnRd.js"></script>
+    <link rel="modulepreload" crossorigin href="/VaccineHomeBot/assets/react-vendor-D6SwlpgE.js">
+    <link rel="modulepreload" crossorigin href="/VaccineHomeBot/assets/ui-vendor-DDRclcI-.js">
+    <link rel="modulepreload" crossorigin href="/VaccineHomeBot/assets/chart-vendor-CGXfqC43.js">
+    <link rel="modulepreload" crossorigin href="/VaccineHomeBot/assets/icons-vendor-bELv1wqE.js">
+    <link rel="modulepreload" crossorigin href="/VaccineHomeBot/assets/query-vendor-galOUMgq.js">
+    <link rel="modulepreload" crossorigin href="/VaccineHomeBot/assets/supabase-vendor-BtEnmWQO.js">
+    <link rel="stylesheet" crossorigin href="/VaccineHomeBot/assets/main-B6qHwJAG.css">
+  </head>
+  <body>
+    <div id="root">
+      <!-- Enhanced Loading screen -->
+      <div class="vhc-wrap">
+        <div class="vhc-card">
+          <div class="vhc-spinner"></div>
+          <h1 class="vhc-title">🏥 ระบบจัดการวัคซีน</h1>
+          <p class="vhc-sub">VCHome Hospital</p>
+          <p class="vhc-note">กำลังโหลดระบบ</p>
+          <div class="vhc-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สำคัญ: ให้ Vite แปลง/บันเดิลผ่าน main.tsx ไม่ใช่ .tsx ของเพจ -->
+
+    <noscript>
+      ต้องเปิดใช้งาน JavaScript เพื่อใช้งานระบบนี้
+    </noscript>
+  </body>
+</html>
