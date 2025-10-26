@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 import Index from "./pages/Index";
@@ -22,17 +22,28 @@ import DownloadPage from "./pages/DownloadPage";
 
 const queryClient = new QueryClient();
 
-// ใช้ BASE_URL ของ Vite (กำหนดใน vite.config.ts: base: '/VaccineHomeBot/')
+// Electron uses file:// protocol - use HashRouter
+// Web uses http(s):// - use BrowserRouter with basename
+const isElectron = window.location.protocol === 'file:';
 const BASENAME = import.meta.env.BASE_URL;
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
+console.log('[App] Protocol:', window.location.protocol);
+console.log('[App] Using', isElectron ? 'HashRouter' : 'BrowserRouter');
+console.log('[App] Basename:', BASENAME);
 
-        <BrowserRouter basename={BASENAME}>
+const App = () => {
+  // Choose router based on environment
+  const Router = isElectron ? HashRouter : BrowserRouter;
+  const routerProps = isElectron ? {} : { basename: BASENAME };
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+
+          <Router {...routerProps}>
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 scroll-area">
               <Routes>
@@ -72,10 +83,11 @@ const App = () => (
               </Routes>
             </main>
           </div>
-        </BrowserRouter>
+        </Router>
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

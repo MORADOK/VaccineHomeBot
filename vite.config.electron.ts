@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       chunkSizeWarningLimit: 1000,
       minify: 'esbuild',
-      sourcemap: false,
+      sourcemap: true, // Enable for debugging
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html')
@@ -53,8 +53,8 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      // ลบ console/debugger เฉพาะเรนเดอเรอร์
-      esbuild: { drop: ['console', 'debugger'] }
+      // TEMPORARY: Keep console for debugging
+      // esbuild: { drop: ['console', 'debugger'] }
     },
     publicDir: 'public'
   };

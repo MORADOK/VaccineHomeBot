@@ -56,8 +56,23 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
   } else {
     // เรนเดอเรอร์ถูก build ไปที่ dist-electron/
-    mainWindow.loadFile(path.join(__dirname, '..', 'dist-electron', 'index.html'));
+    const htmlPath = path.join(__dirname, '..', 'dist-electron', 'index.html');
+    console.log('[Electron] Loading from:', htmlPath);
+    mainWindow.loadFile(htmlPath);
   }
+
+  // Log all page load events for debugging
+  mainWindow.webContents.on('did-start-loading', () => {
+    console.log('[did-start-loading] Page started loading');
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[did-finish-load] Page loaded successfully');
+  });
+
+  mainWindow.webContents.on('dom-ready', () => {
+    console.log('[dom-ready] DOM is ready');
+  });
 
   // รอ dev server: แสดงหน้า loading สั้น ๆ
   mainWindow.webContents.on('did-fail-load', (event, code, desc, url) => {
@@ -81,6 +96,7 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    // DevTools can be opened manually with F12 or Ctrl+Shift+I
     if (isDev && process.env.ELECTRON_DEBUG) {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
