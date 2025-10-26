@@ -2,38 +2,29 @@
   "name": "vchome-hospital-desktop",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
   "description": "VCHome Hospital Management System - Desktop Application",
   "author": "VCHome Hospital",
   "main": "public/electron-final-fix.js",
   "homepage": "./",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "build:web": "vite build",
-    "build:github": "vite build --mode github-pages",
-    "build:dev": "vite build --mode development",
+    "dev": "concurrently -k \"vite --config vite.config.electron.ts\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build --config vite.config.electron.ts",
+    "build:web": "vite build --config vite.config.electron.ts",
+    "build:github": "vite build --mode github-pages --config vite.config.electron.ts",
+    "build:dev": "vite build --mode development --config vite.config.electron.ts",
     "lint": "eslint .",
-    "build:tauri": "vite build --mode tauri && tauri build",
-    "preview": "vite preview",
+    "preview": "vite preview --config vite.config.electron.ts",
     "test": "vitest",
     "test:run": "vitest run",
-    "tauri": "tauri",
-    "dev:tauri": "tauri dev",
     "electron": "electron .",
-    "electron-dev": "node scripts/electron-dev.js",
-    "electron-dev-simple": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron-clean-old": "electron test-electron-no-console.js",
     "electron-prod": "cross-env NODE_ENV=production electron .",
-    "electron-clean": "cross-env NODE_ENV=production electron public/electron-clean.js",
-    "build:electron": "vite build --config vite.config.electron.ts",
+    "preelectron-pack": "npm run build",
     "electron-pack": "electron-builder",
-    "preelectron-pack": "npm run build:electron",
-    "dist": "npm run build:electron && electron-builder --publish=never",
-    "dist-win": "npm run build:electron && electron-builder --win --publish=never",
-    "dist-mac": "npm run build:electron && electron-builder --mac --publish=never",
-    "dist-linux": "npm run build:electron && electron-builder --linux --publish=never",
-    "pack": "npm run build:electron && electron-builder --dir"
+    "dist": "npm run build && electron-builder --publish=never",
+    "dist-win": "npm run build && electron-builder --win --publish=never",
+    "dist-mac": "npm run build && electron-builder --mac --publish=never",
+    "dist-linux": "npm run build && electron-builder --linux --publish=never",
+    "pack": "npm run build && electron-builder --dir"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -63,7 +54,7 @@
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-toggle-group": "^1.1.0",
-    "@radix-ui/react-tooltip": "^1.1.4",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "^2.54.0",
     "@tanstack/react-query": "^5.56.2",
     "@tauri-apps/api": "^2.9.0",
@@ -93,7 +84,6 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
-    "@tauri-apps/cli": "^2.9.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -103,6 +93,8 @@
     "@vitejs/plugin-react-swc": "^3.5.0",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.1",
+    "cross-env": "^7.0.3",
     "electron": "^38.4.0",
     "electron-builder": "^26.0.12",
     "electron-is-dev": "^3.0.1",
@@ -116,28 +108,31 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wait-on": "^8.0.2"
   },
   "build": {
     "appId": "com.vchomehospital.vaccine-app",
     "productName": "VCHome Hospital",
     "copyright": "Copyright © 2024 VCHome Hospital",
     "directories": {
-      "output": "dist"
+      "output": "release"
     },
     "files": [
-      "dist-electron/**/*",
+      "dist-electron/**",
       "public/electron-final-fix.js",
-      "public/favicon.ico"
+      "public/preload.js",
+      "electron/assets/**"
     ],
     "extraResources": [
       {
-        "from": "public/favicon.ico",
-        "to": "favicon.ico"
+        "from": "electron/assets/icons/win/app.ico",
+        "to": "app.ico"
       }
     ],
     "mac": {
       "category": "public.app-category.medical",
+      "icon": "electron/assets/icons/mac/app.icns",
       "target": [
         {
           "target": "dmg",
@@ -151,6 +146,7 @@
     "win": {
       "verifyUpdateCodeSignature": false,
       "signAndEditExecutable": false,
+      "icon": "electron/assets/icons/win/app.ico",
       "target": [
         {
           "target": "nsis",
@@ -165,10 +161,10 @@
             "x64"
           ]
         }
-      ],
-      "icon": "public/favicon.ico"
+      ]
     },
     "linux": {
+      "icon": "electron/assets/icons/png",
       "target": [
         {
           "target": "AppImage",

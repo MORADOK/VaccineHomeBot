@@ -1,12 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Import modern animations */
 @import './styles/animations.css';
 
 /* Import layout stability */
 @import './styles/layout-stability.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Enhanced Design System for Medical Application */
 @layer base {

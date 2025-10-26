@@ -1,204 +1,229 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// public/electron-final-fix.js
+const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
+const path = require('path');
+const isDev = require('electron-is-dev');
 
 let mainWindow;
 
-function createWindow() {
-  // Determine if we're in development mode
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+// ตั้ง AppUserModelID ให้เร็วที่สุด และต้อง "ตรงกับ" build.appId
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.vchomehospital.vaccine-app');
+}
 
-  // Create the browser window
+// ล็อกไม่ให้เปิดหลายอินสแตนซ์ (disabled for debugging)
+// const gotTheLock = app.requestSingleInstanceLock();
+// if (!gotTheLock) {
+//   app.quit();
+// } else {
+//   app.on('second-instance', () => {
+//     if (mainWindow) {
+//       if (mainWindow.isMinimized()) mainWindow.restore();
+//       mainWindow.focus();
+//     }
+//   });
+// }
+
+function iconForPlatform() {
+  if (process.platform === 'win32') {
+    return path.join(__dirname, '..', 'electron', 'assets', 'icons', 'win', 'app.ico'); // 256x256 multi-size
+  } else if (process.platform === 'darwin') {
+    return path.join(__dirname, '..', 'electron', 'assets', 'icons', 'mac', 'app.icns');
+  }
+  return path.join(__dirname, '..', 'electron', 'assets', 'icons', 'png', '512x512.png');
+}
+
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1000,
     minHeight: 700,
+    show: true,  // แสดง window ทันที
+    titleBarStyle: 'default',
+    title: 'VCHome Hospital Management System',
+    icon: iconForPlatform(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      // Only disable webSecurity in dev mode for file:// protocol
-      // In packaged app, this will be true for better security
-      webSecurity: !isDev,
-      devTools: isDev, // Only enable in dev mode
-      allowRunningInsecureContent: false,
-      sandbox: true,
-    },
-    icon: path.join(__dirname, 'favicon.ico'),
-    show: false,
-    titleBarStyle: 'default',
-    title: 'VCHome Hospital Management System'
+      webSecurity: true,
+      webviewTag: false,
+      preload: path.join(__dirname, 'preload.js')
+    }
   });
 
-  // Simple and reliable path detection
-  let startUrl;
-  
-  // Check if we have dist-electron folder (built app)
-  const distElectronPath = path.join(__dirname, '..', 'dist-electron', 'index.html');
-  
-  if (fs.existsSync(distElectronPath)) {
-    // Load from dist-electron (production build)
-    startUrl = `file://${distElectronPath.replace(/\\/g, '/')}`;
-    console.log('✅ Loading production build from:', distElectronPath);
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
   } else {
-    // Fallback to dev server
-    startUrl = 'http://localhost:5173';
-    console.log('⚠️ Loading from dev server:', startUrl);
+    // เรนเดอเรอร์ถูก build ไปที่ dist-electron/
+    mainWindow.loadFile(path.join(__dirname, '..', 'dist-electron', 'index.html'));
   }
 
-  console.log('Final URL:', startUrl);
-  mainWindow.loadURL(startUrl);
-
-  // Error handling
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    console.log('❌ Failed to load:', errorDescription, validatedURL);
-    
-    // Show error page
-    mainWindow.loadURL(`data:text/html;charset=utf-8,
-      <html>
-        <head><title>VCHome Hospital - Error</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px; background: #f5f5f5;">
-          <h1>🏥 VCHome Hospital</h1>
-          <h2 style="color: #d32f2f;">Unable to load application</h2>
-          <p><strong>Error:</strong> ${errorDescription}</p>
-          <p><strong>URL:</strong> ${validatedURL}</p>
-          <p><strong>Expected file:</strong> ${distElectronPath}</p>
-          <p><strong>File exists:</strong> ${fs.existsSync(distElectronPath) ? 'YES' : 'NO'}</p>
-          <button onclick="location.reload()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px;">
-            Retry
-          </button>
-          <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 5px;">
-            Close
-          </button>
-        </body>
-      </html>
-    `);
+  // รอ dev server: แสดงหน้า loading สั้น ๆ
+  mainWindow.webContents.on('did-fail-load', (event, code, desc, url) => {
+    const transient = new Set([-102, -105, -106, -118]);
+    if (isDev && transient.has(code)) {
+      mainWindow.loadURL(`data:text/html;charset=utf-8,
+        <html>
+          <head><title>Loading VCHome Hospital</title></head>
+          <body style="font-family:sans-serif;text-align:center;padding:50px;background:#f5f5f5;">
+            <h1>🏥 VCHome Hospital</h1>
+            <p>Starting development server...</p>
+            <p>Please wait a moment...</p>
+            <script>setTimeout(()=>location.reload(),3000)</script>
+          </body>
+        </html>
+      `);
+    } else {
+      console.error('[did-fail-load]', code, desc, url);
+    }
   });
 
-  // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    
-    // Open DevTools temporarily to debug white screen
-    mainWindow.webContents.openDevTools();
-    
-    // Wait 3 seconds then check if React rendered
-    setTimeout(() => {
-      mainWindow.webContents.executeJavaScript(`
-        const root = document.getElementById('root');
-        const rootContent = root ? root.innerHTML : '';
-        const hasContent = rootContent.length > 0;
-        
-        if (!hasContent) {
-          // Show debug info on screen
-          document.body.innerHTML = \`
-            <div style="font-family: Arial; padding: 40px; background: #f5f5f5; min-height: 100vh;">
-              <h1 style="color: #d32f2f;">🔍 Debug Information</h1>
-              <h2>React did not render!</h2>
-              
-              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3>Status:</h3>
-                <p><strong>#root element:</strong> \${root ? 'EXISTS' : 'NOT FOUND'}</p>
-                <p><strong>#root content length:</strong> \${rootContent.length}</p>
-                <p><strong>Document ready state:</strong> \${document.readyState}</p>
-                <p><strong>Scripts loaded:</strong> \${document.scripts.length}</p>
-              </div>
-              
-              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3>Possible Issues:</h3>
-                <ul style="text-align: left;">
-                  <li>JavaScript files not loading</li>
-                  <li>React initialization error</li>
-                  <li>Supabase connection error</li>
-                  <li>Routing error</li>
-                </ul>
-              </div>
-              
-              <button onclick="location.reload()" style="padding: 15px 30px; font-size: 16px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; margin: 10px;">
-                Reload
-              </button>
-            </div>
-          \`;
-        }
-        
-        hasContent;
-      `).then(hasContent => {
-        if (hasContent) {
-          console.log('✅ React rendered successfully!');
-        } else {
-          console.log('❌ React did not render - showing debug info');
-        }
-      });
-    }, 3000);
+    if (isDev && process.env.ELECTRON_DEBUG) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
   });
 
-  // Handle window closed
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
 
-  // Handle external links
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+// รวมกฎลิงก์ภายนอก/การนำทางไว้ที่เดียว
+app.on('web-contents-created', (event, contents) => {
+  contents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  // Create simple menu
+  contents.on('will-navigate', (e, navigationURL) => {
+    const url = new URL(navigationURL);
+    const allowed = new Set([
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000'
+    ]);
+    const isFile = navigationURL.startsWith('file://');
+    const isData = navigationURL.startsWith('data:');
+
+    if (!isFile && !isData && !allowed.has(url.origin)) {
+      e.preventDefault();
+      shell.openExternal(navigationURL);
+    }
+  });
+});
+
+// ใบรับรอง dev เท่านั้น
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  if (isDev) {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+  }
+});
+
+function buildMenu() {
   const template = [
     {
       label: 'File',
       submenu: [
-        {
-          label: 'Refresh',
-          accelerator: 'F5',
-          click: () => mainWindow.reload()
-        },
-        {
-          label: 'Exit',
-          accelerator: 'Alt+F4',
-          click: () => app.quit()
-        }
+        { label: 'Refresh', accelerator: 'CmdOrCtrl+R', click: () => mainWindow?.reload() },
+        { label: 'Force Refresh', accelerator: 'CmdOrCtrl+Shift+R', click: () => mainWindow?.webContents.reloadIgnoringCache() },
+        { type: 'separator' },
+        { label: 'Exit', accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q', click: () => app.quit() }
       ]
     },
     {
       label: 'View',
       submenu: [
+        { label: 'Zoom In', accelerator: 'CmdOrCtrl+Plus', click: () => {
+          const z = mainWindow?.webContents.getZoomFactor() ?? 1;
+          mainWindow?.webContents.setZoomFactor(Math.min(z + 0.1, 3));
+        }},
+        { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => {
+          const z = mainWindow?.webContents.getZoomFactor() ?? 1;
+          mainWindow?.webContents.setZoomFactor(Math.max(z - 0.1, 0.5));
+        }},
+        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: () => mainWindow?.webContents.setZoomFactor(1) },
+        { type: 'separator' },
+        { label: 'Fullscreen', accelerator: 'F11', click: () => mainWindow?.setFullScreen(!mainWindow?.isFullScreen()) }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize', label: 'Minimize', accelerator: 'CmdOrCtrl+M' },
+        { role: 'close', label: 'Close', accelerator: 'CmdOrCtrl+W' }
+      ]
+    },
+    {
+      label: 'Help',
+      submenu: [
         {
-          label: 'Toggle DevTools',
-          accelerator: 'F12',
-          click: () => mainWindow.webContents.toggleDevTools()
+          label: 'About VCHome Hospital',
+          click: () => {
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'About VCHome Hospital',
+              message: 'VCHome Hospital Management System',
+              detail: 'Version 1.0.0\n\nA comprehensive vaccine management system for healthcare providers.\n\nDeveloped with ❤️ for VCHome Hospital',
+              buttons: ['OK']
+            });
+          }
+        },
+        {
+          label: 'System Information',
+          click: () => {
+            const os = require('os');
+            const info = `
+Platform: ${process.platform}
+Architecture: ${process.arch}
+Node.js: ${process.version}
+Electron: ${process.versions.electron}
+Chrome: ${process.versions.chrome}
+Memory: ${Math.round(os.totalmem() / 1024 / 1024 / 1024)} GB
+            `.trim();
+            dialog.showMessageBox(mainWindow, { type: 'info', title: 'System Information', message: 'System Information', detail: info, buttons: ['OK'] });
+          }
         }
       ]
     }
   ];
 
+  if (process.platform === 'darwin') {
+    template.unshift({
+      label: app.getName(),
+      submenu: [
+        { role: 'about', label: 'About ' + app.getName() },
+        { type: 'separator' },
+        { role: 'services', submenu: [] },
+        { type: 'separator' },
+        { role: 'hide', label: 'Hide ' + app.getName() },
+        { role: 'hideothers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { label: 'Quit', accelerator: 'Command+Q', click: () => app.quit() }
+      ]
+    });
+  }
+
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
 
-// App event handlers
 app.whenReady().then(() => {
   createWindow();
-  
-  if (process.platform === 'win32') {
-    app.setAppUserModelId('com.vchomehospital.vaccine-app');
-  }
+  buildMenu();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
