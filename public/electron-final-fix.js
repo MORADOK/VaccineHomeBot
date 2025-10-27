@@ -1,9 +1,23 @@
 // public/electron-final-fix.js
 const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
 const path = require('path');
-const isDev = require('electron-is-dev');
 
 let mainWindow;
+
+// ปรับปรุงการตรวจสอบ isDev ให้รองรับทั้ง NODE_ENV และ electron-is-dev
+let isDev;
+try {
+  const electronIsDev = require('electron-is-dev');
+  // ใช้ NODE_ENV override ถ้ามีการตั้งค่า
+  isDev = process.env.NODE_ENV === 'production' ? false : electronIsDev;
+} catch (error) {
+  // ถ้า require electron-is-dev ไม่ได้ ให้ดูจาก NODE_ENV หรือตรวจสอบว่า packaged หรือไม่
+  isDev = process.env.NODE_ENV !== 'production' && !app.isPackaged;
+}
+
+console.log('[Electron] Running in mode:', isDev ? 'DEVELOPMENT' : 'PRODUCTION');
+console.log('[Electron] NODE_ENV:', process.env.NODE_ENV);
+console.log('[Electron] isPackaged:', app.isPackaged);
 
 // ตั้ง AppUserModelID ให้เร็วที่สุด และต้อง "ตรงกับ" build.appId
 if (process.platform === 'win32') {
