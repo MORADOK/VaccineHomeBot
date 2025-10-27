@@ -67,12 +67,23 @@ function createWindow() {
   });
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    // Development mode: Load from Vite dev server
+    mainWindow.loadURL('http://localhost:5173/#/staff-portal');
   } else {
-    // เรนเดอเรอร์ถูก build ไปที่ dist-electron/
+    // Production mode: Load built files and navigate to staff portal
     const htmlPath = path.join(__dirname, '..', 'dist-electron', 'index.html');
     console.log('[Electron] Loading from:', htmlPath);
-    mainWindow.loadFile(htmlPath);
+
+    // Load the HTML file first
+    mainWindow.loadFile(htmlPath).then(() => {
+      // Then navigate to staff portal using hash navigation
+      mainWindow.webContents.executeJavaScript(`
+        window.location.hash = '#/staff-portal';
+      `);
+      console.log('[Electron] Navigated to Staff Portal');
+    }).catch(err => {
+      console.error('[Electron] Failed to load or navigate:', err);
+    });
   }
 
   // Log all page load events for debugging

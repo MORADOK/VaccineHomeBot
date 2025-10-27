@@ -28,6 +28,9 @@ const AuthenticatedStaffPortal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Kiosk Mode: แสดงเฉพาะแท็บสำหรับลงทะเบียนและบันทึกการฉีด
+  const isKioskMode = import.meta.env.VITE_KIOSK_MODE === 'true';
+
   useEffect(() => {
     const checkAuthAndPermissions = async () => {
       try {
@@ -304,24 +307,28 @@ const AuthenticatedStaffPortal = () => {
                 <TabsTrigger value="registrations" className="text-xs px-3 py-2 whitespace-nowrap">
                   ลงทะเบียน
                 </TabsTrigger>
-                <TabsTrigger value="next-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
-                  นัดถัดไป
-                </TabsTrigger>
-                <TabsTrigger value="past-vaccinations" className="text-xs px-3 py-2 whitespace-nowrap">
-                  ประวัติ
-                </TabsTrigger>
-                <TabsTrigger value="edit-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
-                  แก้ไขนัด
-                </TabsTrigger>
-                <TabsTrigger value="vaccine-calculator" className="text-xs px-3 py-2 whitespace-nowrap">
-                  คำนวณ
-                </TabsTrigger>
-                {isAdmin && (
+                {!isKioskMode && (
+                  <>
+                    <TabsTrigger value="next-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
+                      นัดถัดไป
+                    </TabsTrigger>
+                    <TabsTrigger value="past-vaccinations" className="text-xs px-3 py-2 whitespace-nowrap">
+                      ประวัติ
+                    </TabsTrigger>
+                    <TabsTrigger value="edit-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
+                      แก้ไขนัด
+                    </TabsTrigger>
+                    <TabsTrigger value="vaccine-calculator" className="text-xs px-3 py-2 whitespace-nowrap">
+                      คำนวณ
+                    </TabsTrigger>
+                  </>
+                )}
+                {isAdmin && !isKioskMode && (
                   <TabsTrigger value="user-roles" className="text-xs px-3 py-2 whitespace-nowrap">
                     จัดการสิทธิ์
                   </TabsTrigger>
                 )}
-                {isAdmin && (
+                {isAdmin && !isKioskMode && (
                   <TabsTrigger value="settings" className="text-xs px-3 py-2 whitespace-nowrap">
                     ตั้งค่า
                   </TabsTrigger>
@@ -331,36 +338,47 @@ const AuthenticatedStaffPortal = () => {
           </div>
 
           {/* Desktop: Grid tabs */}
-          <TabsList className={`hidden lg:grid w-full mb-6 gap-1 ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
-            <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">
-              นัดวันนี้
-            </TabsTrigger>
-            <TabsTrigger value="registrations" className="text-sm px-2 py-2">
-              รายการลงทะเบียน
-            </TabsTrigger>
-            <TabsTrigger value="next-appointments" className="text-sm px-2 py-2">
-              นัดครั้งถัดไป
-            </TabsTrigger>
-            <TabsTrigger value="past-vaccinations" className="text-sm px-2 py-2">
-              ประวัติการฉีด
-            </TabsTrigger>
-            <TabsTrigger value="edit-appointments" className="text-sm px-2 py-2">
-              แก้ไขนัด
-            </TabsTrigger>
-            <TabsTrigger value="vaccine-calculator" className="text-sm px-2 py-2">
-              คำนวณวัคซีน
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="user-roles" className="text-sm px-2 py-2">
-                จัดการสิทธิ์
+          {isKioskMode ? (
+            <TabsList className="hidden lg:grid w-full mb-6 gap-1 grid-cols-2">
+              <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">
+                นัดวันนี้ / บันทึกการฉีด
               </TabsTrigger>
-            )}
-            {isAdmin && (
-              <TabsTrigger value="settings" className="text-sm px-2 py-2">
-                ตั้งค่า
+              <TabsTrigger value="registrations" className="text-sm px-2 py-2">
+                รายการลงทะเบียน
               </TabsTrigger>
-            )}
-          </TabsList>
+            </TabsList>
+          ) : (
+            <TabsList className={`hidden lg:grid w-full mb-6 gap-1 ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
+              <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">
+                นัดวันนี้
+              </TabsTrigger>
+              <TabsTrigger value="registrations" className="text-sm px-2 py-2">
+                รายการลงทะเบียน
+              </TabsTrigger>
+              <TabsTrigger value="next-appointments" className="text-sm px-2 py-2">
+                นัดครั้งถัดไป
+              </TabsTrigger>
+              <TabsTrigger value="past-vaccinations" className="text-sm px-2 py-2">
+                ประวัติการฉีด
+              </TabsTrigger>
+              <TabsTrigger value="edit-appointments" className="text-sm px-2 py-2">
+                แก้ไขนัด
+              </TabsTrigger>
+              <TabsTrigger value="vaccine-calculator" className="text-sm px-2 py-2">
+                คำนวณวัคซีน
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="user-roles" className="text-sm px-2 py-2">
+                  จัดการสิทธิ์
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="settings" className="text-sm px-2 py-2">
+                  ตั้งค่า
+                </TabsTrigger>
+              )}
+            </TabsList>
+          )}
 
           <TabsContent value="staff-portal">
             <StaffPortal />
