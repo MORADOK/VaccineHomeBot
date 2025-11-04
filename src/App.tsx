@@ -43,9 +43,11 @@ const App = () => {
   const Router = isElectron ? HashRouter : BrowserRouter;
   const routerProps = isElectron ? {} : { basename: BASENAME };
 
-  // 🔒 Security: Block web browser access - only allow Electron desktop app
-  if (!isElectron) {
-    console.log('[App] Web browser detected - redirecting to download page only');
+  // 🔒 Security: Block web browser access in production - only allow Electron desktop app
+  // Allow web access in development mode for Visual Edits and testing
+  const isDevelopment = import.meta.env.DEV;
+  if (!isElectron && !isDevelopment) {
+    console.log('[App] Web browser detected in production - redirecting to download page only');
     return (
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
