@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
 import { cspPlugin } from "./vite-plugin-csp";
+import { componentTagger } from "lovable-tagger";
 
 /** Copy dist/index.html -> dist/404.html after build (GitHub Pages SPA deep-link fix) */
 function ghPages404Plugin() {
@@ -64,13 +65,14 @@ export default defineConfig(({ mode, command }) => {
 
     plugins: [
       react(),
+      isDev && componentTagger(),
       // ใช้ CSP meta เฉพาะงานเว็บ (dev/prod). สำหรับ Tauri ไปคุมใน tauri.conf.json
       cspPlugin({
         enabled: !isTauri,
         policy: buildCspPolicy(isDev),
       }),
       ghPages404Plugin(),
-    ],
+    ].filter(Boolean),
 
     resolve: {
       alias: {
