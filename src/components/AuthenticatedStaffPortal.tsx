@@ -381,7 +381,7 @@ const AuthenticatedStaffPortal = () => {
           )}
 
           <TabsContent value="staff-portal">
-            <StaffPortal />
+            <StaffPortal isAdmin={isAdmin} />
           </TabsContent>
 
           <TabsContent value="registrations">

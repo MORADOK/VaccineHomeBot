@@ -24,6 +24,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProtectedRoute } from './ProtectedRoute';
 import { VaccineSettings } from './VaccineSettings';
+import { useAdminAuth } from '@/hooks/use-admin-auth';
 import React from 'react';
 
 interface Appointment {
@@ -114,7 +115,11 @@ function DomainManagementErrorFallback({ error, retry }: { error: Error; retry: 
   );
 }
 
-const StaffPortal = () => {
+interface StaffPortalProps {
+  isAdmin?: boolean;
+}
+
+const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -132,6 +137,10 @@ const StaffPortal = () => {
 
   // Kiosk Mode: ซ่อนแท็บ Settings
   const isKioskMode = import.meta.env.VITE_KIOSK_MODE === 'true';
+  
+  // Admin permission check - use prop if provided, otherwise check auth
+  const { isAdmin: authIsAdmin } = useAdminAuth();
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : authIsAdmin;
 
   const loadAppointmentsByDate = async (date: string) => {
     setLoading(true);
@@ -359,7 +368,14 @@ const StaffPortal = () => {
             <Stethoscope className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Staff Portal</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground">Staff Portal</h1>
+              {isAdmin && (
+                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full border border-blue-200">
+                  Admin
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               จัดการระบบโรงพยาบาลวัคซีน
             </p>
@@ -373,17 +389,19 @@ const StaffPortal = () => {
           // Kiosk Mode: ไม่แสดงแท็บ (เน้นที่ฟอร์มบันทึกการฉีดเท่านั้น)
           <div className="hidden"></div>
         ) : (
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-2">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'} lg:w-auto lg:${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="appointments" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">นัดหมายและการฉีด</span>
               <span className="sm:hidden">นัดหมาย</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">ตั้งค่าระบบ</span>
-              <span className="sm:hidden">ตั้งค่า</span>
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">ตั้งค่าระบบ</span>
+                <span className="sm:hidden">ตั้งค่า</span>
+              </TabsTrigger>
+            )}
           </TabsList>
         )}
 
@@ -748,33 +766,35 @@ const StaffPortal = () => {
           </Card>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-6 mt-6">
-          <ProtectedRoute 
-            requiredPermission="system:settings"
-            showLoginForm={false}
-            fallback={
-              <Card>
-                <CardContent className="py-8">
-                  <div className="text-center space-y-4">
-                    <Lock className="h-12 w-12 text-orange-500 mx-auto" />
-                    <div>
-                      <h3 className="text-lg font-semibold text-orange-700">Admin Access Required</h3>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        การตั้งค่าระบบต้องใช้สิทธิ์ Admin เท่านั้น
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เข้าถึง
-                      </p>
+        {/* Settings Tab - Admin Only */}
+        {isAdmin && (
+          <TabsContent value="settings" className="space-y-6 mt-6">
+            <ProtectedRoute 
+              requiredPermission="system:settings"
+              showLoginForm={false}
+              fallback={
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="text-center space-y-4">
+                      <Lock className="h-12 w-12 text-orange-500 mx-auto" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-orange-700">Admin Access Required</h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          การตั้งค่าระบบต้องใช้สิทธิ์ Admin เท่านั้น
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          กรุณาติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์เข้าถึง
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            }
-          >
-            <VaccineSettings />
-          </ProtectedRoute>
-        </TabsContent>
+                  </CardContent>
+                </Card>
+              }
+            >
+              <VaccineSettings />
+            </ProtectedRoute>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
