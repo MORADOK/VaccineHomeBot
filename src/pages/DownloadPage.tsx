@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle, AlertCircle, Monitor, Smartphone } from 'lucide-react';
+import { Download, CheckCircle, AlertCircle, Smartphone, Monitor } from 'lucide-react';
 import { HospitalLogo } from '@/components/HospitalLogo';
 
 interface ReleaseInfo {
@@ -119,6 +119,23 @@ const DownloadPage = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             ระบบจัดการวัคซีนสำหรับโรงพยาบาลโฮม
           </p>
+
+          {/* Security Notice */}
+          <div className="mt-6 max-w-2xl mx-auto">
+            <div className="p-4 bg-medical-error/10 border-2 border-medical-error rounded-lg">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <AlertCircle className="h-5 w-5 text-medical-error" />
+                <p className="font-bold text-medical-error">
+                  เพื่อความปลอดภัยของข้อมูลผู้ป่วย
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                ระบบนี้ใช้งานได้เฉพาะแอปพลิเคชัน Desktop เท่านั้น
+                <br />
+                ไม่สามารถเข้าใช้งานผ่านเว็บเบราว์เซอร์ได้
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto">
@@ -295,43 +312,27 @@ const DownloadPage = () => {
           {/* Alternative Options */}
           <Card className="card-balanced mt-8">
             <CardHeader>
-              <CardTitle>🌐 ตัวเลือกอื่น</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-medical-success" />
+                สำหรับผู้ป่วย: LINE Bot
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Monitor className="h-5 w-5 text-primary" />
-                    <h4 className="font-semibold">เว็บแอปพลิเคชัน</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    ใช้งานผ่านเว็บเบราว์เซอร์โดยไม่ต้องติดตั้ง
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.open('https://moradok.github.io/VaccineHomeBot/', '_blank')}
-                  >
-                    เปิดเว็บแอป
-                  </Button>
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <Smartphone className="h-5 w-5 text-medical-success" />
+                  <h4 className="font-semibold">LINE Official Account</h4>
                 </div>
-
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Smartphone className="h-5 w-5 text-medical-success" />
-                    <h4 className="font-semibold">LINE Bot</h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    ใช้งานผ่าน LINE สำหรับผู้ป่วย
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.open('https://line.me/R/ti/p/@vchome', '_blank')}
-                  >
-                    เพิ่มเพื่อน LINE
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  ผู้ป่วยสามารถใช้งานผ่าน LINE Bot เพื่อตรวจสอบนัดหมายและสถานะการฉีดวัคซีน
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://line.me/R/ti/p/@vchome', '_blank')}
+                >
+                  เพิ่มเพื่อน LINE
+                </Button>
               </div>
             </CardContent>
           </Card>

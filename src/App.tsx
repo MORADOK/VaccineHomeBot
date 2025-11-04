@@ -19,15 +19,22 @@ import FastIndexPage from "./pages/FastIndexPage";
 import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
 import VaccineStatusPage from "./pages/VaccineStatusPage";
 import DownloadPage from "./pages/DownloadPage";
+import NextAppointmentsPage from "./pages/NextAppointmentsPage";
+import PatientRegistrationsPage from "./pages/PatientRegistrationsPage";
+import PastVaccinationsPage from "./pages/PastVaccinationsPage";
+import LiffCheckerPage from "./pages/LiffCheckerPage";
 
 const queryClient = new QueryClient();
 
-// Electron uses file:// protocol - use HashRouter
-// Web uses http(s):// - use BrowserRouter with basename
-const isElectron = window.location.protocol === 'file:';
+// Electron detection: Check user agent instead of protocol (works in both dev and production)
+// In dev mode: Electron uses http://localhost:5173
+// In production: Electron uses file:// protocol
+const isElectron = /electron/i.test(navigator.userAgent) || window.location.protocol === 'file:';
 const BASENAME = import.meta.env.BASE_URL;
 
+console.log('[App] User Agent:', navigator.userAgent);
 console.log('[App] Protocol:', window.location.protocol);
+console.log('[App] Is Electron:', isElectron);
 console.log('[App] Using', isElectron ? 'HashRouter' : 'BrowserRouter');
 console.log('[App] Basename:', BASENAME);
 
@@ -35,6 +42,22 @@ const App = () => {
   // Choose router based on environment
   const Router = isElectron ? HashRouter : BrowserRouter;
   const routerProps = isElectron ? {} : { basename: BASENAME };
+
+  // 🔒 Security: Block web browser access - only allow Electron desktop app
+  if (!isElectron) {
+    console.log('[App] Web browser detected - redirecting to download page only');
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <DownloadPage />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>
@@ -61,12 +84,16 @@ const App = () => {
                 <Route path="/admin" element={<Index />} />
                 <Route path="/staff-portal" element={<StaffPortalPage />} />
                 <Route path="/StaffPortal" element={<StaffPortalPage />} />
+                <Route path="/next-appointments" element={<NextAppointmentsPage />} />
+                <Route path="/patient-registrations" element={<PatientRegistrationsPage />} />
+                <Route path="/past-vaccinations" element={<PastVaccinationsPage />} />
 
                 {/* Patient */}
                 <Route path="/patient-portal" element={<PatientPortalPage />} />
                 <Route path="/PatientPortal" element={<PatientPortalPage />} />
                 <Route path="/liff-patient-portal" element={<LiffPatientPortalPage />} />
                 <Route path="/vaccine-status" element={<VaccineStatusPage />} />
+                <Route path="/liff-checker" element={<LiffCheckerPage />} />
 
                 {/* Line bot (รองรับทั้งตัวเล็ก/ใหญ่) */}
                 <Route path="/line-bot" element={<LineBotPage />} />

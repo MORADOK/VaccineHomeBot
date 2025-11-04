@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import WorkflowAnalyzer from '@/components/WorkflowAnalyzer';
 import VaccineWorkflowDesigner from '@/components/VaccineWorkflowDesigner';
@@ -10,13 +10,32 @@ import LineBot from '@/components/LineBot';
 import PatientPortal from '@/components/PatientPortal';
 import StaffPortal from '@/components/StaffPortal';
 import GoogleSheetsIntegration from '@/components/GoogleSheetsIntegration';
+import { AppLayout } from '@/components/AppLayout';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 const Index = () => {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout user={user} title="ระบบผู้ดูแล - Admin Dashboard">
       <Tabs defaultValue="designer" className="w-full">
-        <div className="container mx-auto pt-6">
-          <TabsList className="grid w-full grid-cols-8 max-w-7xl mx-auto">
+        <div className="mb-6">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="setup">คู่มือติดตั้ง</TabsTrigger>
             <TabsTrigger value="designer">Workflow Designer</TabsTrigger>
             <TabsTrigger value="analyzer">Analyzer</TabsTrigger>
@@ -64,7 +83,7 @@ const Index = () => {
           <GoogleSheetsIntegration />
         </TabsContent>
       </Tabs>
-    </div>
+    </AppLayout>
   );
 };
 

@@ -1,7 +1,7 @@
 {
   "name": "vchome-hospital-desktop",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "VCHome Hospital Management System - Desktop Application",
   "author": "VCHome Hospital",
   "main": "public/electron-final-fix.js",
@@ -63,6 +63,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "electron-updater": "^6.6.2",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "lovable-tagger": "^1.1.10",
@@ -118,6 +119,9 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+    { "provider": "github", "owner": "MORADOK", "repo": "VaccineHomeBot" }
+  ],
     "files": [
       "dist-electron/**",
       "public/electron-final-fix.js",

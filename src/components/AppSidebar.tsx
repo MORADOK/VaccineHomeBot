@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Users, 
-  Bot, 
-  UserPlus, 
+import {
+  Home,
+  Users,
+  Bot,
+  UserPlus,
   Settings,
   Calendar,
   FileText,
   Activity,
   Shield,
-  Stethoscope
+  Stethoscope,
+  ClipboardList,
+  History,
+  Search
 } from 'lucide-react';
 
 import {
@@ -38,16 +41,40 @@ const navigationItems = [
     roles: ['admin', 'healthcare_staff']
   },
   {
+    title: 'ลงทะเบียนผู้ป่วย',
+    url: '/PatientPortal',
+    icon: UserPlus,
+    roles: ['admin', 'healthcare_staff']
+  },
+  {
+    title: 'รายการผู้ป่วย',
+    url: '/patient-registrations',
+    icon: ClipboardList,
+    roles: ['admin', 'healthcare_staff']
+  },
+  {
+    title: 'นัดหมายที่กำลังจะถึง',
+    url: '/next-appointments',
+    icon: Calendar,
+    roles: ['admin', 'healthcare_staff']
+  },
+  {
+    title: 'ประวัติการฉีดวัคซีน',
+    url: '/past-vaccinations',
+    icon: History,
+    roles: ['admin', 'healthcare_staff']
+  },
+  {
     title: 'LINE Bot',
     url: '/LineBot',
     icon: Bot,
     roles: ['admin']
   },
   {
-    title: 'ลงทะเบียนผู้ป่วย',
-    url: '/PatientPortal',
-    icon: UserPlus,
-    roles: ['admin', 'healthcare_staff']
+    title: 'ตรวจสอบ LIFF',
+    url: '/liff-checker',
+    icon: Search,
+    roles: ['admin']
   },
 ];
 
