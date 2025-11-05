@@ -16,6 +16,8 @@ if (!isDev) {
 }
 
 let mainWindow;
+let userOpenedDevTools = false;
+let devToolsCloseInterval = null;
 
 function createWindow() {
   // Create the browser window
@@ -28,7 +30,8 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      webSecurity: true
+      webSecurity: true,
+      devTools: isDev // Only allow DevTools in development, but don't auto-open
     },
     icon: path.join(__dirname, 'favicon.ico'),
     show: false,
@@ -67,19 +70,91 @@ function createWindow() {
     }
   });
 
+  // Close DevTools on DOM ready
+  mainWindow.webContents.on('dom-ready', () => {
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+      console.log('[DevTools] Closed on DOM ready');
+    }
+  });
+
+  // AGGRESSIVE: Force close DevTools immediately whenever it opens
+  mainWindow.webContents.on('devtools-opened', () => {
+    if (!userOpenedDevTools) {
+      // Immediately close if not opened by user
+      mainWindow.webContents.closeDevTools();
+      console.log('[DevTools] Auto-open blocked immediately');
+    } else {
+      console.log('[DevTools] Opened manually by user - allowing');
+    }
+  });
+
+  // Force close DevTools when page loads
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Close DevTools immediately on load (no setTimeout)
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+      console.log('[DevTools] Closed on page load');
+    }
+  });
+
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
+    // Close BEFORE showing window
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+    }
+
     mainWindow.show();
-    
-    // DevTools disabled for production
-    // Only open DevTools in development mode when explicitly needed
-    if (isDev && process.env.ELECTRON_DEBUG) {
-      mainWindow.webContents.openDevTools();
+
+    // Force close DevTools on startup (multiple checks)
+    const forceClose = () => {
+      if (mainWindow && mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+        console.log('[DevTools] Force closed on startup');
+      }
+    };
+
+    forceClose();
+    setImmediate(forceClose);
+    setTimeout(forceClose, 0);
+    setTimeout(forceClose, 10);
+    setTimeout(forceClose, 50);
+    setTimeout(forceClose, 100);
+    setTimeout(forceClose, 200);
+    setTimeout(forceClose, 500);
+
+    // ULTIMATE SOLUTION: Continuously check and close DevTools every 100ms
+    // This ensures DevTools stays closed unless manually opened by user
+    if (devToolsCloseInterval) {
+      clearInterval(devToolsCloseInterval);
+    }
+
+    devToolsCloseInterval = setInterval(() => {
+      if (mainWindow && !userOpenedDevTools) {
+        if (mainWindow.webContents.isDevToolsOpened()) {
+          mainWindow.webContents.closeDevTools();
+          console.log('[DevTools] Interval check - force closed');
+        }
+      }
+    }, 100); // Check every 100ms
+  });
+
+  // Track manual DevTools toggle via keyboard
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' || (input.control && input.shift && input.key === 'I')) {
+      userOpenedDevTools = true;
+      // Keep flag true for 2 seconds to allow DevTools to fully open
+      setTimeout(() => { userOpenedDevTools = false; }, 2000);
     }
   });
 
   // Handle window closed
   mainWindow.on('closed', () => {
+    if (devToolsCloseInterval) {
+      clearInterval(devToolsCloseInterval);
+      devToolsCloseInterval = null;
+    }
     mainWindow = null;
   });
 
@@ -130,16 +205,18 @@ function createMenu() {
             mainWindow.webContents.reloadIgnoringCache();
           }
         },
-        // DevTools option hidden for production-like experience
-        // Uncomment if needed during development
-        // { type: 'separator' },
-        // {
-        //   label: 'Toggle DevTools',
-        //   accelerator: 'F12',
-        //   click: () => {
-        //     mainWindow.webContents.toggleDevTools();
-        //   }
-        // },
+        { type: 'separator' },
+        {
+          label: 'Toggle DevTools',
+          accelerator: 'F12',
+          click: () => {
+            // Set flag to allow opening
+            userOpenedDevTools = true;
+            mainWindow.webContents.toggleDevTools();
+            // Keep flag true for 2 seconds to allow DevTools to fully open
+            setTimeout(() => { userOpenedDevTools = false; }, 2000);
+          }
+        },
         { type: 'separator' },
         {
           label: 'Exit',

@@ -123,8 +123,8 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     // DevTools can be opened manually with F12 or Ctrl+Shift+I
-    // เปิด DevTools ชั่วคราวเพื่อ debug (ปิดได้ด้วย F12)
-    if (isDev || !app.isPackaged) {
+    // เปิด DevTools เฉพาะเมื่อมี environment variable ELECTRON_DEBUG=true
+    if ((isDev || !app.isPackaged) && process.env.ELECTRON_DEBUG === 'true') {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
   });

@@ -26,6 +26,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { supabase } from '@/integrations/supabase/client';
 
 const navigationItems = [
   {
@@ -35,15 +36,9 @@ const navigationItems = [
     roles: ['admin']
   },
   {
-    title: 'จัดการเจ้าหน้าที่',
+    title: 'จัดการนัดผู้ป่วย',
     url: '/staff-portal',
-    icon: Users,
-    roles: ['admin', 'healthcare_staff']
-  },
-  {
-    title: 'ลงทะเบียนผู้ป่วย',
-    url: '/PatientPortal',
-    icon: UserPlus,
+    icon: Calendar,
     roles: ['admin', 'healthcare_staff']
   },
   {
@@ -59,10 +54,22 @@ const navigationItems = [
     roles: ['admin', 'healthcare_staff']
   },
   {
+    title: 'แก้ไขนัดคนไข้',
+    url: '/edit-appointments',
+    icon: FileText,
+    roles: ['admin', 'healthcare_staff']
+  },
+  {
     title: 'ประวัติการฉีดวัคซีน',
     url: '/past-vaccinations',
     icon: History,
     roles: ['admin', 'healthcare_staff']
+  },
+  {
+    title: 'จัดการเจ้าหน้าที่',
+    url: '/manage-staff',
+    icon: Users,
+    roles: ['admin']
   },
   {
     title: 'LINE Bot',
@@ -90,6 +97,52 @@ const adminItems = [
 export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [userRole, setUserRole] = useState<string>('admin'); // Default to admin
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        try {
+          // Check if user is admin
+          const { data: isAdmin } = await supabase
+            .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+
+          // Check if user is healthcare staff
+          const { data: isStaff } = await supabase
+            .rpc('is_healthcare_staff', { _user_id: session.user.id });
+
+          if (isAdmin) {
+            setUserRole('admin');
+          } else if (isStaff) {
+            setUserRole('healthcare_staff');
+          } else {
+            setUserRole('guest');
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          setUserRole('admin'); // Default to admin on error
+        }
+      }
+    };
+
+    checkUserRole();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkUserRole();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Filter menu items based on user role
+  const filteredNavigationItems = navigationItems.filter(item =>
+    item.roles.includes(userRole)
+  );
+
+  const filteredAdminItems = adminItems.filter(item =>
+    item.roles.includes(userRole)
+  );
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -123,52 +176,56 @@ export function AppSidebar() {
         </div>
 
         {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-primary font-semibold">
-            เมนูหลัก
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {filteredNavigationItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-primary font-semibold">
+              เมนูหลัก
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredNavigationItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className={getNavClassName(item.url)}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Admin Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-medical-error font-semibold">
-            ผู้ดูแลระบบ
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={getNavClassName(item.url)}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-medium">{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {filteredAdminItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-medical-error font-semibold">
+              ผู้ดูแลระบบ
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className={getNavClassName(item.url)}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span className="font-medium">{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Quick Stats */}
         <div className="mt-auto p-6">

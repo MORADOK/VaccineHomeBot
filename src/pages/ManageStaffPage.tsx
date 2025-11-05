@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import AuthenticatedStaffPortal from '@/components/AuthenticatedStaffPortal';
+import StaffDashboard from '@/components/StaffDashboard';
 import { AppLayout } from '@/components/AppLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
-const StaffPortalPage = () => {
+const ManageStaffPage = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
 
   useEffect(() => {
@@ -22,10 +22,10 @@ const StaffPortalPage = () => {
   }, []);
 
   return (
-    <AppLayout user={user} title="จัดการนัดผู้ป่วย - Staff Portal">
-      <AuthenticatedStaffPortal />
+    <AppLayout user={user} title="จัดการเจ้าหน้าที่">
+      <StaffDashboard />
     </AppLayout>
   );
 };
 
-export default StaffPortalPage;
+export default ManageStaffPage;

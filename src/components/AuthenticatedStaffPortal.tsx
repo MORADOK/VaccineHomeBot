@@ -15,7 +15,7 @@ import NextAppointments from './NextAppointments';
 import PastVaccinations from './PastVaccinations';
 import AutoNotificationSystem from './AutoNotificationSystem';
 import PatientAppointmentManager from './GoogleSheetsIntegration';
-import EditPatientAppointment from './EditPatientAppointment';
+import EditAppointments from './EditAppointments';
 import NotificationTestPanel from './NotificationTestPanel';
 import { UserRoleManager } from './UserRoleManager';
 
@@ -397,7 +397,7 @@ const AuthenticatedStaffPortal = () => {
           </TabsContent>
 
           <TabsContent value="edit-appointments">
-            <EditPatientAppointment />
+            <EditAppointments />
           </TabsContent>
 
           <TabsContent value="vaccine-calculator">
