@@ -25,6 +25,7 @@ import PastVaccinationsPage from "./pages/PastVaccinationsPage";
 import LiffCheckerPage from "./pages/LiffCheckerPage";
 import EditAppointmentsPage from "./pages/EditAppointmentsPage";
 import ManageStaffPage from "./pages/ManageStaffPage";
+import AppointmentVerificationPage from "./pages/AppointmentVerificationPage";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,7 @@ const App = () => {
                 <Route path="/edit-appointments" element={<EditAppointmentsPage />} />
                 <Route path="/patient-registrations" element={<PatientRegistrationsPage />} />
                 <Route path="/past-vaccinations" element={<PastVaccinationsPage />} />
+                <Route path="/verify-appointments" element={<AppointmentVerificationPage />} />
 
                 {/* Patient */}
                 <Route path="/patient-portal" element={<PatientPortalPage />} />

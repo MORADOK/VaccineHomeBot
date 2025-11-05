@@ -192,25 +192,44 @@ const NextAppointments = () => {
             return null; // Already has appointment (will be shown from existing appointments above)
           }
 
-          // Calculate next dose date based on last completed dose
-          const intervals = Array.isArray(schedule.dose_intervals) ? 
-            schedule.dose_intervals : 
+          // Calculate next dose date from vaccine_schedules (source of truth)
+          // Calculate from FIRST dose to ensure accuracy
+          const intervals = Array.isArray(schedule.dose_intervals) ?
+            schedule.dose_intervals :
             JSON.parse(schedule.dose_intervals?.toString() || '[]');
 
-          let nextDoseDate = new Date(patient.latest_date);
-          
-          // Add interval for next dose (intervals are 0-indexed from dose 1)
-          const intervalIndex = patient.doses_received; // For dose N+1, use intervals[N]
-          const intervalDays = typeof intervals[intervalIndex] === 'number' ? 
-            intervals[intervalIndex] : 
-            (typeof intervals[patient.doses_received - 1] === 'number' ? 
-              intervals[patient.doses_received - 1] : 30);
-          
-          nextDoseDate.setDate(nextDoseDate.getDate() + intervalDays);
+          console.log(`📊 ข้อมูลจาก vaccine_schedules สำหรับ ${patient.patient_name}:`, {
+            vaccine_type: schedule.vaccine_type,
+            total_doses: schedule.total_doses,
+            dose_intervals: intervals,
+            current_dose: patient.doses_received,
+            first_dose_date: patient.first_dose_date
+          });
+
+          // Calculate from the FIRST dose date, not the latest
+          let baseDate = new Date(patient.first_dose_date);
+
+          // Sum up all intervals up to the current dose to get the correct next dose date
+          let totalDaysFromFirstDose = 0;
+          for (let i = 0; i < patient.doses_received; i++) {
+            const intervalDays = typeof intervals[i] === 'number' ? intervals[i] : 0;
+            totalDaysFromFirstDose += intervalDays;
+            console.log(`  เข็มที่ ${i + 1} -> ${i + 2}: +${intervalDays} วัน (รวม: ${totalDaysFromFirstDose} วัน)`);
+          }
+
+          // Calculate next dose date from first dose + cumulative intervals
+          const nextDoseDate = new Date(baseDate);
+          nextDoseDate.setDate(nextDoseDate.getDate() + totalDaysFromFirstDose);
 
           const nextDoseNumber = patient.doses_received + 1;
+          const nextDoseIntervalFromSchedule = intervals[patient.doses_received] || 0;
 
-          console.log(`🎯 ${patient.patient_name}: ต้องการโดสใหม่ ${nextDoseNumber}/${schedule.total_doses}, คำนวณนัด: ${nextDoseDate.toISOString().split('T')[0]}, ช่วงห่าง: ${intervalDays} วัน`);
+          console.log(`🎯 ${patient.patient_name}: คำนวณจาก vaccine_schedules`);
+          console.log(`   - เข็มแรก: ${patient.first_dose_date}`);
+          console.log(`   - รวมระยะห่าง: ${totalDaysFromFirstDose} วัน`);
+          console.log(`   - ต้องการโดส: ${nextDoseNumber}/${schedule.total_doses}`);
+          console.log(`   - นัดคำนวน: ${nextDoseDate.toISOString().split('T')[0]}`);
+          console.log(`   - ช่วงห่างจาก vaccine_schedules: ${nextDoseIntervalFromSchedule} วัน`);
 
           return {
             id: `new-${patient.patient_id}-${patient.vaccine_type}`,

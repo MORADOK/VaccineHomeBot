@@ -125,7 +125,7 @@ const VaccineDoseCalculator = () => {
 
     const lastDate = new Date(lastDoseDate);
     const nextDoseNumber = currentDose + 1;
-    
+
     // ตรวจสอบว่าครบโดสแล้วหรือไม่
     if (currentDose >= schedule.total_doses) {
       setCalculation({
@@ -138,11 +138,34 @@ const VaccineDoseCalculator = () => {
       return;
     }
 
-    // คำนวณวันที่ฉีดครั้งถัดไป
-    const intervals = Array.isArray(schedule.dose_intervals) ? schedule.dose_intervals : JSON.parse(schedule.dose_intervals || '[]');
-    const intervalDays = intervals[currentDose - 1] || 0;
+    // คำนวณวันที่ฉีดครั้งถัดไป จาก vaccine_schedules (source of truth)
+    const intervals = Array.isArray(schedule.dose_intervals) ?
+      schedule.dose_intervals :
+      JSON.parse(schedule.dose_intervals || '[]');
+
+    console.log(`📊 คำนวนจาก vaccine_schedules:`, {
+      vaccine_name: schedule.vaccine_name,
+      total_doses: schedule.total_doses,
+      dose_intervals: intervals,
+      current_dose: currentDose,
+      last_dose_date: lastDoseDate
+    });
+
+    // Use interval from vaccine_schedules based on current dose index
+    // currentDose is the dose that was just given, so we use currentDose index for next interval
+    // But dose_intervals[0] is the gap between dose 1 and dose 2
+    // So if currentDose = 1 (just gave dose 1), we use intervals[0] to get to dose 2
+    const intervalDays = intervals[currentDose - 1] || 30;
+
     const nextDate = new Date(lastDate);
     nextDate.setDate(nextDate.getDate() + intervalDays);
+
+    console.log(`🎯 การคำนวน:`, {
+      interval_index: currentDose - 1,
+      interval_days: intervalDays,
+      next_dose_number: nextDoseNumber,
+      next_dose_date: nextDate.toISOString().split('T')[0]
+    });
 
     // คำนวณวันแจ้งเตือน
     const reminderDate = new Date(nextDate);
