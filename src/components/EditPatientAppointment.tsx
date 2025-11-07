@@ -91,17 +91,54 @@ const EditPatientAppointment = () => {
     }
   };
 
-  const calculateNextDoseDate = (lastDoseDate: string, vaccineType: string, doseNumber: number) => {
+  const calculateNextDoseDate = async (patientId: string, vaccineType: string, currentDoseCount: number) => {
     const schedule = vaccineSchedules.find(s => s.vaccine_type === vaccineType);
     if (!schedule) return '';
 
-    const intervals = schedule.dose_intervals;
-    const intervalIndex = doseNumber - 2; // สำหรับเข็มที่ 2 ใช้ interval[0], เข็มที่ 3 ใช้ interval[1]
-    const intervalDays = intervals[intervalIndex] || 30;
+    // Find all completed doses for this patient and vaccine type
+    const { data: completedDoses, error } = await supabase
+      .from('appointments')
+      .select('appointment_date')
+      .eq('patient_id_number', patientId)
+      .eq('vaccine_type', vaccineType)
+      .eq('status', 'completed')
+      .order('appointment_date', { ascending: true });
 
-    const lastDate = new Date(lastDoseDate);
-    const nextDate = new Date(lastDate);
-    nextDate.setDate(nextDate.getDate() + intervalDays);
+    if (error || !completedDoses || completedDoses.length === 0) {
+      console.error('Error loading completed doses:', error);
+      return '';
+    }
+
+    // Get first dose date
+    const firstDoseDate = completedDoses[0].appointment_date;
+    const intervals = schedule.dose_intervals;
+
+    console.log(`📊 คำนวนจาก vaccine_schedules สำหรับ ${patientId}:`, {
+      vaccine_type: vaccineType,
+      total_doses: schedule.total_doses,
+      dose_intervals: intervals,
+      current_dose_count: currentDoseCount,
+      first_dose_date: firstDoseDate
+    });
+
+    // Calculate cumulative days from first dose
+    let totalDaysFromFirstDose = 0;
+    for (let i = 0; i < currentDoseCount; i++) {
+      const intervalDays = intervals[i] || 0;
+      totalDaysFromFirstDose += intervalDays;
+      console.log(`  เข็มที่ ${i + 1} -> ${i + 2}: +${intervalDays} วัน (รวม: ${totalDaysFromFirstDose} วัน)`);
+    }
+
+    // Calculate next dose date from first dose + cumulative intervals
+    const baseDate = new Date(firstDoseDate);
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(nextDate.getDate() + totalDaysFromFirstDose);
+
+    console.log(`🎯 นัดเข็มถัดไป:`, {
+      first_dose_date: firstDoseDate,
+      cumulative_days: totalDaysFromFirstDose,
+      next_dose_date: nextDate.toISOString().split('T')[0]
+    });
 
     return nextDate.toISOString().split('T')[0];
   };
@@ -134,24 +171,57 @@ const EditPatientAppointment = () => {
     }
   };
 
-  const handleLastDoseDateChange = (date: string) => {
+  const handleLastDoseDateChange = async (date: string) => {
     setEditForm(prev => ({
       ...prev,
       lastDoseDate: date,
-      nextDoseDate: selectedAppointment ? 
-        calculateNextDoseDate(date, selectedAppointment.vaccine_type, parseInt(prev.doseNumber) + 1) : 
-        ''
+      nextDoseDate: ''
     }));
+
+    // Calculate next dose date asynchronously
+    if (selectedAppointment) {
+      // Count completed doses for this patient and vaccine
+      const { data: completedDoses } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('patient_id_number', selectedAppointment.patient_id_number)
+        .eq('vaccine_type', selectedAppointment.vaccine_type)
+        .eq('status', 'completed');
+
+      const currentDoseCount = completedDoses?.length || 0;
+      const nextDate = await calculateNextDoseDate(
+        selectedAppointment.patient_id_number,
+        selectedAppointment.vaccine_type,
+        currentDoseCount
+      );
+
+      setEditForm(prev => ({
+        ...prev,
+        nextDoseDate: nextDate
+      }));
+    }
   };
 
-  const handleDoseNumberChange = (doseNumber: string) => {
+  const handleDoseNumberChange = async (doseNumber: string) => {
     setEditForm(prev => ({
       ...prev,
       doseNumber,
-      nextDoseDate: selectedAppointment && prev.lastDoseDate ? 
-        calculateNextDoseDate(prev.lastDoseDate, selectedAppointment.vaccine_type, parseInt(doseNumber) + 1) : 
-        ''
+      nextDoseDate: ''
     }));
+
+    // Calculate next dose date asynchronously
+    if (selectedAppointment) {
+      const nextDate = await calculateNextDoseDate(
+        selectedAppointment.patient_id_number,
+        selectedAppointment.vaccine_type,
+        parseInt(doseNumber)
+      );
+
+      setEditForm(prev => ({
+        ...prev,
+        nextDoseDate: nextDate
+      }));
+    }
   };
 
   const saveChanges = async () => {
@@ -167,10 +237,10 @@ const EditPatientAppointment = () => {
     // คำนวณ nextDoseDate หากยังไม่มี
     let nextDoseDate = editForm.nextDoseDate;
     if (!nextDoseDate) {
-      nextDoseDate = calculateNextDoseDate(
-        editForm.lastDoseDate, 
+      nextDoseDate = await calculateNextDoseDate(
+        selectedAppointment.patient_id_number,
         selectedAppointment.vaccine_type, 
-        parseInt(editForm.doseNumber) + 1
+        parseInt(editForm.doseNumber)
       );
       
       if (!nextDoseDate) {

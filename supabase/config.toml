@@ -46,23 +46,18 @@ double_confirm_changes = true
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
-# Minimum password length. Defaults to 10.
-password_min_length = 10
+
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "5m"
 
 # Use pre-defined map of SMTP configuration
-[auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = true
-# If enabled, users need to confirm their phone number before signing in.
-enable_confirmations = false
-# Controls the minimum amount of time that must pass before sending another sms otp.
-max_frequency = "5s"
+
 
 # Use pre-defined map of phone providers
 # The phone provider you want to use for sending SMS
-provider = "twilio"
+
+[functions.line-webhook]
+verify_jwt = false
 
 [realtime]
 enabled = true
@@ -108,3 +103,6 @@ shadow_port = 54320
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version_num;` on the remote database to check.
 major_version = 15
+
+
+
