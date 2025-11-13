@@ -325,6 +325,7 @@ const EditPatientAppointment = () => {
         description: `แก้ไขข้อมูลของ ${selectedAppointment.patient_name} แล้ว${cancelledCount > 0 ? ` (ยกเลิกนัดเก่า ${cancelledCount} รายการ และสร้างนัดใหม่)` : ' และสร้างนัดครั้งถัดไป'}`,
       });
 
+      // รีเซ็ตฟอร์มและ state
       setSelectedAppointment(null);
       setExistingFutureAppointments([]);
       setEditForm({
@@ -334,7 +335,9 @@ const EditPatientAppointment = () => {
         notes: '',
         customNextDate: false
       });
-      loadAppointments();
+      
+      // รีเฟรชรายการนัดหมายทันทีหลังบันทึกสำเร็จ
+      await loadAppointments();
     } catch (error) {
       console.error('Error saving changes:', error);
       toast({
@@ -350,6 +353,35 @@ const EditPatientAppointment = () => {
   useEffect(() => {
     loadAppointments();
     loadVaccineSchedules();
+
+    // Set up Supabase Realtime subscription for appointments table
+    const appointmentsSubscription = supabase
+      .channel('appointments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'appointments'
+        },
+        (payload) => {
+          console.log('📡 Realtime update received:', payload);
+          // Reload appointments when any change occurs
+          loadAppointments();
+        }
+      )
+      .subscribe();
+
+    // Also set up a periodic refresh every 30 seconds as fallback
+    const intervalId = setInterval(() => {
+      loadAppointments();
+    }, 30000); // 30 seconds
+
+    // Cleanup function
+    return () => {
+      supabase.removeChannel(appointmentsSubscription);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const filteredAppointments = appointments.filter(appt =>
@@ -360,13 +392,22 @@ const EditPatientAppointment = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Edit className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">แก้ไขข้อมูลนัดหมาย</h1>
-          <p className="text-sm text-muted-foreground">แก้ไขวันที่ฉีดและคำนวณนัดครั้งถัดไป</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Edit className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">แก้ไขข้อมูลนัดหมาย</h1>
+            <p className="text-sm text-muted-foreground">
+              แก้ไขวันที่ฉีดและคำนวณนัดครั้งถัดไป
+              {!loading && (
+                <span className="ml-2 text-green-600">
+                  🔄 อัปเดตอัตโนมัติทุก 30 วินาที
+                </span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -374,10 +415,21 @@ const EditPatientAppointment = () => {
         {/* รายการนัดหมาย */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              ค้นหานัดหมายที่ต้องแก้ไข
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                ค้นหานัดหมายที่ต้องแก้ไข
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadAppointments}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                รีเฟรช
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -391,30 +443,39 @@ const EditPatientAppointment = () => {
                 />
               </div>
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {filteredAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedAppointment?.id === appointment.id 
-                        ? 'border-primary bg-primary/5' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => handleAppointmentSelect(appointment)}
-                  >
-                    <div className="font-medium">{appointment.patient_name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {appointment.vaccine_type} - {new Date(appointment.appointment_date).toLocaleDateString('th-TH')}
-                    </div>
-                    <div className="text-xs text-muted-foreground">ID: {appointment.patient_id_number}</div>
-                  </div>
-                ))}
-              </div>
-
-              {filteredAppointments.length === 0 && (
+              {loading ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลนัดหมาย'}
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin" />
+                  <p>กำลังโหลดข้อมูล...</p>
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {filteredAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          selectedAppointment?.id === appointment.id 
+                            ? 'border-primary bg-primary/5' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => handleAppointmentSelect(appointment)}
+                      >
+                        <div className="font-medium">{appointment.patient_name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {appointment.vaccine_type} - {new Date(appointment.appointment_date).toLocaleDateString('th-TH')}
+                        </div>
+                        <div className="text-xs text-muted-foreground">ID: {appointment.patient_id_number}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {filteredAppointments.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลนัดหมาย'}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>

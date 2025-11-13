@@ -23,6 +23,68 @@ interface AppointmentData {
   status: string;
 }
 
+// Helper function to format date to Thai format with Thai month names
+function formatThaiDate(dateString: string): string {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const monthIndex = date.getMonth();
+  const buddhistYear = date.getFullYear() + 543;
+  
+  const thaiMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+    'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+    'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  
+  return `${day} ${thaiMonths[monthIndex]} ${buddhistYear}`;
+}
+
+// Helper function to translate vaccine names to Thai
+function translateVaccineToThai(vaccineName: string): string {
+  const vaccineTranslations: { [key: string]: string } = {
+    'Hepatitis B': 'วัคซีนไวรัสตับอักเสบบี',
+    'hepatitis b': 'วัคซีนไวรัสตับอักเสบบี',
+    'HepB': 'วัคซีนไวรัสตับอักเสบบี',
+    'BCG': 'วัคซีนบีซีจี',
+    'DTP': 'วัคซีนดีทีพี',
+    'DTaP': 'วัคซีนดีทีเอพี',
+    'Polio': 'วัคซีนโปลิโอ',
+    'IPV': 'วัคซีนโปลิโอ',
+    'MMR': 'วัคซีนหัด คางทูม หัดเยอรมัน',
+    'Measles': 'วัคซีนหัด',
+    'Japanese Encephalitis': 'วัคซีนไข้สมองอักเสบเจอี',
+    'JE': 'วัคซีนไข้สมองอักเสบเจอี',
+    'Varicella': 'วัคซีนอีสุกอีใส',
+    'Chickenpox': 'วัคซีนอีสุกอีใส',
+    'Influenza': 'วัคซีนไข้หวัดใหญ่',
+    'Flu': 'วัคซีนไข้หวัดใหญ่',
+    'COVID-19': 'วัคซีนโควิด-19',
+    'COVID-19 Booster': 'วัคซีนโควิด-19 เข็มกระตุ้น',
+    'HPV': 'วัคซีนเอชพีวี',
+    'Rotavirus': 'วัคซีนโรต้าไวรัส',
+    'Pneumococcal': 'วัคซีนนิวโมค็อกคัส',
+    'Hib': 'วัคซีนฮิบ',
+    'Hepatitis A': 'วัคซีนไวรัสตับอักเสบเอ',
+    'HepA': 'วัคซีนไวรัสตับอักเสบเอ',
+  };
+  
+  // Check if vaccine name exists in translations
+  if (vaccineTranslations[vaccineName]) {
+    return vaccineTranslations[vaccineName];
+  }
+  
+  // Check case-insensitive match
+  const lowerVaccineName = vaccineName.toLowerCase();
+  for (const [key, value] of Object.entries(vaccineTranslations)) {
+    if (key.toLowerCase() === lowerVaccineName) {
+      return value;
+    }
+  }
+  
+  // If already in Thai or no translation found, return as is
+  return vaccineName;
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -161,16 +223,20 @@ serve(async (req: Request) => {
           continue
         }
 
+        // Format date and translate vaccine name
+        const thaiDate = formatThaiDate(appointment.appointment_date);
+        const thaiVaccineName = translateVaccineToThai(appointment.vaccine_type);
+
         // Create simple text message for LINE (temporary fix for Invalid action URI)
         const richMessage = {
           type: 'text',
-          text: `🏥 โรงพยาบาลโฮม - แจ้งเตือนการนัดฉีดวัคซีน
+          text: `🏥 รพ.โฮม โรงพยาบาลโฮม - แจ้งเตือนการนัดฉีดวัคซีน
 
 สวัสดีคุณ ${appointment.patient_name}
 
-📅 วันที่นัด: ${appointment.appointment_date}
+📅 วันที่นัด: ${thaiDate}
 ⏰ เวลา: ${appointment.appointment_time || 'ไม่ระบุ'}
-💉 วัคซีน: ${appointment.vaccine_type}
+💉 วัคซีน: ${thaiVaccineName}
 🏥 สถานที่: โรงพยาบาลโฮม
 
 ⚠️ กรุณามาตามเวลานัดหมาย
@@ -179,14 +245,14 @@ serve(async (req: Request) => {
 
         // Fallback text message for older LINE versions (based on test-final-hospital-notification.html)
         const fallbackMessage = `🏥 แจ้งเตือนการนัดหมายฉีดวัคซีน
-โรงพยาบาลโฮม
+รพ.โฮม โรงพยาบาลโฮม
 
 สวัสดีคุณ ${appointment.patient_name}
 
 📋 รายละเอียดการนัด:
-📅 วันที่นัด: ${appointment.appointment_date}
+📅 วันที่นัด: ${thaiDate}
 ⏰ เวลา: ${appointment.appointment_time || 'ไม่ระบุ'}
-💉 วัคซีน: ${appointment.vaccine_type}
+💉 วัคซีน: ${thaiVaccineName}
 🏥 สถานที่: โรงพยาบาลโฮม
 
 ⚠️ กรุณามาตามเวลานัดหมาย หากมีข้อสงสัยสามารถติดต่อ 038-511-123`
@@ -277,15 +343,20 @@ serve(async (req: Request) => {
           continue
         }
 
-        // Create simple text message for overdue appointment (temporary fix for Invalid action URI)
+        // Format date and translate vaccine name for overdue notification
+        const thaiOverdueDate = formatThaiDate(appointment.appointment_date);
+        const thaiOverdueVaccineName = translateVaccineToThai(appointment.vaccine_type);
+
+        // Create simple text message for overdue appointment (using standard hospital logo)
         const overdueRichMessage = {
           type: 'text',
-          text: `⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด - โรงพยาบาลโฮม
+          text: `🏥 รพ.โฮม โรงพยาบาลโฮม
+⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด
 
-คุณ ${appointment.patient_name}
+สวัสดีคุณ ${appointment.patient_name}
 
-📅 วันที่นัดเดิม: ${appointment.appointment_date}
-💉 วัคซีน: ${appointment.vaccine_type}
+📅 วันที่นัดเดิม: ${thaiOverdueDate}
+💉 วัคซีน: ${thaiOverdueVaccineName}
 🏥 สถานที่: โรงพยาบาลโฮม
 
 ⚠️ การนัดหมายของคุณเกินกำหนดแล้ว
@@ -293,14 +364,14 @@ serve(async (req: Request) => {
 📞 ติดต่อ: 038-511-123`
         }
 
-        // Fallback text message for overdue (based on test-final-hospital-notification.html)
-        const overdueFallbackMessage = `⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด
-โรงพยาบาลโฮม
+        // Fallback text message for overdue (using standard hospital branding)
+        const overdueFallbackMessage = `🏥 รพ.โฮม โรงพยาบาลโฮม
+⚠️ การนัดหมายฉีดวัคซีนเกินกำหนด
 
-คุณ ${appointment.patient_name}
+สวัสดีคุณ ${appointment.patient_name}
 
-📅 วันที่นัดเดิม: ${appointment.appointment_date}
-💉 วัคซีน: ${appointment.vaccine_type}
+📅 วันที่นัดเดิม: ${thaiOverdueDate}
+💉 วัคซีน: ${thaiOverdueVaccineName}
 🏥 สถานที่: โรงพยาบาลโฮม
 
 ⚠️ การนัดหมายของคุณเกินกำหนดแล้ว

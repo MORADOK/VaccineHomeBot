@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarPlus, Search, Calendar, Syringe, RefreshCw, Send, Clock } from 'lucide-react';
+import { CalendarPlus, Search, Calendar, Syringe, RefreshCw, Send, Clock, AlertCircle, X } from 'lucide-react';
 
 interface NextAppointment {
   id: string;
@@ -30,7 +30,8 @@ const NextAppointments = () => {
   const [loading, setLoading] = useState(false);
   const [creatingAppointment, setCreatingAppointment] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [cancelingAppointment, setCancelingAppointment] = useState<string | null>(null);
+  const { toast} = useToast();
 
   const loadNextAppointments = async () => {
     setLoading(true);
@@ -48,14 +49,20 @@ const NextAppointments = () => {
       console.log('📊 ข้อมูลนัดทั้งหมด:', appointmentData?.length || 0, 'รายการ');
 
       const completedAppointments = appointmentData?.filter(a => a.status === 'completed') || [];
-      // กรองเฉพาะนัดที่ยังไม่ถูกยกเลิกและยังไม่หมดอายุ
-      const scheduledAppointments = appointmentData?.filter(a => 
-        ['scheduled', 'pending'].includes(a.status) && 
-        new Date(a.appointment_date) >= new Date()
+
+      // กรองเฉพาะนัดที่ยังไม่ถูกยกเลิก (รวมทั้งนัดที่เกินกำหนด)
+      const today = new Date().toISOString().split('T')[0]; // เช่น "2024-12-15"
+      const scheduledAppointments = appointmentData?.filter(a =>
+        ['scheduled', 'pending'].includes(a.status)
+        // ไม่กรองตามวันที่ - เพื่อแสดงนัดที่เกินกำหนดด้วย
       ) || [];
 
       console.log('✅ การฉีดที่เสร็จสิ้น:', completedAppointments.length, 'รายการ');
-      console.log('📅 นัดที่มีอยู่แล้ว:', scheduledAppointments.length, 'รายการ');
+      console.log('📅 นัดที่มีอยู่แล้ว (scheduled/pending):', scheduledAppointments.length, 'รายการ');
+      console.log('📆 วันนี้:', today);
+      scheduledAppointments.forEach(appt => {
+        console.log(`   - ${appt.patient_name}: ${appt.vaccine_type} วันที่ ${appt.appointment_date} (${appt.status})`);
+      });
 
       // Group by patient and vaccine type to get latest doses and calculate actual dose counts
       const patientVaccineMap = new Map();
@@ -111,11 +118,10 @@ const NextAppointments = () => {
       const allNextAppointments: NextAppointment[] = [];
 
       // Calculate next appointments manually - include both new appointments and existing scheduled ones
-      // 1. First add existing scheduled appointments that haven't passed and aren't cancelled
+      // 1. First add existing scheduled appointments (รวมทั้งนัดที่เกินกำหนด)
       for (const scheduledAppt of scheduledAppointments) {
-        // Double check that appointment is still valid
-        if (new Date(scheduledAppt.appointment_date) > new Date() && 
-            ['scheduled', 'pending'].includes(scheduledAppt.status)) {
+        // Double check that appointment is still valid (ไม่กรองตามวันที่เพื่อแสดงนัดที่เกินกำหนด)
+        if (['scheduled', 'pending'].includes(scheduledAppt.status)) {
           const patientKey = scheduledAppt.patient_id_number || scheduledAppt.line_user_id;
           
           // Find completed doses for this patient and vaccine
@@ -179,18 +185,47 @@ const NextAppointments = () => {
           }
 
           // Check if patient already has a future appointment for this vaccine type (and not cancelled)
+          console.log(`🔍 ตรวจสอบนัดสำหรับ ${patient.patient_name} (${patient.patient_id}), วัคซีน: ${patient.vaccine_type}`);
+          
           const existingFutureAppointment = scheduledAppointments.find(appt => {
             const apptPatientKey = appt.patient_id_number || appt.line_user_id;
-            return (apptPatientKey === patient.patient_id) &&
-                   appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase() &&
-                   new Date(appt.appointment_date) > new Date() &&
-                   ['scheduled', 'pending'].includes(appt.status);
+            const matchesPatient = apptPatientKey === patient.patient_id;
+            const matchesVaccine = appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase();
+            const isActive = ['scheduled', 'pending'].includes(appt.status);
+            // ไม่กรอง isFuture - เพื่อให้นัดที่เกินกำหนดแสดงด้วย
+
+            console.log(`   🔎 เปรียบเทียบกับนัด: ${appt.patient_name} (${apptPatientKey})`, {
+              matchesPatient: `${matchesPatient} (${apptPatientKey} === ${patient.patient_id})`,
+              matchesVaccine: `${matchesVaccine} (${appt.vaccine_type} === ${patient.vaccine_type})`,
+              appointment_date: appt.appointment_date,
+              isActive: `${isActive} (${appt.status})`,
+              result: matchesPatient && matchesVaccine && isActive
+            });
+
+            return matchesPatient && matchesVaccine && isActive;
           });
 
           if (existingFutureAppointment) {
-            console.log(`📅 ผู้ป่วย ${patient.patient_name} มีนัด ${patient.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date} - ข้าม`);
+            console.log(`✅ ผู้ป่วย ${patient.patient_name} มีนัด ${patient.vaccine_type} แล้วในวันที่ ${existingFutureAppointment.appointment_date} (${existingFutureAppointment.status}) - ข้าม`);
             return null; // Already has appointment (will be shown from existing appointments above)
           }
+
+          // ตรวจสอบว่ามีนัดที่ถูกยกเลิกและเกินกำหนดหรือไม่ (ไม่ต้องแสดงซ้ำ)
+          const cancelledOverdueAppointment = appointmentData?.find(appt => {
+            const apptPatientKey = appt.patient_id_number || appt.line_user_id;
+            const matchesPatient = apptPatientKey === patient.patient_id;
+            const matchesVaccine = appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase();
+            const isCancelled = appt.status === 'cancelled';
+            const isOverdue = appt.appointment_date < today;
+            return matchesPatient && matchesVaccine && isCancelled && isOverdue;
+          });
+
+          if (cancelledOverdueAppointment) {
+            console.log(`🚫 ผู้ป่วย ${patient.patient_name} มีนัดเกินกำหนดที่ถูกยกเลิกแล้ว (${cancelledOverdueAppointment.appointment_date}) - ไม่แสดงอีก`);
+            return null; // Don't show again if cancelled overdue appointment exists
+          }
+
+          console.log(`🆕 ผู้ป่วย ${patient.patient_name} ยังไม่มีนัด ${patient.vaccine_type} - ต้องสร้างนัด`);
 
           // Calculate next dose date from vaccine_schedules (source of truth)
           // Calculate from FIRST dose to ensure accuracy
@@ -284,34 +319,48 @@ const NextAppointments = () => {
   };
 
   const scheduleAppointment = async (patientTracking: NextAppointment) => {
-    // ตรวจสอบซ้ำก่อนสร้างนัดว่ามีนัดแล้วหรือยัง
+    // ป้องกันการกดซ้ำ - ถ้ากำลังสร้างนัดอยู่ ให้ return ทันที
+    if (creatingAppointment !== null) {
+      console.log('⚠️ กำลังสร้างนัดอยู่แล้ว - ป้องกันการกดซ้ำ');
+      return;
+    }
+
+    console.log('🔵 เริ่มสร้างนัดสำหรับ:', patientTracking.patient_name, patientTracking.vaccine_type);
+    setCreatingAppointment(patientTracking.id);
+
     try {
-      const { data: existingAppointments } = await supabase
+      // ตรวจสอบซ้ำก่อนสร้างนัดว่ามีนัดแล้วหรือยัง (รวมนัดที่เกินกำหนด)
+      console.log('🔍 ตรวจสอบนัดที่มีอยู่แล้ว...');
+
+      const { data: existingAppointments, error: checkError } = await supabase
         .from('appointments')
         .select('*')
         .eq('patient_id_number', patientTracking.patient_id)
         .eq('vaccine_type', patientTracking.vaccine_type)
-        .in('status', ['scheduled', 'pending'])
-        .gte('appointment_date', new Date().toISOString().split('T')[0]);
+        .in('status', ['scheduled', 'pending']);
+        // ไม่กรองตามวันที่ - เพราะถ้ามีนัดแล้ว (แม้เกินกำหนด) ก็ไม่ควรสร้างซ้ำ
 
+      if (checkError) {
+        console.error('❌ Error checking existing appointments:', checkError);
+        throw checkError;
+      }
+
+      console.log('📋 นัดที่มีอยู่:', existingAppointments?.length || 0, 'รายการ');
+      
       if (existingAppointments && existingAppointments.length > 0) {
+        console.log('⚠️ พบนัดที่มีอยู่แล้ว:', existingAppointments);
         toast({
           title: "มีนัดอยู่แล้ว",
           description: `${patientTracking.patient_name} มีนัดหมายสำหรับวัคซีนนี้แล้ว`,
           variant: "destructive",
         });
-        // ลบออกจากรายการ
-        setNextAppointments(prevAppointments => 
-          prevAppointments.filter(appt => appt.id !== patientTracking.id)
-        );
+        // รีเฟรชข้อมูลเพื่อแสดงสถานะที่ถูกต้อง
+        console.log('🔄 รีเฟรชข้อมูล...');
+        await loadNextAppointments();
         return;
       }
-    } catch (error) {
-      console.error('Error checking existing appointments:', error);
-    }
 
-    setCreatingAppointment(patientTracking.id);
-    try {
+      // สร้างนัดหมายใหม่
       const appointmentData = {
         patient_id_number: patientTracking.patient_id,
         patient_name: patientTracking.patient_name,
@@ -322,23 +371,35 @@ const NextAppointments = () => {
         notes: `นัดเข็มที่ ${patientTracking.current_dose + 1} จาก ${patientTracking.total_doses} เข็ม`
       };
 
-      const { error } = await supabase
+      console.log('💾 กำลังบันทึกนัดใหม่:', appointmentData);
+
+      const { data: insertedData, error: insertError } = await supabase
         .from('appointments')
-        .insert([appointmentData]);
+        .insert([appointmentData])
+        .select();
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('❌ Error inserting appointment:', insertError);
+        throw insertError;
+      }
 
-      // ลบรายชื่อออกจากรายการทันที เพื่อป้องกันการกดซ้ำ
-      setNextAppointments(prevAppointments => 
-        prevAppointments.filter(appt => appt.id !== patientTracking.id)
-      );
+      console.log('✅ สร้างนัดสำเร็จ:', insertedData);
 
       toast({
         title: "นัดหมายสำเร็จ",
         description: `สร้างนัดหมายสำหรับ ${patientTracking.patient_name} แล้ว`,
       });
+
+      // รอสักครู่เพื่อให้ฐานข้อมูลอัพเดท
+      console.log('⏳ รอ 500ms เพื่อให้ฐานข้อมูลอัพเดท...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // รีเฟรชข้อมูลทั้งหมดจากฐานข้อมูลเพื่อแสดงสถานะที่ถูกต้อง
+      console.log('🔄 รีเฟรชข้อมูลหลังสร้างนัด...');
+      await loadNextAppointments();
+      console.log('✅ รีเฟรชเสร็จสิ้น');
     } catch (error) {
-      console.error('Error scheduling appointment:', error);
+      console.error('❌ Error scheduling appointment:', error);
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถสร้างนัดหมายได้",
@@ -346,6 +407,7 @@ const NextAppointments = () => {
       });
     } finally {
       setCreatingAppointment(null);
+      console.log('🔵 เสร็จสิ้นกระบวนการสร้างนัด');
     }
   };
 
@@ -437,6 +499,52 @@ const NextAppointments = () => {
     }
   };
 
+  const cancelAppointment = async (appointment: NextAppointment) => {
+    if (!appointment.is_existing_appointment) {
+      toast({
+        title: "ไม่สามารถยกเลิกได้",
+        description: "ไม่สามารถยกเลิกนัดที่ยังไม่ได้สร้าง",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCancelingAppointment(appointment.id);
+
+    try {
+      console.log('🔴 เริ่มยกเลิกนัดสำหรับ:', appointment.patient_name);
+
+      // Extract appointment ID from scheduled ID (format: scheduled-{id})
+      const appointmentId = appointment.id.replace('scheduled-', '');
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      console.log('✅ ยกเลิกนัดสำเร็จ');
+
+      toast({
+        title: "ยกเลิกนัดสำเร็จ",
+        description: `ยกเลิกนัดของ ${appointment.patient_name} แล้ว`,
+      });
+
+      // รีเฟรชข้อมูล
+      await loadNextAppointments();
+    } catch (error) {
+      console.error('❌ Error canceling appointment:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถยกเลิกนัดได้",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelingAppointment(null);
+    }
+  };
+
   useEffect(() => {
     loadNextAppointments();
     
@@ -448,12 +556,7 @@ const NextAppointments = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredAppointments = nextAppointments.filter(appt =>
-    appt.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    appt.vaccine_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    appt.patient_id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  // Helper function - ต้องประกาศก่อนใช้งาน
   const getDaysUntilDue = (dueDate: string) => {
     const today = new Date();
     const due = new Date(dueDate);
@@ -461,6 +564,23 @@ const NextAppointments = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
+
+  const filteredAppointments = nextAppointments.filter(appt =>
+    appt.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    appt.vaccine_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    appt.patient_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // แยกนัดเกินกำหนดและนัดปกติ
+  const overdueAppointments = filteredAppointments.filter(appt => {
+    const daysUntil = getDaysUntilDue(appt.next_dose_due);
+    return daysUntil < 0 && appt.is_existing_appointment;
+  });
+
+  const upcomingAppointments = filteredAppointments.filter(appt => {
+    const daysUntil = getDaysUntilDue(appt.next_dose_due);
+    return daysUntil >= 0 || !appt.is_existing_appointment;
+  });
 
   const getDueBadge = (daysUntil: number) => {
     if (daysUntil < 0) {
@@ -476,129 +596,242 @@ const NextAppointments = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <CalendarPlus className="h-6 w-6 text-primary" />
+      {/* Header */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-xl border border-primary/20">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-primary rounded-xl shadow-lg">
+            <CalendarPlus className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">นัดครั้งถัดไป</h1>
-            <p className="text-sm text-muted-foreground">
-              รายการผู้ป่วยที่ต้องฉีดเข็มถัดไป (อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')})
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              นัดครั้งถัดไป
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+              <Clock className="h-3.5 w-3.5" />
+              อัปเดตล่าสุด: {new Date().toLocaleTimeString('th-TH')}
             </p>
           </div>
         </div>
-        <Button onClick={loadNextAppointments} disabled={loading} variant="outline">
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+        <Button onClick={loadNextAppointments} disabled={loading} variant="outline" size="lg" className="shadow-sm">
+          <RefreshCw className={`h-5 w-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
           รีเฟรช
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
+      {/* Search Bar */}
+      <Card className="shadow-md">
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Input
+              placeholder="🔍 ค้นหาด้วยชื่อผู้ป่วย, ประเภทวัคซีน, หรือ ID"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 h-12 text-base border-2 focus:border-primary transition-all"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Overdue Appointments Section */}
+      {overdueAppointments.length > 0 && (
+        <Card className="border-2 border-red-200 bg-red-50/50 shadow-lg">
+          <CardHeader className="bg-red-100/80 border-b-2 border-red-200">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-3 text-red-800">
+                <div className="p-2 bg-red-500 rounded-lg">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <span className="text-xl">นัดเกินกำหนด</span>
+                  <p className="text-sm font-normal text-red-600 mt-1">ต้องดำเนินการด่วน!</p>
+                </div>
+              </CardTitle>
+              <Badge variant="destructive" className="text-lg px-4 py-2 shadow-sm">
+                {overdueAppointments.length} ราย
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              {overdueAppointments.map((appointment) => {
+                const daysUntil = getDaysUntilDue(appointment.next_dose_due);
+                return (
+                  <div key={appointment.id} className="p-5 bg-white border-2 border-red-200 rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="font-bold text-xl text-red-900">{appointment.patient_name}</h3>
+                          <Badge className="bg-red-500 text-white border-0 text-sm px-3 py-1 shadow-sm">
+                            เกินกำหนด {Math.abs(daysUntil)} วัน
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-3">
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Syringe className="h-4 w-4 text-red-500" />
+                            <span className="font-medium">{appointment.vaccine_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Calendar className="h-4 w-4 text-red-500" />
+                            <span>เข็มที่ {appointment.current_dose + 1}/{appointment.total_doses}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Clock className="h-4 w-4 text-red-500" />
+                            <span>นัด: {new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}</span>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+                          <span>ID: {appointment.patient_id}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => cancelAppointment(appointment)}
+                          disabled={cancelingAppointment === appointment.id}
+                          className="shadow-md hover:shadow-lg transition-all"
+                        >
+                          {cancelingAppointment === appointment.id ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <X className="h-4 w-4 mr-1" />
+                          )}
+                          {cancelingAppointment === appointment.id ? 'กำลังยกเลิก...' : 'ยกเลิกนัด'}
+                        </Button>
+                        {appointment.line_user_id && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => sendReminder(appointment)}
+                            disabled={sendingReminder === appointment.id}
+                            className="border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            {sendingReminder === appointment.id ? (
+                              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4 mr-1" />
+                            )}
+                            แจ้งเตือน
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upcoming Appointments Section */}
+      <Card className="shadow-md">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-blue-50 border-b">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              ค้นหานัดครั้งถัดไป
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <span className="text-xl">นัดที่กำลังจะถึง & ต้องสร้างนัด</span>
+                <p className="text-sm font-normal text-muted-foreground mt-1">รายการนัดทั้งหมด</p>
+              </div>
             </CardTitle>
-            <Badge variant="secondary">
-              ทั้งหมด {filteredAppointments.length} คน
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              {upcomingAppointments.length} ราย
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="ค้นหาด้วยชื่อผู้ป่วย, ประเภทวัคซีน, หรือ ID"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
+        <CardContent className="pt-6">
           <div className="space-y-4">
-            {filteredAppointments.map((appointment) => {
+            {upcomingAppointments.map((appointment) => {
               const daysUntil = getDaysUntilDue(appointment.next_dose_due);
               return (
-                <div key={appointment.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                <div key={appointment.id} className="p-5 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-[1.01] hover:border-primary/50">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{appointment.patient_name}</h3>
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="font-bold text-lg">{appointment.patient_name}</h3>
                         {getDueBadge(daysUntil)}
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-2">
-                          <Syringe className="h-4 w-4" />
-                          {appointment.vaccine_name}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-3">
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Syringe className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{appointment.vaccine_name}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          เข็มที่ {appointment.current_dose + 1} จาก {appointment.total_doses}
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          <span>เข็มที่ {appointment.current_dose + 1}/{appointment.total_doses}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          ครบกำหนด: {new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>📅</span>
-                          เข็มล่าสุด: {appointment.last_dose_date ? 
-                            new Date(appointment.last_dose_date).toLocaleDateString('th-TH') : 
-                            'ไม่พบข้อมูล'}
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Clock className="h-4 w-4 text-primary" />
+                          <span>นัด: {new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}</span>
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded flex justify-between">
-                        <span>ID: {appointment.patient_id}</span>
-                        <span className="text-blue-600">
-                          {appointment.is_existing_appointment ? '✓ มีนัดแล้ว' : '⚠ ต้องสร้างนัด'}
-                        </span>
+                      <div className="text-xs text-gray-500 bg-gray-100/80 p-2.5 rounded-lg flex justify-between items-center">
+                        <span className="font-medium">ID: {appointment.patient_id}</span>
+                        {appointment.is_existing_appointment ? (
+                          <span className="flex items-center gap-1 text-green-600 font-medium">
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            มีนัดแล้ว
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-orange-600 font-medium">
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            ต้องสร้างนัด
+                          </span>
+                        )}
                       </div>
                     </div>
-                     <div className="flex gap-2 ml-4">
-                       {!appointment.is_existing_appointment ? (
-                         <Button
-                           size="sm"
-                           onClick={() => scheduleAppointment(appointment)}
-                           disabled={creatingAppointment === appointment.id || creatingAppointment !== null}
-                           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                         >
-                           {creatingAppointment === appointment.id ? (
-                             <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                           ) : (
-                             <CalendarPlus className="h-4 w-4 mr-1" />
-                           )}
-                           {creatingAppointment === appointment.id ? 'กำลังสร้าง...' : 'สร้างนัด'}
-                         </Button>
-                       ) : (
-                         <Badge className="bg-green-100 text-green-800 border-green-200">
-                           มีนัดแล้ว
-                         </Badge>
-                       )}
-                       {appointment.line_user_id && (
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => sendReminder(appointment)}
-                           disabled={sendingReminder === appointment.id}
-                           className="disabled:opacity-50"
-                         >
-                           {sendingReminder === appointment.id ? (
-                             <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                           ) : (
-                             <Send className="h-4 w-4 mr-1" />
-                           )}
-                           {sendingReminder === appointment.id ? 'กำลังส่ง...' : 'แจ้งเตือน'}
-                         </Button>
-                       )}
-                     </div>
+                    <div className="flex flex-col gap-2 ml-4">
+                      {!appointment.is_existing_appointment ? (
+                        <Button
+                          size="sm"
+                          onClick={() => scheduleAppointment(appointment)}
+                          disabled={creatingAppointment === appointment.id || creatingAppointment !== null}
+                          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all"
+                        >
+                          {creatingAppointment === appointment.id ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <CalendarPlus className="h-4 w-4 mr-1" />
+                          )}
+                          {creatingAppointment === appointment.id ? 'กำลังสร้าง...' : 'สร้างนัด'}
+                        </Button>
+                      ) : (
+                        <Badge className="bg-green-500 text-white border-0 px-4 py-2 shadow-sm">
+                          ✓ มีนัดแล้ว
+                        </Badge>
+                      )}
+                      {appointment.line_user_id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => sendReminder(appointment)}
+                          disabled={sendingReminder === appointment.id}
+                          className="border-2 hover:bg-primary/5 shadow-sm"
+                        >
+                          {sendingReminder === appointment.id ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4 mr-1" />
+                          )}
+                          {sendingReminder === appointment.id ? 'กำลังส่ง...' : 'แจ้งเตือน'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {filteredAppointments.length === 0 && (
+          {upcomingAppointments.length === 0 && (
             <div className="text-center py-12">
               <CalendarPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">

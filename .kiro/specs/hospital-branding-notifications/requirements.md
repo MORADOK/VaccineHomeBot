@@ -35,10 +35,12 @@
 
 #### Acceptance Criteria
 
-1. WHEN an overdue notification is sent THEN the system SHALL display the hospital logo with appropriate warning styling
+1. WHEN an overdue notification is sent THEN the system SHALL display the standard hospital logo without color modifications
 2. WHEN an overdue notification is sent THEN the system SHALL include "โรงพยาบาลโฮม" prominently in the message
 3. WHEN contact information is displayed THEN the system SHALL show the hospital phone number with proper formatting
 4. WHEN map links are provided THEN the system SHALL use "โรงพยาบาลโฮม" as the search query
+5. WHEN vaccine names are displayed THEN the system SHALL use Thai language for all vaccine names
+6. WHEN appointment dates are displayed THEN the system SHALL use Thai date format (DD/MM/BBBB) for both reminder and overdue notifications
 
 ### Requirement 4
 

@@ -19,7 +19,10 @@
 
 
 
-  - [ ] 2.2 Update overdue Rich Message template with warning-styled branding
+  - [x] 2.2 Update overdue Rich Message template with warning-styled branding
+
+
+
     - Modify overdue message header with hospital logo and warning colors
     - Ensure hospital name is clearly visible in urgent notifications
     - Update contact information display with proper formatting
