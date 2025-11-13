@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarPlus, Search, Calendar, Syringe, RefreshCw, Send, Clock, AlertCircle, X } from 'lucide-react';
+import { CalendarPlus, Search, Calendar, Syringe, RefreshCw, Send, Clock, AlertCircle, X, FileText } from 'lucide-react';
+import FullDoseScheduleModal from './FullDoseScheduleModal';
 
 interface NextAppointment {
   id: string;
@@ -31,6 +32,8 @@ const NextAppointments = () => {
   const [creatingAppointment, setCreatingAppointment] = useState<string | null>(null);
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [cancelingAppointment, setCancelingAppointment] = useState<string | null>(null);
+  const [selectedPatientForSchedule, setSelectedPatientForSchedule] = useState<NextAppointment | null>(null);
+  const [showScheduleView, setShowScheduleView] = useState(false);
   const { toast} = useToast();
 
   const loadNextAppointments = async () => {
@@ -499,6 +502,7 @@ const NextAppointments = () => {
     }
   };
 
+
   const cancelAppointment = async (appointment: NextAppointment) => {
     if (!appointment.is_existing_appointment) {
       toast({
@@ -808,6 +812,18 @@ const NextAppointments = () => {
                           ✓ มีนัดแล้ว
                         </Badge>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedPatientForSchedule(appointment);
+                          setShowScheduleView(true);
+                        }}
+                        className="border-2 hover:bg-purple-50 border-purple-300 text-purple-700 shadow-sm"
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        ดูตารางนัดครบทุกโดส
+                      </Button>
                       {appointment.line_user_id && (
                         <Button
                           size="sm"
@@ -841,6 +857,16 @@ const NextAppointments = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Full Dose Schedule Modal */}
+      <FullDoseScheduleModal
+        appointment={selectedPatientForSchedule}
+        isOpen={showScheduleView}
+        onClose={() => {
+          setShowScheduleView(false);
+          setSelectedPatientForSchedule(null);
+        }}
+      />
     </div>
   );
 };
