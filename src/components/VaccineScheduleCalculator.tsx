@@ -789,21 +789,24 @@ const VaccineScheduleCalculator: React.FC = () => {
                       <div>
                         <span className="text-muted-foreground">ความคืบหน้า:</span>
                         <p className="font-medium">
-                          {track.current_dose > 0 ? `ฉีดแล้ว ${track.current_dose} จาก ${track.total_doses} เข็ม` : 'ยังไม่เริ่มฉีด'}
+                          {track.current_dose > 0 ? `ฉีดแล้ว ${track.current_dose} เข็ม จาก ${track.total_doses} เข็ม` : 'ยังไม่เริ่มฉีด'}
                         </p>
                         {track.current_dose > 0 && track.current_dose < track.total_doses && (
-                          <p className="text-xs text-green-600">โดสถัดไป: เข็มที่ {track.current_dose + 1}</p>
+                          <p className="text-xs text-green-600">เข็มถัดไป: เข็มที่ {track.current_dose + 1}</p>
+                        )}
+                        {track.current_dose >= track.total_doses && (
+                          <p className="text-xs text-green-600">✓ ครบตามตารางแล้ว</p>
                         )}
                       </div>
                       <div>
-                        <span className="text-muted-foreground">เข็มล่าสุด:</span>
+                        <span className="text-muted-foreground">เข็มล่าสุดที่ฉีด:</span>
                         <p className="font-medium">
                           {track.last_dose_date && track.current_dose > 0 
                             ? format(parseISO(track.last_dose_date), 'dd MMM yyyy', { locale: th })
                             : 'ยังไม่ได้ฉีด'}
                         </p>
                         {track.last_dose_date && track.current_dose > 0 && (
-                          <p className="text-xs text-muted-foreground">เข็มที่ {track.current_dose}</p>
+                          <p className="text-xs text-muted-foreground">ฉีดเข็มที่ {track.current_dose} แล้ว</p>
                         )}
                       </div>
                       <div>
