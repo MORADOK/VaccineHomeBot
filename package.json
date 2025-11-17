@@ -24,7 +24,12 @@
     "dist-win": "npm run build && electron-builder --win --publish=never",
     "dist-mac": "npm run build && electron-builder --mac --publish=never",
     "dist-linux": "npm run build && electron-builder --linux --publish=never",
-    "pack": "npm run build && electron-builder --dir"
+    "pack": "npm run build && electron-builder --dir",
+    "publish-win": "npm run build && electron-builder --win --publish=always",
+    "publish-mac": "npm run build && electron-builder --mac --publish=always",
+    "publish-linux": "npm run build && electron-builder --linux --publish=always",
+    "publish-draft": "npm run build && electron-builder --win --publish=onTagOrDraft",
+    "verify-publish": "node scripts/verify-publish-setup.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -120,8 +125,12 @@
       "output": "release"
     },
     "publish": [
-    { "provider": "github", "owner": "MORADOK", "repo": "VaccineHomeBot" }
-  ],
+      {
+        "provider": "github",
+        "owner": "MORADOK",
+        "repo": "VaccineHomeBot"
+      }
+    ],
     "files": [
       "dist-electron/**",
       "public/electron-final-fix.js",

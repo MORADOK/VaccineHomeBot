@@ -1,7 +1,7 @@
-const { autoUpdater } = require('electron-updater');
 // public/electron-final-fix.js
-const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
+const autoUpdater = require('./auto-updater');
 
 let mainWindow;
 
@@ -304,140 +304,101 @@ function setupAutoUpdater() {
     return;
   }
 
-  // ตั้งค่าการดาวน์โหลดและติดตั้งอัตโนมัติ
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // Set main window for auto-updater
+  autoUpdater.setMainWindow(mainWindow);
 
-  // เมื่อเริ่มตรวจสอบ update
-  autoUpdater.on('checking-for-update', () => {
-    console.log('[updater] Checking for updates...');
-    if (isManualCheck) {
-      console.log('[updater] Manual check in progress...');
-    }
+  const updateManager = autoUpdater.getUpdateManager();
+
+  // Setup IPC handlers for manual update checks
+  ipcMain.on('check-for-updates', async () => {
+    console.log('[updater] Manual update check requested');
+    await autoUpdater.checkForUpdates();
   });
 
-  // เมื่อตรวจพบ update ใหม่
-  autoUpdater.on('update-available', (info) => {
-    console.log('[updater] Update available:', info.version);
-    const currentVersion = app.getVersion();
-
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Update Available',
-      message: `A new version ${info.version} is available!`,
-      detail: `Current version: ${currentVersion}\nNew version: ${info.version}\n\nThe update will be downloaded in the background.\nYou will be notified when it is ready to install.`,
-      buttons: ['OK']
-    });
-
-    // รีเซ็ต flag
-    isManualCheck = false;
+  ipcMain.on('download-update', async () => {
+    console.log('[updater] Download update requested');
+    await autoUpdater.downloadUpdate();
   });
 
-  // เมื่อไม่มี update
-  autoUpdater.on('update-not-available', (info) => {
-    const currentVersion = app.getVersion();
-    console.log('[updater] No updates available. Current version:', currentVersion);
-
-    // แสดง dialog เฉพาะเมื่อเป็น manual check
-    if (isManualCheck) {
-      dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'No Updates Available',
-        message: 'You are using the latest version!',
-        detail: `Current version: ${currentVersion}\n\nYour application is up to date.`,
-        buttons: ['OK']
-      });
-
-      // รีเซ็ต flag
-      isManualCheck = false;
-    }
+  ipcMain.on('install-update', () => {
+    console.log('[updater] Install update requested');
+    autoUpdater.quitAndInstall();
   });
 
-  // เมื่อเกิด error ในการตรวจสอบหรือดาวน์โหลด
-  autoUpdater.on('error', (error) => {
-    console.error('[updater] Error:', error);
-
-    // แสดง error dialog เฉพาะเมื่อเป็น manual check
-    if (isManualCheck) {
-      let errorMessage = 'Failed to check for updates';
-      let errorDetail = error.message || 'Unknown error occurred';
-
-      // ปรับข้อความตาม error type
-      if (error.message && error.message.includes('ERR_UPDATER_LATEST_VERSION_NOT_FOUND')) {
-        errorMessage = 'No release found';
-        errorDetail = 'No published releases found on GitHub.\n\nPlease contact the administrator to publish a release.';
-      } else if (error.message && error.message.includes('ENOENT')) {
-        errorMessage = 'Update files not found';
-        errorDetail = 'Cannot find update information files (latest.yml).\n\nPlease ensure releases are properly published.';
-      } else if (error.message && (error.message.includes('net::') || error.message.includes('ENOTFOUND'))) {
-        errorMessage = 'Network error';
-        errorDetail = 'Cannot connect to update server.\n\nPlease check your internet connection and try again.';
-      }
-
-      dialog.showMessageBox(mainWindow, {
-        type: 'warning',
-        title: 'Update Check Failed',
-        message: errorMessage,
-        detail: errorDetail,
-        buttons: ['OK']
-      });
-
-      // รีเซ็ต flag
-      isManualCheck = false;
-    }
+  // IPC handlers for install choice
+  ipcMain.on('install-now', () => {
+    console.log('[updater] User chose to install now');
+    updateManager.setInstallChoice(true);
+    autoUpdater.quitAndInstall();
   });
 
-  // แสดงความคืบหน้าการดาวน์โหลด
-  autoUpdater.on('download-progress', (progress) => {
-    const percent = Math.round(progress.percent);
-    console.log(`[updater] Download progress: ${percent}% (${progress.transferred}/${progress.total} bytes)`);
-
-    // อัพเดท title bar เพื่อแสดง progress
-    if (mainWindow) {
-      mainWindow.setTitle(`VCHome Hospital - Downloading update: ${percent}%`);
-    }
+  ipcMain.on('install-later', () => {
+    console.log('[updater] User chose to install later');
+    updateManager.setInstallChoice(false);
   });
 
-  // เมื่อดาวน์โหลดเสร็จ - ถามผู้ใช้ว่าจะ restart ติดตั้งเลยหรือไม่
-  autoUpdater.on('update-downloaded', (info) => {
-    console.log('[updater] Update downloaded:', info.version);
-
-    // รีเซ็ต title bar
-    if (mainWindow) {
-      mainWindow.setTitle('VCHome Hospital Management System');
-    }
-
-    // แสดง dialog ให้ผู้ใช้เลือก
-    dialog.showMessageBox(mainWindow, {
-      type: 'info',
-      title: 'Update Ready',
-      message: `Version ${info.version} has been downloaded.`,
-      detail: 'The application will restart to install the update.\n\nClick "Restart Now" to install immediately, or "Later" to install when you close the app.',
-      buttons: ['Restart Now', 'Later'],
-      defaultId: 0,
-      cancelId: 1
-    }).then((result) => {
-      if (result.response === 0) {
-        // ผู้ใช้เลือก Restart Now
-        console.log('[updater] User chose to restart now');
-        autoUpdater.quitAndInstall();
-      } else {
-        // ผู้ใช้เลือก Later - จะติดตั้งเมื่อปิดแอป
-        console.log('[updater] Update will be installed on next restart');
-      }
-    });
+  // IPC handlers for preferences
+  ipcMain.handle('get-update-preferences', () => {
+    return updateManager.getAllPreferences();
   });
 
-  // ตรวจสอบ update ทันทีเมื่อเปิดแอป
-  console.log('[updater] Starting initial update check...');
-  autoUpdater.checkForUpdatesAndNotify();
+  ipcMain.handle('set-update-preference', (event, key, value) => {
+    return updateManager.setPreference(key, value);
+  });
 
-  // ตรวจสอบ update ทุก 4 ชั่วโมง
-  setInterval(() => {
-    console.log('[updater] Running periodic update check...');
-    autoUpdater.checkForUpdates();
-  }, 4 * 60 * 60 * 1000);
+  // IPC handlers for state
+  ipcMain.handle('get-update-state', () => {
+    return updateManager.getState();
+  });
+
+  // IPC handlers for logs
+  ipcMain.handle('get-update-logs', () => {
+    return updateManager.getLogs();
+  });
+
+  ipcMain.handle('clear-update-logs', () => {
+    return updateManager.clearLogs();
+  });
+
+  // IPC handler for current version
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+  });
+
+  // IPC handler for opening manual download
+  ipcMain.on('open-manual-download', () => {
+    console.log('[updater] Opening manual download URL');
+    autoUpdater.openManualDownload();
+  });
+
+  // Check for updates on startup (after 3 seconds delay)
+  const prefs = updateManager.getAllPreferences();
+  if (prefs.checkOnStartup) {
+    setTimeout(() => {
+      console.log('[updater] Starting initial update check...');
+      autoUpdater.checkForUpdates();
+    }, 3000);
+  }
+
+  // Check for updates periodically based on preferences
+  if (prefs.checkInterval > 0) {
+    setInterval(() => {
+      console.log('[updater] Running periodic update check...');
+      autoUpdater.checkForUpdates();
+    }, prefs.checkInterval);
+  }
 }
+
+// Handle app quit with pending updates
+app.on('before-quit', (event) => {
+  if (!isDev) {
+    const updateManager = autoUpdater.getUpdateManager();
+    if (updateManager.hasPendingInstall()) {
+      console.log('[updater] Installing pending update on quit...');
+      // Let the auto-installer handle it
+    }
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();

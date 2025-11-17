@@ -1,10 +1,16 @@
 // App.tsx — stable Router placement + BASE_URL basename
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { UpdateDialog } from "@/components/UpdateDialog";
+import { UpdateProgressDialog } from "@/components/UpdateProgressDialog";
+import { UpdateInstallDialog } from "@/components/UpdateInstallDialog";
+import { UpdateErrorDialog } from "@/components/UpdateErrorDialog";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -44,6 +50,165 @@ console.log('[App] Using', isElectron ? 'HashRouter' : 'BrowserRouter');
 console.log('[App] Basename:', BASENAME);
 
 const App = () => {
+  const { toast } = useToast();
+  
+  // Update state management
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [progressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [installDialogOpen, setInstallDialogOpen] = useState(false);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({
+    version: '',
+    releaseDate: '',
+    releaseNotes: '',
+  });
+  
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>({
+    percent: 0,
+    bytesPerSecond: 0,
+    transferred: 0,
+    total: 0,
+  });
+
+  const [updateError, setUpdateError] = useState<UpdateError>({
+    message: '',
+    type: '',
+    canRetry: false,
+    manualDownloadUrl: '',
+    technicalDetails: '',
+  });
+
+  // Setup IPC listeners for update events
+  useEffect(() => {
+    if (!isElectron || !window.electron?.ipcRenderer) {
+      return;
+    }
+
+    const ipc = window.electron.ipcRenderer;
+
+    // Listen for update-available event
+    const handleUpdateAvailable = (_event: any, info: UpdateInfo) => {
+      console.log('[App] Update available:', info);
+      setUpdateInfo(info);
+      setUpdateDialogOpen(true);
+    };
+
+    // Listen for update-not-available event
+    const handleUpdateNotAvailable = (_event: any, info: any) => {
+      console.log('[App] Update not available:', info);
+    };
+
+    // Listen for download-progress event
+    const handleDownloadProgress = (_event: any, progress: DownloadProgress) => {
+      console.log('[App] Download progress:', progress.percent.toFixed(2) + '%');
+      setDownloadProgress(progress);
+    };
+
+    // Listen for update-downloaded event
+    const handleUpdateDownloaded = (_event: any, info: UpdateInfo) => {
+      console.log('[App] Update downloaded:', info);
+      setProgressDialogOpen(false);
+      setInstallDialogOpen(true);
+    };
+
+    // Listen for update-error event
+    const handleUpdateError = (_event: any, error: UpdateError) => {
+      console.error('[App] Update error:', error);
+      // Close all dialogs and show error dialog
+      setUpdateDialogOpen(false);
+      setProgressDialogOpen(false);
+      setInstallDialogOpen(false);
+      setUpdateError(error);
+      setErrorDialogOpen(true);
+    };
+
+    // Listen for update-retry event
+    const handleUpdateRetry = (_event: any, retryInfo: any) => {
+      console.log('[App] Update retry:', retryInfo);
+      toast({
+        title: "Retrying Update",
+        description: `${retryInfo.message} (Attempt ${retryInfo.attempt}/${retryInfo.maxRetries})`,
+        duration: 3000,
+      });
+    };
+
+    // Register listeners
+    ipc.on('update-available', handleUpdateAvailable);
+    ipc.on('update-not-available', handleUpdateNotAvailable);
+    ipc.on('download-progress', handleDownloadProgress);
+    ipc.on('update-downloaded', handleUpdateDownloaded);
+    ipc.on('update-error', handleUpdateError);
+    ipc.on('update-retry', handleUpdateRetry);
+
+    // Cleanup listeners on unmount
+    return () => {
+      ipc.removeListener('update-available', handleUpdateAvailable);
+      ipc.removeListener('update-not-available', handleUpdateNotAvailable);
+      ipc.removeListener('download-progress', handleDownloadProgress);
+      ipc.removeListener('update-downloaded', handleUpdateDownloaded);
+      ipc.removeListener('update-error', handleUpdateError);
+      ipc.removeListener('update-retry', handleUpdateRetry);
+    };
+  }, []);
+
+  // Dialog handlers
+  const handleDownload = () => {
+    console.log('[App] Starting download...');
+    setUpdateDialogOpen(false);
+    setProgressDialogOpen(true);
+    // IPC message is sent from UpdateDialog component
+  };
+
+  const handleSkip = () => {
+    console.log('[App] Skipping update');
+    setUpdateDialogOpen(false);
+    // IPC message is sent from UpdateDialog component
+  };
+
+  const handleInstallNow = () => {
+    console.log('[App] Installing update now...');
+    setInstallDialogOpen(false);
+    // IPC message is sent from UpdateInstallDialog component
+  };
+
+  const handleInstallLater = () => {
+    console.log('[App] Installing update later');
+    setInstallDialogOpen(false);
+  };
+
+  const handleRetry = () => {
+    console.log('[App] Retrying update...');
+    setErrorDialogOpen(false);
+    
+    // Retry based on what failed
+    if (updateError.type === 'network' || updateError.type === 'integrity') {
+      // Retry download
+      if (window.electron?.ipcRenderer) {
+        window.electron.ipcRenderer.send('download-update');
+      }
+      setProgressDialogOpen(true);
+    } else {
+      // Retry check for updates
+      if (window.electron?.ipcRenderer) {
+        window.electron.ipcRenderer.send('check-for-updates');
+      }
+    }
+  };
+
+  const handleManualDownload = () => {
+    console.log('[App] Opening manual download...');
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.send('open-manual-download');
+    }
+    setErrorDialogOpen(false);
+  };
+
+  const handleErrorClose = () => {
+    console.log('[App] Closing error dialog');
+    setErrorDialogOpen(false);
+  };
+
   // Choose router based on environment
   const Router = isElectron ? HashRouter : BrowserRouter;
   const routerProps = isElectron ? {} : { basename: BASENAME };
@@ -122,6 +287,34 @@ const App = () => {
               </Routes>
             </main>
           </div>
+
+          {/* Update Dialogs */}
+          <UpdateDialog
+            open={updateDialogOpen}
+            updateInfo={updateInfo}
+            onDownload={handleDownload}
+            onSkip={handleSkip}
+          />
+          
+          <UpdateProgressDialog
+            open={progressDialogOpen}
+            progress={downloadProgress}
+          />
+          
+          <UpdateInstallDialog
+            open={installDialogOpen}
+            version={updateInfo.version}
+            onInstallNow={handleInstallNow}
+            onInstallLater={handleInstallLater}
+          />
+
+          <UpdateErrorDialog
+            open={errorDialogOpen}
+            error={updateError}
+            onRetry={handleRetry}
+            onManualDownload={handleManualDownload}
+            onClose={handleErrorClose}
+          />
         </Router>
       </TooltipProvider>
     </QueryClientProvider>

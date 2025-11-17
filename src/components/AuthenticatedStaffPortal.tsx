@@ -18,6 +18,8 @@ import PatientAppointmentManager from './GoogleSheetsIntegration';
 import EditAppointments from './EditAppointments';
 import NotificationTestPanel from './NotificationTestPanel';
 import { UserRoleManager } from './UserRoleManager';
+import UpdateSettings from './UpdateSettings';
+import UpdateHistoryLog from './UpdateHistoryLog';
 
 const AuthenticatedStaffPortal = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -412,40 +414,49 @@ const AuthenticatedStaffPortal = () => {
 
           {isAdmin && (
             <TabsContent value="settings">
-              <Card>
-                <CardHeader>
-                  <CardTitle>ตั้งค่าระบบ</CardTitle>
-                  <CardDescription>
-                    จัดการการตั้งค่าระบบและสิทธิ์การเข้าถึง
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-2">การจัดการผู้ใช้</h3>
-                      <p className="text-sm text-muted-foreground">อีเมล: {user.email}</p>
-                      <p className="text-sm text-muted-foreground">สิทธิ์: {isAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}</p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-2">การตั้งค่าวัคซีน</h3>
-                      <p className="text-sm text-muted-foreground">จัดการประเภทวัคซีนและตารางการให้</p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-2">ระบบแจ้งเตือน</h3>
-                      <div className="mt-2 space-y-4">
-                        <AutoNotificationSystem />
-                        <NotificationTestPanel />
+              <div className="space-y-6">
+                {/* Update Settings Section */}
+                <UpdateSettings />
+
+                {/* Update History Log */}
+                <UpdateHistoryLog />
+
+                {/* System Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>ตั้งค่าระบบ</CardTitle>
+                    <CardDescription>
+                      จัดการการตั้งค่าระบบและสิทธิ์การเข้าถึง
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-2">การจัดการผู้ใช้</h3>
+                        <p className="text-sm text-muted-foreground">อีเมล: {user.email}</p>
+                        <p className="text-sm text-muted-foreground">สิทธิ์: {isAdmin ? 'ผู้ดูแลระบบ' : 'เจ้าหน้าที่'}</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-2">การตั้งค่าวัคซีน</h3>
+                        <p className="text-sm text-muted-foreground">จัดการประเภทวัคซีนและตารางการให้</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-2">ระบบแจ้งเตือน</h3>
+                        <div className="mt-2 space-y-4">
+                          <AutoNotificationSystem />
+                          <NotificationTestPanel />
+                        </div>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-2">จัดการนัดหมายผู้ป่วย</h3>
+                        <div className="mt-2">
+                          <PatientAppointmentManager />
+                        </div>
                       </div>
                     </div>
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-2">จัดการนัดหมายผู้ป่วย</h3>
-                      <div className="mt-2">
-                        <PatientAppointmentManager />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           )}
         </Tabs>

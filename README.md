@@ -48,6 +48,61 @@ See `DEPLOYMENT-GUIDE.md` for complete deployment instructions including:
 - Desktop builds (Windows, macOS, Linux)
 - Supabase database setup
 
+## Desktop App Auto-Updates
+
+The desktop application includes an automatic update system powered by GitHub Releases that keeps your software up-to-date with the latest features, bug fixes, and security improvements.
+
+### For Users
+
+The application automatically checks for updates when you start it. When an update is available:
+- You'll see a notification with version details and release notes
+- Download progress is shown with speed and time remaining
+- Choose to install immediately or postpone until later
+- Updates install seamlessly with one click
+
+**Manual Update Check:**
+1. Open Settings (gear icon)
+2. Scroll to Updates section
+3. Click "Check for Updates"
+
+**Documentation:**
+- `USER-GUIDE.md` - Complete user guide with FAQs
+- `TROUBLESHOOTING.md` - Solutions for common issues
+
+### For Developers
+
+Publishing updates is streamlined with automated tools and comprehensive documentation.
+
+**Quick Publish:**
+```bash
+# 1. Verify setup
+npm run verify-publish
+
+# 2. Update version
+npm version patch
+
+# 3. Build and publish
+npm run publish-win
+
+# 4. Create GitHub Release with notes
+```
+
+**Documentation:**
+- `.kiro/specs/auto-update-system/DEVELOPER-GUIDE.md` - Complete release process
+- `.kiro/specs/auto-update-system/QUICK-START-PUBLISHING.md` - Quick reference
+- `.kiro/specs/auto-update-system/GITHUB-RELEASES-GUIDE.md` - Detailed publishing guide
+- `.kiro/specs/auto-update-system/TROUBLESHOOTING.md` - Developer troubleshooting
+- `.kiro/specs/auto-update-system/TESTING-GUIDE.md` - Testing procedures
+- `.kiro/specs/auto-update-system/RELEASE-CHECKLIST-TEMPLATE.md` - Release checklist
+
+**Key Features:**
+- Automatic update checks on app startup
+- Progress tracking with download speed and ETA
+- User-controlled installation timing
+- Comprehensive error handling and logging
+- Secure downloads with signature verification
+- Update history tracking
+
 ## Desktop Application
 
 See `DESKTOP-APP-README.md` for desktop app build instructions and distribution.
