@@ -1,7 +1,7 @@
 {
   "name": "vchome-hospital-desktop",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "VCHome Hospital Management System - Desktop Application",
   "author": "VCHome Hospital",
   "main": "public/electron-final-fix.js",
