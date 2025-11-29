@@ -222,13 +222,13 @@ export type Database = {
         Row: {
           created_at: string
           created_date_th: string | null
-          full_name: string
+          patient_name: string
           hospital: string | null
           id: string
           idempotency_key: string | null
           line_user_id: string
           notes: string | null
-          phone: string
+          phone_number: string
           registration_date: string | null
           registration_id: string
           source: string
@@ -238,13 +238,13 @@ export type Database = {
         Insert: {
           created_at?: string
           created_date_th?: string | null
-          full_name: string
+          patient_name: string
           hospital?: string | null
           id?: string
           idempotency_key?: string | null
           line_user_id: string
           notes?: string | null
-          phone: string
+          phone_number: string
           registration_date?: string | null
           registration_id?: string
           source?: string
@@ -254,13 +254,13 @@ export type Database = {
         Update: {
           created_at?: string
           created_date_th?: string | null
-          full_name?: string
+          patient_name?: string
           hospital?: string | null
           id?: string
           idempotency_key?: string | null
           line_user_id?: string
           notes?: string | null
-          phone?: string
+          phone_number?: string
           registration_date?: string | null
           registration_id?: string
           source?: string
@@ -585,13 +585,13 @@ export type Database = {
         Returns: {
           created_at: string
           created_date_th: string | null
-          full_name: string
+          patient_name: string
           hospital: string | null
           id: string
           idempotency_key: string | null
           line_user_id: string
           notes: string | null
-          phone: string
+          phone_number: string
           registration_date: string | null
           registration_id: string
           source: string

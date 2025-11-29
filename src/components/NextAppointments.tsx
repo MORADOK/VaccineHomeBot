@@ -245,29 +245,27 @@ const NextAppointments = () => {
           });
 
           // Calculate from the FIRST dose date, not the latest
-          let baseDate = new Date(patient.first_dose_date);
+          const firstDoseDate = new Date(patient.first_dose_date);
 
-          // Sum up all intervals up to the current dose to get the correct next dose date
-          let totalDaysFromFirstDose = 0;
-          for (let i = 0; i < patient.doses_received; i++) {
-            const intervalDays = typeof intervals[i] === 'number' ? intervals[i] : 0;
-            totalDaysFromFirstDose += intervalDays;
-            console.log(`  เข็มที่ ${i + 1} -> ${i + 2}: +${intervalDays} วัน (รวม: ${totalDaysFromFirstDose} วัน)`);
-          }
+          // Get the interval for the NEXT dose (not cumulative)
+          const nextDoseIntervalDays = typeof intervals[patient.doses_received] === 'number' 
+            ? intervals[patient.doses_received] 
+            : 0;
 
-          // Calculate next dose date from first dose + cumulative intervals
-          const nextDoseDate = new Date(baseDate);
-          nextDoseDate.setDate(nextDoseDate.getDate() + totalDaysFromFirstDose);
+          console.log(`  เข็มที่ ${patient.doses_received + 1}: ระยะห่าง ${nextDoseIntervalDays} วัน`);
+
+          // Calculate next dose date from first dose + interval for this specific dose
+          const nextDoseDate = new Date(firstDoseDate.getTime());
+          nextDoseDate.setDate(firstDoseDate.getDate() + nextDoseIntervalDays);
 
           const nextDoseNumber = patient.doses_received + 1;
           const nextDoseIntervalFromSchedule = intervals[patient.doses_received] || 0;
 
           console.log(`🎯 ${patient.patient_name}: คำนวณจาก vaccine_schedules`);
           console.log(`   - เข็มแรก: ${patient.first_dose_date}`);
-          console.log(`   - รวมระยะห่าง: ${totalDaysFromFirstDose} วัน`);
+          console.log(`   - ระยะห่างของโดสนี้: ${nextDoseIntervalDays} วัน`);
           console.log(`   - ต้องการโดส: ${nextDoseNumber}/${schedule.total_doses}`);
           console.log(`   - นัดคำนวน: ${nextDoseDate.toISOString().split('T')[0]}`);
-          console.log(`   - ช่วงห่างจาก vaccine_schedules: ${nextDoseIntervalFromSchedule} วัน`);
 
           return {
             id: `new-${patient.patient_id}-${patient.vaccine_type}`,
@@ -684,9 +682,6 @@ const NextAppointments = () => {
                             <span>นัด: {new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}</span>
                           </div>
                         </div>
-                        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-                          <span>ID: {appointment.patient_id}</span>
-                        </div>
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
                         <Button
@@ -773,8 +768,7 @@ const NextAppointments = () => {
                           <span>นัด: {new Date(appointment.next_dose_due).toLocaleDateString('th-TH')}</span>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 bg-gray-100/80 p-2.5 rounded-lg flex justify-between items-center">
-                        <span className="font-medium">ID: {appointment.patient_id}</span>
+                      <div className="text-xs text-gray-500 bg-gray-100/80 p-2.5 rounded-lg flex justify-center items-center">
                         {appointment.is_existing_appointment ? (
                           <span className="flex items-center gap-1 text-green-600 font-medium">
                             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">

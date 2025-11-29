@@ -9,8 +9,8 @@ import { Users, Search, Phone, Calendar, CheckCircle, RefreshCw } from 'lucide-r
 
 interface PatientRegistration {
   id: string;
-  full_name: string;
-  phone: string;
+  patient_name: string;
+  phone_number: string;
   hospital: string;
   registration_id: string;
   source: string;
@@ -79,8 +79,8 @@ const PatientRegistrationsList = () => {
   }, []);
 
   const filteredRegistrations = registrations.filter(reg =>
-    reg.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    reg.phone.includes(searchTerm) ||
+    reg.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    reg.phone_number.includes(searchTerm) ||
     reg.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -151,7 +151,7 @@ const PatientRegistrationsList = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-lg">{registration.full_name}</h3>
+                      <h3 className="font-semibold text-lg">{registration.patient_name}</h3>
                       <Badge className={getStatusColor(registration.status)}>
                         {getStatusText(registration.status)}
                       </Badge>
@@ -159,7 +159,7 @@ const PatientRegistrationsList = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Phone className="h-4 w-4" />
-                        {registration.phone}
+                        {registration.phone_number}
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />

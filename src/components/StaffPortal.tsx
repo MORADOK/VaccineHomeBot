@@ -54,8 +54,8 @@ interface VaccineOption {
 interface PatientRegistration {
   id: string;
   registration_id: string;
-  full_name: string;
-  phone: string;
+  patient_name: string;
+  phone_number: string;
   line_user_id?: string;
   status: string;
 }
@@ -269,8 +269,8 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
             `เข็มที่ ${walkInForm.doseNumber}`;
 
       const appointmentData = {
-        patient_name: selectedPatient.full_name,
-        patient_phone: selectedPatient.phone,
+        patient_name: selectedPatient.patient_name,
+        patient_phone: selectedPatient.phone_number,
         patient_id_number: selectedPatient.registration_id,
         line_user_id: selectedPatient.line_user_id,
         vaccine_type: walkInForm.vaccineType,
@@ -289,7 +289,7 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
 
       toast({
         title: "บันทึกสำเร็จ",
-        description: `บันทึกการฉีดวัคซีน ${selectedVaccine?.vaccine_name} ${doseText} ของ ${selectedPatient.full_name} แล้ว`,
+        description: `บันทึกการฉีดวัคซีน ${selectedVaccine?.vaccine_name} ${doseText} ของ ${selectedPatient.patient_name} แล้ว`,
       });
 
       // Reset form
@@ -531,8 +531,8 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
                       <div className="absolute top-full left-0 right-0 z-50 bg-background border rounded-b-md shadow-lg max-h-60 overflow-y-auto">
                         {patientRegistrations
                           .filter(patient =>
-                            patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            patient.phone.includes(searchTerm) ||
+                            patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            patient.phone_number.includes(searchTerm) ||
                             patient.registration_id.includes(searchTerm)
                           )
                           .slice(0, 10)
@@ -545,17 +545,17 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
                                 setSearchTerm('');
                               }}
                             >
-                              <div className="font-medium text-foreground">{patient.full_name}</div>
+                              <div className="font-medium text-foreground">{patient.patient_name}</div>
                               <div className="text-sm text-muted-foreground flex items-center justify-between">
-                                <span>โทร: {patient.phone}</span>
+                                <span>โทร: {patient.phone_number}</span>
                                 <span className="text-xs">ID: {patient.registration_id}</span>
                               </div>
                             </div>
                           ))
                         }
                         {patientRegistrations.filter(patient =>
-                          patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          patient.phone.includes(searchTerm) ||
+                          patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          patient.phone_number.includes(searchTerm) ||
                           patient.registration_id.includes(searchTerm)
                         ).length === 0 && (
                             <div className="p-3 text-center text-muted-foreground">
@@ -571,8 +571,8 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium">{selectedPatient.full_name}</div>
-                        <div className="text-sm text-muted-foreground">{selectedPatient.phone}</div>
+                        <div className="font-medium">{selectedPatient.patient_name}</div>
+                        <div className="text-sm text-muted-foreground">{selectedPatient.phone_number}</div>
                         <div className="text-xs text-muted-foreground">ID: {selectedPatient.registration_id}</div>
                       </div>
                       <Button

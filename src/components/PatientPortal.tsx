@@ -74,8 +74,8 @@ const PatientPortal = () => {
       const { error } = await supabase
         .from('patient_registrations')
         .insert({
-          full_name: patientData.fullName,
-          phone: patientData.phone,
+          patient_name: patientData.fullName,
+          phone_number: patientData.phone,
           line_user_id: lineUserId || `temp_${Date.now()}`,
           hospital: 'โรงพยาบาลโฮม',
           registration_id: registrationId,

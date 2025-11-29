@@ -50,15 +50,15 @@ const PatientAppointmentManager = () => {
     try {
       const { data, error } = await supabase
         .from('patient_registrations')
-        .select('id, full_name, phone, line_user_id, registration_id, created_at')
-        .order('created_at', { ascending: false });
+        .select('id, patient_name, phone_number, line_user_id, registration_id, created_at')
+        .order('created_at', { ascending: false});
 
       if (error) throw error;
 
       const formattedPatients = data?.map(patient => ({
         id: patient.registration_id || patient.id,
-        name: patient.full_name,
-        phone: patient.phone,
+        name: patient.patient_name,
+        phone: patient.phone_number,
         lineId: patient.line_user_id,
         createdAt: patient.created_at
       })) || [];

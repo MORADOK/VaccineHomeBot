@@ -41,6 +41,8 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
 
   const calculateFullDoseSchedule = async (appt: NextAppointment): Promise<FullDoseSchedule[]> => {
     try {
+      console.log('🔍 เริ่มคำนวณตารางนัดครบทุกโดส สำหรับ:', appt.patient_name);
+      
       // Get vaccine schedule details
       const { data: schedule } = await supabase
         .from('vaccine_schedules')
@@ -48,9 +50,18 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
         .eq('id', appt.vaccine_schedule_id)
         .single();
 
-      if (!schedule) return [];
+      if (!schedule) {
+        console.log('❌ ไม่พบข้อมูล vaccine schedule');
+        return [];
+      }
 
-      // Get all appointments for this patient and vaccine
+      console.log('📊 ข้อมูลวัคซีน:', {
+        vaccine_type: schedule.vaccine_type,
+        total_doses: schedule.total_doses,
+        dose_intervals: schedule.dose_intervals
+      });
+
+      // Get all appointments for this patient and vaccine (completed only for accurate calculation)
       const { data: allAppointments } = await supabase
         .from('appointments')
         .select('*')
@@ -58,54 +69,79 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
         .eq('vaccine_type', appt.vaccine_type)
         .order('appointment_date', { ascending: true });
 
+      console.log('📅 นัดทั้งหมด:', allAppointments?.length || 0, 'รายการ');
+
+      // Get only completed appointments for calculation
+      const completedAppointments = allAppointments?.filter(a => a.status === 'completed') || [];
+      const scheduledAppointments = allAppointments?.filter(a => ['scheduled', 'pending'].includes(a.status)) || [];
+
+      console.log('✅ นัดที่ฉีดแล้ว:', completedAppointments.length, 'รายการ');
+      console.log('📆 นัดที่กำหนดไว้:', scheduledAppointments.length, 'รายการ');
+
       const intervals = Array.isArray(schedule.dose_intervals)
         ? schedule.dose_intervals
         : JSON.parse(schedule.dose_intervals?.toString() || '[]');
 
+      console.log('⏱️ ระยะห่างระหว่างโดส:', intervals);
+
       const fullSchedule: FullDoseSchedule[] = [];
 
-      // Get first dose date
+      // Get first dose date from completed appointments
       const firstDoseDate = appt.first_dose_date ||
-        allAppointments?.find(a => a.status === 'completed')?.appointment_date ||
+        completedAppointments[0]?.appointment_date ||
         new Date().toISOString().split('T')[0];
 
-      let currentDate = new Date(firstDoseDate);
+      console.log('📅 วันที่ฉีดเข็มแรก:', firstDoseDate);
+
+      // Calculate each dose date from FIRST dose + individual interval
+      const baseFirstDoseDate = new Date(firstDoseDate);
 
       for (let i = 0; i < schedule.total_doses; i++) {
         const doseNumber = i + 1;
         const intervalDays = i === 0 ? 0 : (intervals[i - 1] || 0);
 
-        if (i > 0) {
-          currentDate = new Date(currentDate);
-          currentDate.setDate(currentDate.getDate() + intervalDays);
-        }
-
-        // Check status of this dose
+        // Calculate date from first dose + individual interval for this dose
+        const calculatedDate = new Date(baseFirstDoseDate.getTime());
+        calculatedDate.setDate(baseFirstDoseDate.getDate() + intervalDays);
+        
+        let finalDate = calculatedDate.toISOString().split('T')[0];
         let status: 'completed' | 'scheduled' | 'upcoming' = 'upcoming';
 
-        const existingAppointment = allAppointments?.find(a => {
-          const completedDoses = allAppointments
-            .filter(appt => appt.status === 'completed' && appt.appointment_date <= a.appointment_date)
-            .length;
-          return completedDoses + 1 === doseNumber;
-        });
+        // Check if this dose has been completed
+        const completedDose = completedAppointments[i];
+        if (completedDose) {
+          status = 'completed';
+          finalDate = completedDose.appointment_date;
+          console.log(`✅ โดสที่ ${doseNumber}: ฉีดแล้ว วันที่ ${finalDate}`);
+        } else {
+          // Check if this dose has a scheduled appointment
+          const scheduledDose = scheduledAppointments.find(a => {
+            // Find scheduled appointment for this specific dose number
+            const dosesSoFar = completedAppointments.length;
+            return dosesSoFar + 1 === doseNumber;
+          });
 
-        if (existingAppointment) {
-          if (existingAppointment.status === 'completed') {
-            status = 'completed';
-            currentDate = new Date(existingAppointment.appointment_date);
-          } else if (['scheduled', 'pending'].includes(existingAppointment.status)) {
+          if (scheduledDose) {
             status = 'scheduled';
+            finalDate = scheduledDose.appointment_date;
+            console.log(`📆 โดสที่ ${doseNumber}: มีนัดแล้ว วันที่ ${finalDate}`);
+          } else {
+            console.log(`⏳ โดสที่ ${doseNumber}: คำนวณจากเข็มแรก + ${intervalDays} วัน = ${finalDate}`);
           }
         }
 
         fullSchedule.push({
           dose_number: doseNumber,
-          appointment_date: currentDate.toISOString().split('T')[0],
+          appointment_date: finalDate,
           interval_from_previous: intervalDays,
           status
         });
       }
+
+      console.log('✅ คำนวณตารางนัดเสร็จสิ้น:', fullSchedule.length, 'โดส');
+      fullSchedule.forEach(dose => {
+        console.log(`  - โดสที่ ${dose.dose_number}: ${dose.appointment_date} (${dose.status}), ห่าง ${dose.interval_from_previous} วัน`);
+      });
 
       return fullSchedule;
     } catch (error) {
@@ -180,14 +216,10 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
 
           {/* Patient Info */}
           <div className="p-6 border-b-2 border-gray-200 bg-gray-50">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <span className="text-sm text-gray-600">ชื่อผู้ป่วย:</span>
                 <p className="text-lg font-bold text-gray-900">{appointment.patient_name}</p>
-              </div>
-              <div>
-                <span className="text-sm text-gray-600">รหัสผู้ป่วย:</span>
-                <p className="text-lg font-bold text-gray-900">{appointment.patient_id}</p>
               </div>
               <div>
                 <span className="text-sm text-gray-600">วัคซีน:</span>

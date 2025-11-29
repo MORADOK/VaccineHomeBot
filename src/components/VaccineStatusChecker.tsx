@@ -28,9 +28,9 @@ const VaccineStatusChecker = () => {
     if (!searchTerm.trim()) {
       setFilteredPatients(patients);
     } else {
-      const filtered = patients.filter(patient => 
-        patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.phone.includes(searchTerm) ||
+      const filtered = patients.filter(patient =>
+        patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.phone_number.includes(searchTerm) ||
         patient.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredPatients(filtered);
@@ -43,7 +43,7 @@ const VaccineStatusChecker = () => {
       const { data, error } = await supabase
         .from('patient_registrations')
         .select('*')
-        .order('full_name', { ascending: true });
+        .order('patient_name', { ascending: true });
 
       if (error) throw error;
       setPatients(data || []);
@@ -94,7 +94,7 @@ const VaccineStatusChecker = () => {
 
       toast({
         title: "โหลดข้อมูลสำเร็จ",
-        description: `โหลดข้อมูลของ ${patient.full_name} สำเร็จ`
+        description: `โหลดข้อมูลของ ${patient.patient_name} สำเร็จ`
       });
 
     } catch (error) {
@@ -186,11 +186,11 @@ const VaccineStatusChecker = () => {
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h3 className="font-semibold">{patient.full_name}</h3>
+                              <h3 className="font-semibold">{patient.patient_name}</h3>
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                                 <div className="flex items-center gap-1">
                                   <User className="h-3 w-3" />
-                                  {patient.phone}
+                                  {patient.phone_number}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
@@ -218,7 +218,7 @@ const VaccineStatusChecker = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-lg font-medium">
                   <User className="h-5 w-5" />
-                  ข้อมูลผู้ป่วย: {selectedPatient.full_name}
+                  ข้อมูลผู้ป่วย: {selectedPatient.patient_name}
                 </div>
                 <Button 
                   variant="outline" 
@@ -244,11 +244,11 @@ const VaccineStatusChecker = () => {
                       <div className="grid grid-cols-1 gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">ชื่อ-นามสกุล:</span>
-                          <span className="ml-2 font-medium">{selectedPatient.full_name}</span>
+                          <span className="ml-2 font-medium">{selectedPatient.patient_name}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">เบอร์โทร:</span>
-                          <span className="ml-2">{selectedPatient.phone}</span>
+                          <span className="ml-2">{selectedPatient.phone_number}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">โรงพยาบาล:</span>

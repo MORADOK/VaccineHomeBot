@@ -46,8 +46,8 @@ interface DoseCalculation {
 interface PatientRegistration {
   id: string;
   registration_id: string;
-  full_name: string;
-  phone: string;
+  patient_name: string;
+  phone_number: string;
   line_user_id?: string;
   status: string;
 }
@@ -97,7 +97,7 @@ const VaccineDoseCalculator = () => {
       const { data, error } = await supabase
         .from('patient_registrations')
         .select('*')
-        .order('full_name');
+        .order('patient_name');
 
       if (error) throw error;
       setPatientRegistrations(data || []);
@@ -208,7 +208,7 @@ const VaccineDoseCalculator = () => {
       const schedule = vaccineSchedules.find(s => s.id === selectedSchedule);
       
       const trackingData = {
-        patient_name: selectedPatient.full_name,
+        patient_name: selectedPatient.patient_name,
         patient_id: selectedPatient.registration_id,
         vaccine_schedule_id: selectedSchedule,
         current_dose: currentDose,
@@ -243,7 +243,7 @@ const VaccineDoseCalculator = () => {
                 notification_type: 'dose_reminder',
                 message_content: `🔔 แจ้งเตือนฉีดวัคซีน
 
-สวัสดี ${selectedPatient.full_name}
+สวัสดี ${selectedPatient.patient_name}
 ได้เวลาฉีดวัคซีน ${schedule?.vaccine_name} โดสที่ ${calculation.nextDoseNumber}
 
 📅 วันที่กำหนด: ${calculation.nextDoseDate}
@@ -312,9 +312,9 @@ const VaccineDoseCalculator = () => {
               {searchTerm && (
                 <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-b-md shadow-lg max-h-48 overflow-y-auto">
                   {patientRegistrations
-                    .filter(patient => 
-                      patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      patient.phone.includes(searchTerm) ||
+                    .filter(patient =>
+                      patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      patient.phone_number.includes(searchTerm) ||
                       patient.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
                     )
                     .slice(0, 10) // จำกัดผลลัพธ์ไม่เกิน 10 รายการ
@@ -324,11 +324,11 @@ const VaccineDoseCalculator = () => {
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                         onClick={() => {
                           setSelectedPatient(patient);
-                          setSearchTerm(patient.full_name);
+                          setSearchTerm(patient.patient_name);
                         }}
                       >
-                       <div className="font-medium truncate">{patient.full_name}</div>
-                        <div className="text-sm text-muted-foreground truncate">{patient.phone}</div>
+                       <div className="font-medium truncate">{patient.patient_name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{patient.phone_number}</div>
                         <div className="text-xs text-muted-foreground truncate">ID: {patient.registration_id}</div>
                         <div className="text-xs text-muted-foreground">
                           สถานะ: <span className="inline-block">
@@ -339,9 +339,9 @@ const VaccineDoseCalculator = () => {
                       </div>
                     ))
                   }
-                  {patientRegistrations.filter(patient => 
-                    patient.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    patient.phone.includes(searchTerm) ||
+                  {patientRegistrations.filter(patient =>
+                    patient.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    patient.phone_number.includes(searchTerm) ||
                     patient.registration_id.toLowerCase().includes(searchTerm.toLowerCase())
                   ).length === 0 && (
                     <div className="p-3 text-center text-muted-foreground">
@@ -357,8 +357,8 @@ const VaccineDoseCalculator = () => {
             <div className="p-3 bg-muted/50 rounded-lg">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{selectedPatient.full_name}</div>
-                  <div className="text-sm text-muted-foreground truncate">{selectedPatient.phone}</div>
+                  <div className="font-medium truncate">{selectedPatient.patient_name}</div>
+                  <div className="text-sm text-muted-foreground truncate">{selectedPatient.phone_number}</div>
                   <div className="text-xs text-muted-foreground truncate">ID: {selectedPatient.registration_id}</div>
                 </div>
                 <Button
