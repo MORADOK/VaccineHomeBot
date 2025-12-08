@@ -16,11 +16,18 @@ config({ path: join(__dirname, '..', '.env') });
 
 // Supabase configuration
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+// ใช้ SERVICE_ROLE_KEY สำหรับ backend operations ที่ต้องสิทธิ์เต็ม
+const supabaseKey = process.env.SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Error: Missing Supabase credentials');
+  console.error('   ต้องมี VITE_SUPABASE_URL และ SERVICE_ROLE_KEY ใน .env');
   process.exit(1);
+}
+
+if (!process.env.SERVICE_ROLE_KEY) {
+  console.warn('⚠️  Warning: ใช้ VITE_SUPABASE_ANON_KEY แทน SERVICE_ROLE_KEY');
+  console.warn('   อาจเกิด permission error ถ้า RLS ไม่อนุญาต');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);

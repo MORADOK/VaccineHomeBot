@@ -72,7 +72,14 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173/#/staff-portal');
   } else {
     // Production mode: Load built files and navigate to staff portal
-    const htmlPath = path.join(__dirname, '..', 'dist-electron', 'index.html');
+    // ใน packaged app, dist-electron จะอยู่ใน resources/app/dist-electron
+    const htmlPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'app', 'dist-electron', 'index.html')
+      : path.join(__dirname, '..', 'dist-electron', 'index.html');
+
+    console.log('[Electron] isPackaged:', app.isPackaged);
+    console.log('[Electron] __dirname:', __dirname);
+    console.log('[Electron] resourcesPath:', process.resourcesPath);
     console.log('[Electron] Loading from:', htmlPath);
 
     // Load the HTML file first
@@ -84,6 +91,17 @@ function createWindow() {
       console.log('[Electron] Navigated to Staff Portal');
     }).catch(err => {
       console.error('[Electron] Failed to load or navigate:', err);
+      console.error('[Electron] Tried to load from:', htmlPath);
+
+      // Fallback: try loading without navigation
+      const fallbackPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'app.asar', 'dist-electron', 'index.html')
+        : htmlPath;
+      console.log('[Electron] Trying fallback path:', fallbackPath);
+
+      mainWindow.loadFile(fallbackPath).catch(err2 => {
+        console.error('[Electron] Fallback also failed:', err2);
+      });
     });
   }
 
