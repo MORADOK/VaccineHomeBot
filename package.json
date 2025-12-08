@@ -140,6 +140,8 @@
     "files": [
       "dist-electron/**",
       "public/electron-final-fix.js",
+      "public/auto-updater.js",
+      "public/update-manager.js",
       "public/preload.js",
       "electron/assets/**"
     ],
