@@ -212,12 +212,20 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
 
   const updateAppointmentStatus = async (appointmentId: string, status: string) => {
     try {
-      const { error } = await supabase
+      console.log('Updating appointment:', { appointmentId, status, updated_at: new Date().toISOString() });
+
+      const { data, error } = await supabase
         .from('appointments')
         .update({ status, updated_at: new Date().toISOString() })
-        .eq('appointment_id', appointmentId);
+        .eq('appointment_id', appointmentId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Update successful:', data);
 
       toast({
         title: "อัปเดตสำเร็จ",
@@ -225,11 +233,12 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
       });
 
       loadTodayAppointments();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating appointment:', error);
+      const errorMessage = error?.message || error?.toString() || "ไม่ทราบสาเหตุ";
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถอัปเดตสถานะได้",
+        description: `ไม่สามารถอัปเดตสถานะได้: ${errorMessage}`,
         variant: "destructive",
       });
     }
