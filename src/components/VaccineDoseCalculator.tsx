@@ -112,10 +112,11 @@ const VaccineDoseCalculator = () => {
   };
 
   const calculateNextDose = () => {
-    if (!selectedSchedule || !firstDoseDate) {
+    // 1. ตรวจสอบข้อมูลเบื้องต้น
+    if (!selectedSchedule) {
       toast({
         title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาเลือกวัคซีนและระบุวันที่ฉีดเข็มแรก",
+        description: "กรุณาเลือกวัคซีนก่อนคำนวณ",
         variant: "destructive"
       });
       return;
@@ -124,9 +125,7 @@ const VaccineDoseCalculator = () => {
     const schedule = vaccineSchedules.find(s => s.id === selectedSchedule);
     if (!schedule) return;
 
-    const nextDoseNumber = currentDose + 1;
-
-    // ตรวจสอบว่าครบโดสแล้วหรือไม่
+    // 2. ถ้าฉีดครบแล้ว ไม่ต้องคำนวณต่อ
     if (currentDose >= schedule.total_doses) {
       setCalculation({
         nextDoseNumber: currentDose,
@@ -138,61 +137,75 @@ const VaccineDoseCalculator = () => {
       return;
     }
 
-    // คำนวณวันที่ฉีดครั้งถัดไป จาก vaccine_schedules (source of truth)
+    // 3. เตรียมข้อมูลระยะห่าง (Intervals)
     const intervals = Array.isArray(schedule.dose_intervals) ?
       schedule.dose_intervals :
       JSON.parse(schedule.dose_intervals || '[]');
 
-    console.log(`📊 คำนวนจาก vaccine_schedules:`, {
-      vaccine_name: schedule.vaccine_name,
-      total_doses: schedule.total_doses,
-      dose_intervals: intervals,
-      current_dose: currentDose,
-      first_dose_date: firstDoseDate
-    });
-
-    // Calculate from FIRST dose date + cumulative intervals
-    const baseDate = new Date(firstDoseDate);
+    // ---------------------------------------------------------
+    // 🚀 NEW LOGIC: คำนวณแบบ Relative (อ้างอิงจากเข็มล่าสุด)
+    // ---------------------------------------------------------
     
-    // Sum up all intervals up to the current dose
-    let totalDaysFromFirstDose = 0;
-    for (let i = 0; i < currentDose; i++) {
-      const intervalDays = typeof intervals[i] === 'number' ? intervals[i] : 0;
-      totalDaysFromFirstDose += intervalDays;
-      console.log(`  เข็มที่ ${i + 1} -> ${i + 2}: +${intervalDays} วัน (รวม: ${totalDaysFromFirstDose} วัน)`);
+    let anchorDateStr = '';
+    let intervalDays = 0;
+
+    // กรณี A: เพิ่งฉีดเข็มที่ 1 มา (หรือกำลังจะหาวันนัดเข็ม 2)
+    if (currentDose === 1) {
+       if (!firstDoseDate) {
+         toast({ title: "ต้องการข้อมูล", description: "กรุณาระบุวันที่ฉีดเข็มแรก", variant: "destructive" });
+         return;
+       }
+       anchorDateStr = firstDoseDate;
+       // ระยะห่างระหว่าง เข็ม 1 -> 2 คือ index 0
+       intervalDays = Number(intervals[0] || 0);
+    } 
+    // กรณี B: ฉีดเข็มที่ 2, 3, 4... มาแล้ว (ต้องใช้วันที่ฉีดล่าสุดมาคำนวณ)
+    else {
+       if (!lastDoseDate) {
+         toast({ 
+            title: "ต้องการข้อมูลสำคัญ", 
+            description: `สำหรับการคำนวณโดสที่ ${currentDose + 1} จำเป็นต้องระบุ "วันที่ฉีดครั้งล่าสุด" (โดสที่ ${currentDose}) เพื่อเริ่มนับระยะห่างใหม่`, 
+            variant: "destructive" 
+         });
+         return;
+       }
+       anchorDateStr = lastDoseDate;
+       // ระยะห่างระหว่าง เข็ม n -> n+1 คือ index n-1
+       // เช่น จบเข็ม 2 (current=2) จะไปเข็ม 3 -> ใช้ interval[1]
+       intervalDays = Number(intervals[currentDose - 1] || 0);
     }
 
-    // Calculate next dose date from first dose + cumulative intervals
+    // 4. คำนวณวัน (แก้ Timezone ด้วย setHours 12)
+    const baseDate = new Date(anchorDateStr);
+    baseDate.setHours(12, 0, 0, 0); // ✅ Fix: บังคับเป็นเที่ยงวัน ป้องกัน Timezone เลื่อน
+
     const nextDate = new Date(baseDate);
-    nextDate.setDate(nextDate.getDate() + totalDaysFromFirstDose);
+    nextDate.setDate(nextDate.getDate() + intervalDays);
 
-    const nextDoseIntervalFromSchedule = intervals[currentDose] || 0;
-
-    console.log(`🎯 การคำนวน:`, {
-      first_dose_date: firstDoseDate,
-      cumulative_days: totalDaysFromFirstDose,
-      next_dose_number: nextDoseNumber,
-      next_dose_date: nextDate.toISOString().split('T')[0],
-      next_interval: nextDoseIntervalFromSchedule
+    console.log(`🎯 Relative Calculation:`, {
+      from_dose: currentDose,
+      to_dose: currentDose + 1,
+      base_date: anchorDateStr,
+      add_days: intervalDays,
+      result_date: nextDate.toISOString().split('T')[0]
     });
 
-    // คำนวณวันแจ้งเตือน
+    // 5. คำนวณวันแจ้งเตือนและวันที่เหลือ (เหมือนเดิม)
     const reminderDate = new Date(nextDate);
     reminderDate.setDate(reminderDate.getDate() - reminderDays);
 
-    // คำนวณจำนวนวันที่เหลือ
     const today = new Date();
+    today.setHours(12, 0, 0, 0); // เทียบที่เที่ยงวันเหมือนกัน
     const daysUntilNext = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     setCalculation({
-      nextDoseNumber,
-      nextDoseDate: nextDate.toISOString().split('T')[0],
+      nextDoseNumber: currentDose + 1,
+      nextDoseDate: nextDate.toISOString().split('T')[0], // หรือใช้ toLocaleDateString('en-CA')
       daysUntilNextDose: daysUntilNext,
       isComplete: false,
       reminderDate: reminderDate.toISOString().split('T')[0]
     });
   };
-
   const saveToDatabase = async () => {
     if (!calculation || !selectedPatient) {
       toast({
