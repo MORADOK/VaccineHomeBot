@@ -69,6 +69,7 @@ function createWindow() {
 
   if (isDev) {
     // Development mode: Load from Vite dev server
+    console.log('[Electron] Loading from Vite dev server: http://localhost:5173/#/staff-portal');
     mainWindow.loadURL('http://localhost:5173/#/staff-portal');
   } else {
     // Production mode: Load built files and navigate to staff portal
@@ -77,20 +78,70 @@ function createWindow() {
       ? path.join(process.resourcesPath, 'app', 'dist-electron', 'index.html')
       : path.join(__dirname, '..', 'dist-electron', 'index.html');
 
+    console.log('[Electron] ===== PRODUCTION MODE LOADING =====');
     console.log('[Electron] isPackaged:', app.isPackaged);
     console.log('[Electron] __dirname:', __dirname);
-    console.log('[Electron] resourcesPath:', process.resourcesPath);
-    console.log('[Electron] Loading from:', htmlPath);
+    console.log('[Electron] process.resourcesPath:', process.resourcesPath);
+    console.log('[Electron] app.getAppPath():', app.getAppPath());
+    console.log('[Electron] Computed htmlPath:', htmlPath);
+
+    // Check if file exists
+    const fs = require('fs');
+    const fileExists = fs.existsSync(htmlPath);
+    console.log('[Electron] HTML file exists:', fileExists);
+
+    if (!fileExists) {
+      console.error('[Electron] ===== FILE NOT FOUND =====');
+      console.error('[Electron] Tried path:', htmlPath);
+
+      // Try to find where dist-electron actually is
+      const possiblePaths = [
+        path.join(process.resourcesPath, 'app', 'dist-electron', 'index.html'),
+        path.join(process.resourcesPath, 'dist-electron', 'index.html'),
+        path.join(app.getAppPath(), 'dist-electron', 'index.html'),
+        path.join(__dirname, '..', 'dist-electron', 'index.html'),
+        path.join(__dirname, 'dist-electron', 'index.html')
+      ];
+
+      console.error('[Electron] Searching for index.html in possible locations:');
+      possiblePaths.forEach((p, i) => {
+        const exists = fs.existsSync(p);
+        console.error(`  [${i+1}] ${exists ? '✓ FOUND' : '✗ NOT FOUND'}: ${p}`);
+      });
+
+      // Try to list what's actually in resources
+      try {
+        const resourcesContents = fs.readdirSync(process.resourcesPath);
+        console.error('[Electron] Contents of resourcesPath:', resourcesContents);
+
+        if (resourcesContents.includes('app') || resourcesContents.includes('app.asar')) {
+          const appPath = resourcesContents.includes('app')
+            ? path.join(process.resourcesPath, 'app')
+            : path.join(process.resourcesPath, 'app.asar');
+          try {
+            const appContents = fs.readdirSync(appPath);
+            console.error('[Electron] Contents of app:', appContents);
+          } catch (e) {
+            console.error('[Electron] Cannot read app contents:', e.message);
+          }
+        }
+      } catch (e) {
+        console.error('[Electron] Cannot read resourcesPath:', e.message);
+      }
+    }
 
     // Load the HTML file first
     mainWindow.loadFile(htmlPath).then(() => {
+      console.log('[Electron] HTML loaded successfully');
       // Then navigate to staff portal using hash navigation
       mainWindow.webContents.executeJavaScript(`
+        console.log('[WebContents] Setting hash to #/staff-portal');
         window.location.hash = '#/staff-portal';
       `);
       console.log('[Electron] Navigated to Staff Portal');
     }).catch(err => {
-      console.error('[Electron] Failed to load or navigate:', err);
+      console.error('[Electron] ===== FAILED TO LOAD HTML =====');
+      console.error('[Electron] Error:', err);
       console.error('[Electron] Tried to load from:', htmlPath);
 
       // Fallback: try loading without navigation
@@ -98,9 +149,35 @@ function createWindow() {
         ? path.join(process.resourcesPath, 'app.asar', 'dist-electron', 'index.html')
         : htmlPath;
       console.log('[Electron] Trying fallback path:', fallbackPath);
+      console.log('[Electron] Fallback exists:', fs.existsSync(fallbackPath));
 
       mainWindow.loadFile(fallbackPath).catch(err2 => {
-        console.error('[Electron] Fallback also failed:', err2);
+        console.error('[Electron] ===== FALLBACK ALSO FAILED =====');
+        console.error('[Electron] Error:', err2);
+
+        // Last resort: show error page
+        mainWindow.loadURL(`data:text/html;charset=utf-8,
+          <html>
+            <head><title>Error Loading Application</title></head>
+            <body style="font-family:sans-serif;padding:50px;background:#f5f5f5;">
+              <h1 style="color:#e53e3e;">Failed to Load Application</h1>
+              <p><strong>Could not find application files</strong></p>
+              <p>Searched paths:</p>
+              <ul>
+                <li>${htmlPath}</li>
+                <li>${fallbackPath}</li>
+              </ul>
+              <p style="margin-top:30px;padding:20px;background:#fff;border-left:4px solid #e53e3e;">
+                <strong>Error details:</strong><br>
+                ${err2.message}
+              </p>
+              <button onclick="require('electron').ipcRenderer.send('restart-app')"
+                      style="margin-top:20px;padding:10px 20px;font-size:16px;">
+                Restart Application
+              </button>
+            </body>
+          </html>
+        `);
       });
     });
   }
@@ -136,6 +213,12 @@ function createWindow() {
     } else {
       console.error('[did-fail-load]', code, desc, url);
     }
+  });
+
+  // Capture console messages from renderer process
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const levels = ['VERBOSE', 'INFO', 'WARNING', 'ERROR'];
+    console.log(`[Renderer ${levels[level]}] ${message} (${sourceId}:${line})`);
   });
 
   mainWindow.once('ready-to-show', () => {

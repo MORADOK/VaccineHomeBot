@@ -7,7 +7,11 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY')
+  console.error('[Supabase] Missing environment variables:');
+  console.error('[Supabase] VITE_SUPABASE_URL:', SUPABASE_URL ? 'Present' : 'MISSING');
+  console.error('[Supabase] VITE_SUPABASE_ANON_KEY:', SUPABASE_ANON_KEY ? 'Present (length=' + SUPABASE_ANON_KEY?.length + ')' : 'MISSING');
+  console.error('[Supabase] All env vars:', import.meta.env);
+  throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY - Check if environment variables are properly bundled during build')
 }
 
 // กัน HMR สร้าง client ซ้ำ
