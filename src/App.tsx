@@ -1,5 +1,5 @@
-// App.tsx — stable Router placement + BASE_URL basename with Lazy Loading
-import { useState, useEffect, lazy, Suspense } from "react";
+// App.tsx — stable Router placement + BASE_URL basename
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,35 +12,24 @@ import { UpdateProgressDialog } from "@/components/UpdateProgressDialog";
 import { UpdateInstallDialog } from "@/components/UpdateInstallDialog";
 import { UpdateErrorDialog } from "@/components/UpdateErrorDialog";
 
-// Lazy load all pages for better performance
-const Index = lazy(() => import("./pages/Index"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const PatientPortalPage = lazy(() => import("./pages/PatientPortalPage"));
-const StaffPortalPage = lazy(() => import("./pages/StaffPortalPage"));
-const AuthPage = lazy(() => import("./pages/AuthPage"));
-const SimpleAuthPage = lazy(() => import("./pages/SimpleAuthPage"));
-const LoadingPage = lazy(() => import("./pages/LoadingPage"));
-const FastIndexPage = lazy(() => import("./pages/FastIndexPage"));
-const LiffPatientPortalPage = lazy(() => import("./pages/LiffPatientPortalPage"));
-const VaccineStatusPage = lazy(() => import("./pages/VaccineStatusPage"));
-const DownloadPage = lazy(() => import("./pages/DownloadPage"));
-const NextAppointmentsPage = lazy(() => import("./pages/NextAppointmentsPage"));
-const PatientRegistrationsPage = lazy(() => import("./pages/PatientRegistrationsPage"));
-const PastVaccinationsPage = lazy(() => import("./pages/PastVaccinationsPage"));
-const EditAppointmentsPage = lazy(() => import("./pages/EditAppointmentsPage"));
-const AppointmentVerificationPage = lazy(() => import("./pages/AppointmentVerificationPage"));
-const LineDebuggerPage = lazy(() => import("./pages/LineDebuggerPage"));
-const FixAppointmentsPage = lazy(() => import("./pages/FixAppointmentsPage"));
-
-// Loading fallback component
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-      <p className="text-muted-foreground">กำลังโหลด...</p>
-    </div>
-  </div>
-);
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import PatientPortalPage from "./pages/PatientPortalPage";
+import StaffPortalPage from "./pages/StaffPortalPage";
+import AuthPage from "./pages/AuthPage";
+import SimpleAuthPage from "./pages/SimpleAuthPage";
+import LoadingPage from "./pages/LoadingPage";
+import FastIndexPage from "./pages/FastIndexPage";
+import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
+import VaccineStatusPage from "./pages/VaccineStatusPage";
+import DownloadPage from "./pages/DownloadPage";
+import NextAppointmentsPage from "./pages/NextAppointmentsPage";
+import PatientRegistrationsPage from "./pages/PatientRegistrationsPage";
+import PastVaccinationsPage from "./pages/PastVaccinationsPage";
+import EditAppointmentsPage from "./pages/EditAppointmentsPage";
+import AppointmentVerificationPage from "./pages/AppointmentVerificationPage";
+import LineDebuggerPage from "./pages/LineDebuggerPage";
+import FixAppointmentsPage from "./pages/FixAppointmentsPage";
 
 const queryClient = new QueryClient();
 
@@ -231,9 +220,7 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <Suspense fallback={<PageLoader />}>
-              <DownloadPage />
-            </Suspense>
+            <DownloadPage />
           </TooltipProvider>
         </QueryClientProvider>
       </ErrorBoundary>
@@ -250,7 +237,6 @@ const App = () => {
           <Router {...routerProps}>
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 scroll-area">
-              <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Home - Redirect to Admin */}
                 <Route path="/" element={<Index />} />
@@ -288,7 +274,6 @@ const App = () => {
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              </Suspense>
             </main>
           </div>
 
