@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Home,
-  Users,
-  Bot,
   UserPlus,
   Settings,
   Calendar,
@@ -12,8 +9,7 @@ import {
   Shield,
   Stethoscope,
   ClipboardList,
-  History,
-  Search
+  History
 } from 'lucide-react';
 
 import {
@@ -29,12 +25,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 
 const navigationItems = [
-  {
-    title: 'หน้าหลัก',
-    url: '/',
-    icon: Home,
-    roles: ['admin']
-  },
   {
     title: 'จัดการนัดผู้ป่วย',
     url: '/staff-portal',
@@ -64,24 +54,6 @@ const navigationItems = [
     url: '/past-vaccinations',
     icon: History,
     roles: ['admin', 'healthcare_staff']
-  },
-  {
-    title: 'จัดการเจ้าหน้าที่',
-    url: '/manage-staff',
-    icon: Users,
-    roles: ['admin']
-  },
-  {
-    title: 'LINE Bot',
-    url: '/LineBot',
-    icon: Bot,
-    roles: ['admin']
-  },
-  {
-    title: 'ตรวจสอบ LIFF',
-    url: '/liff-checker',
-    icon: Search,
-    roles: ['admin']
   },
 ];
 
@@ -145,8 +117,7 @@ export function AppSidebar() {
   );
 
   const isActive = (path: string) => {
-    if (path === '/') return currentPath === '/';
-    return currentPath.startsWith(path);
+    return currentPath === path || currentPath.startsWith(path + '/');
   };
 
   const getNavClassName = (path: string) => {

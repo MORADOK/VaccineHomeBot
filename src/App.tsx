@@ -14,10 +14,8 @@ import { UpdateErrorDialog } from "@/components/UpdateErrorDialog";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import LineBotPage from "./pages/LineBotPage";
 import PatientPortalPage from "./pages/PatientPortalPage";
 import StaffPortalPage from "./pages/StaffPortalPage";
-import HomePage from "./pages/HomePage";
 import AuthPage from "./pages/AuthPage";
 import SimpleAuthPage from "./pages/SimpleAuthPage";
 import LoadingPage from "./pages/LoadingPage";
@@ -28,9 +26,7 @@ import DownloadPage from "./pages/DownloadPage";
 import NextAppointmentsPage from "./pages/NextAppointmentsPage";
 import PatientRegistrationsPage from "./pages/PatientRegistrationsPage";
 import PastVaccinationsPage from "./pages/PastVaccinationsPage";
-import LiffCheckerPage from "./pages/LiffCheckerPage";
 import EditAppointmentsPage from "./pages/EditAppointmentsPage";
-import ManageStaffPage from "./pages/ManageStaffPage";
 import AppointmentVerificationPage from "./pages/AppointmentVerificationPage";
 import LineDebuggerPage from "./pages/LineDebuggerPage";
 import FixAppointmentsPage from "./pages/FixAppointmentsPage";
@@ -242,21 +238,19 @@ const App = () => {
           <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 scroll-area">
               <Routes>
-                {/* Home */}
-                <Route path="/" element={<HomePage />} />
-                <Route path="/home" element={<HomePage />} />
+                {/* Home - Redirect to Admin */}
+                <Route path="/" element={<Index />} />
                 <Route path="/loading" element={<LoadingPage />} />
 
                 {/* Auth */}
-                <Route path="/auth" element={<AuthPage />} />            {/* ✅ ใช้หน้าเต็ม */}
-                <Route path="/Auth" element={<AuthPage />} />            {/* เผื่อพิมพ์ตัวใหญ่ */}
-                <Route path="/auth-simple" element={<SimpleAuthPage />} /> {/* เก็บหน้าแบบย่อไว้ใช้งานอื่น */}
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/Auth" element={<AuthPage />} />
+                <Route path="/auth-simple" element={<SimpleAuthPage />} />
 
                 {/* Admin/Staff */}
                 <Route path="/admin" element={<Index />} />
                 <Route path="/staff-portal" element={<StaffPortalPage />} />
                 <Route path="/StaffPortal" element={<StaffPortalPage />} />
-                <Route path="/manage-staff" element={<ManageStaffPage />} />
                 <Route path="/next-appointments" element={<NextAppointmentsPage />} />
                 <Route path="/edit-appointments" element={<EditAppointmentsPage />} />
                 <Route path="/patient-registrations" element={<PatientRegistrationsPage />} />
@@ -270,11 +264,6 @@ const App = () => {
                 <Route path="/PatientPortal" element={<PatientPortalPage />} />
                 <Route path="/liff-patient-portal" element={<LiffPatientPortalPage />} />
                 <Route path="/vaccine-status" element={<VaccineStatusPage />} />
-                <Route path="/liff-checker" element={<LiffCheckerPage />} />
-
-                {/* Line bot (รองรับทั้งตัวเล็ก/ใหญ่) */}
-                <Route path="/line-bot" element={<LineBotPage />} />
-                <Route path="/LineBot" element={<LineBotPage />} />
 
                 {/* Download */}
                 <Route path="/download" element={<DownloadPage />} />

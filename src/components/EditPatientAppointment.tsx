@@ -505,7 +505,12 @@ const EditPatientAppointment = () => {
                     type="date"
                     value={editForm.lastDoseDate}
                     onChange={(e) => handleLastDoseDateChange(e.target.value)}
+                    min="2020-01-01"
+                    max={new Date().toISOString().split('T')[0]}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ✅ สามารถเลือกวันที่ย้อนหลังได้ (ตั้งแต่ 2020-01-01 ถึงวันนี้)
+                  </p>
                 </div>
 
                 <div>
