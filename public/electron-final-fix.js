@@ -142,7 +142,8 @@ function createWindow() {
     mainWindow.show();
     // DevTools can be opened manually with F12 or Ctrl+Shift+I
     // เปิด DevTools เฉพาะเมื่อมี environment variable ELECTRON_DEBUG=true
-    if ((isDev || !app.isPackaged) && process.env.ELECTRON_DEBUG === 'true') {
+    // TEMPORARY: Always open DevTools for debugging (remove after fixing issue)
+    if (isDev || !app.isPackaged || process.env.ELECTRON_DEBUG === 'true') {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
   });
