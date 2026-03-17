@@ -4,12 +4,8 @@ import './index.css'
 import './styles/responsive-ui.css'
 import App from './App'
 
-console.log('[main.tsx] Initializing app...');
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>
 )
-
-console.log('[main.tsx] App rendered');
