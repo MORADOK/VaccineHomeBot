@@ -82,7 +82,9 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
         ? schedule.dose_intervals
         : JSON.parse(schedule.dose_intervals?.toString() || '[]');
 
-      console.log('⏱️ ระยะห่างระหว่างโดส:', intervals);
+      console.log('⏱️ dose_intervals จากฐานข้อมูล:', intervals);
+      console.log('⏱️ ประเภทข้อมูล:', typeof intervals, 'เป็น Array:', Array.isArray(intervals));
+      console.log('⏱️ ค่าแต่ละตัว:', intervals.map((v, i) => `intervals[${i}] = ${v}`).join(', '));
 
       const fullSchedule: FullDoseSchedule[] = [];
 
@@ -91,17 +93,26 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
         completedAppointments[0]?.appointment_date ||
         new Date().toISOString().split('T')[0];
 
-      console.log('📅 วันที่ฉีดเข็มแรก:', firstDoseDate);
+      console.log('📅 วันที่ฉีดเข็มแรก (first_dose_date):', firstDoseDate);
+      console.log('📅 จำนวนโดสทั้งหมด (total_doses):', schedule.total_doses);
 
       // Calculate each dose date from FIRST dose + individual interval
       const baseFirstDoseDate = new Date(firstDoseDate);
 
       for (let i = 0; i < schedule.total_doses; i++) {
         const doseNumber = i + 1;
+        // ✅ FIX: dose_intervals is CUMULATIVE from first dose
+        // intervals[0] = days from first dose to dose 2
+        // intervals[1] = days from first dose to dose 3
+        // So for dose N, we use intervals[N-2] (not N-1)
+        // Dose 1 (i=0) -> 0 days
+        // Dose 2 (i=1) -> intervals[0] (e.g. 3 days)
+        // Dose 3 (i=2) -> intervals[1] (e.g. 7 days)
         const intervalDays = i === 0 ? 0 : (intervals[i - 1] || 0);
 
-        // Calculate date from first dose + individual interval for this dose
+        // Calculate date from first dose + cumulative interval
         const calculatedDate = new Date(baseFirstDoseDate.getTime());
+        calculatedDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
         calculatedDate.setDate(baseFirstDoseDate.getDate() + intervalDays);
         
         let finalDate = calculatedDate.toISOString().split('T')[0];
@@ -126,7 +137,8 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
             finalDate = scheduledDose.appointment_date;
             console.log(`📆 โดสที่ ${doseNumber}: มีนัดแล้ว วันที่ ${finalDate}`);
           } else {
-            console.log(`⏳ โดสที่ ${doseNumber}: คำนวณจากเข็มแรก + ${intervalDays} วัน = ${finalDate}`);
+            console.log(`⏳ โดสที่ ${doseNumber}: คำนวณจากเข็มแรก (${firstDoseDate}) + ${intervalDays} วัน = ${finalDate}`);
+            console.log(`   🔍 Debug: i=${i}, intervals[${i - 1}]=${intervals[i - 1]}, intervalDays=${intervalDays}`);
           }
         }
 
@@ -136,6 +148,8 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
           interval_from_previous: intervalDays,
           status
         });
+
+        console.log(`📌 เพิ่ม โดสที่ ${doseNumber} เข้าตาราง: วันที่ ${finalDate}, ห่าง ${intervalDays} วัน, สถานะ: ${status}`);
       }
 
       console.log('✅ คำนวณตารางนัดเสร็จสิ้น:', fullSchedule.length, 'โดส');
