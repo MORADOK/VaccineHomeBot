@@ -121,22 +121,23 @@ const EditPatientAppointment = () => {
       first_dose_date: firstDoseDate
     });
 
-    // Calculate cumulative days from first dose
-    let totalDaysFromFirstDose = 0;
-    for (let i = 0; i < currentDoseCount; i++) {
-      const intervalDays = intervals[i] || 0;
-      totalDaysFromFirstDose += intervalDays;
-      console.log(`  เข็มที่ ${i + 1} -> ${i + 2}: +${intervalDays} วัน (รวม: ${totalDaysFromFirstDose} วัน)`);
-    }
+    // ✅ FIX: dose_intervals is CUMULATIVE - use value directly, not sum
+    // intervals[0] = 3 means dose 2 is on day 3 from first dose
+    // intervals[1] = 7 means dose 3 is on day 7 from first dose (NOT 3+7)
+    const intervalDays = intervals[currentDoseCount - 1] || 0;
 
-    // Calculate next dose date from first dose + cumulative intervals
+    console.log(`  📅 เข็มที่ ${currentDoseCount + 1}: ห่างจากเข็มแรก ${intervalDays} วัน (cumulative)`);
+
+    // Calculate next dose date from first dose + cumulative interval
     const baseDate = new Date(firstDoseDate);
+    baseDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
     const nextDate = new Date(baseDate);
-    nextDate.setDate(nextDate.getDate() + totalDaysFromFirstDose);
+    nextDate.setDate(nextDate.getDate() + intervalDays);
 
     console.log(`🎯 นัดเข็มถัดไป:`, {
       first_dose_date: firstDoseDate,
-      cumulative_days: totalDaysFromFirstDose,
+      next_dose_number: currentDoseCount + 1,
+      cumulative_days_from_first: intervalDays,
       next_dose_date: nextDate.toISOString().split('T')[0]
     });
 

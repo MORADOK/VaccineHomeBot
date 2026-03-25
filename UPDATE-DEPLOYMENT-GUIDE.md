@@ -1,326 +1,169 @@
-# 🚀 คู่มือการอัพเดทและ Deployment - Update & Deployment Guide
+# 📋 คู่มือการอัพเดทระบบ v1.0.21
 
-## 📅 **วันที่:** November 5, 2025
-## 🎯 **คำถาม:** ระบบที่อัพเดทต้องสร้างตัวติดตั้งใหม่ไหม?
+**วันที่:** 25 มีนาคม 2026
+**เวอร์ชัน:** v1.0.20 → v1.0.21
+**ประเภทการอัพเดท:** 🔴 **CRITICAL** - จำเป็นต้องอัพเดทฐานข้อมูล
 
 ---
 
-## ✅ **คำตอบ: มี 2 ตัวเลือก - Auto-Update หรือ Manual Install**
+## 📊 สรุปการตรวจสอบ
 
-### **🔄 ตัวเลือกที่ 1: ใช้ระบบ Auto-Update (แนะนำ)**
+### ✅ **โค้ดในระบบ (GitHub)**
+- ✅ แก้ไข `VaccineDoseCalculator.tsx` แล้ว
+- ✅ สร้าง SQL script `UPDATE-RABIES-VACCINE-INTERVALS.sql` แล้ว
+- ✅ Commit และ push ไปยัง GitHub แล้ว (commit: `63f038b5`)
+- ✅ ทุก component ใช้ Cumulative Method แล้ว
 
-#### **✅ ข้อดีของ Auto-Update:**
-- ✅ **ผู้ใช้ไม่ต้องดาวน์โหลดใหม่** - อัพเดทอัตโนมัติ
-- ✅ **ประหยัดเวลา** - ไม่ต้องติดตั้งใหม่
-- ✅ **ประหยัดแบนด์วิธ** - ดาวน์โหลดเฉพาะส่วนที่เปลี่ยน
-- ✅ **ระบบมีอยู่แล้ว** - พร้อมใช้งานใน Electron app
+### ⚠️ **ฐานข้อมูล Supabase**
+- ❌ **ยังไม่ได้อัพเดท** - ยังเป็น `[3,4,7,14]` (ผิด)
+- 🔴 **ต้องรัน SQL** เพื่อแก้เป็น `[3,7,14,28]` (ถูกต้อง)
 
-#### **📋 ขั้นตอน Auto-Update:**
+### ✅ **โปรแกรม Desktop**
+- ✅ **ไม่ต้อง rebuild** - เพราะโค้ดไม่ได้เปลี่ยนแปลง logic หลัก
+- ✅ Version ปัจจุบัน: v1.0.20 ยังใช้งานได้
+- ⚠️ แต่ถ้าต้องการใช้ UI ใหม่ของ VaccineDoseCalculator ต้อง rebuild
 
-##### **1. อัพเดท Version:**
-```json
-// package.json
-"version": "1.0.3" → "1.0.4"
-```
+---
 
-##### **2. Build ใหม่:**
-```bash
-npm run build
+## 🎯 สิ่งที่ต้องทำ (ตามลำดับความสำคัญ)
+
+### 🔴 **ขั้นตอนที่ 1: อัพเดทฐานข้อมูล Supabase** (สำคัญที่สุด!)
+
+#### วิธีที่ 1: รัน SQL Script ผ่าน Supabase Dashboard (แนะนำ)
+
+1. เข้า Supabase Dashboard: https://supabase.com/dashboard
+2. เลือก Project ของคุณ
+3. ไปที่ **SQL Editor** (เมนูซ้าย)
+4. คลิก **New Query**
+5. Copy SQL ด้านล่างนี้วางลงไป:
+
+\`\`\`sql
+-- ==================================================================================
+-- อัพเดทวัคซีนพิษสุนัขบ้า - แก้ dose_intervals จาก [3,4,7,14] เป็น [3,7,14,28]
+-- ==================================================================================
+
+-- 1. ดูข้อมูลก่อนอัพเดท
+SELECT
+    vaccine_name,
+    vaccine_type,
+    total_doses,
+    dose_intervals as current_intervals,
+    updated_at
+FROM vaccine_schedules
+WHERE vaccine_type = 'rabies';
+
+-- 2. อัพเดทข้อมูล
+UPDATE vaccine_schedules
+SET
+    dose_intervals = '[3,7,14,28]'::jsonb,
+    updated_at = NOW()
+WHERE vaccine_type = 'rabies';
+
+-- 3. ตรวจสอบผลลัพธ์
+SELECT
+    vaccine_name,
+    vaccine_type,
+    total_doses,
+    dose_intervals as updated_intervals,
+    updated_at
+FROM vaccine_schedules
+WHERE vaccine_type = 'rabies';
+\`\`\`
+
+6. กด **Run** (หรือ Ctrl+Enter)
+7. ตรวจสอบผลลัพธ์:
+   - ข้อมูลก่อนอัพเดท: `[3,4,7,14]` ❌
+   - ข้อมูลหลังอัพเดท: `[3,7,14,28]` ✅
+
+---
+
+### 🟡 **ขั้นตอนที่ 2: ทดสอบระบบหลังอัพเดท**
+
+#### 2.1 ทดสอบการคำนวนวันนัด
+
+1. เข้าหน้า **NextAppointments** (นัดครั้งถัดไป)
+2. ตรวจสอบการแสดงวันนัด
+3. คลิก "ดูตารางนัดครบทุกโดส"
+4. ตรวจสอบว่าวันนัดถูกต้องตามตาราง:
+
+**ตัวอย่างที่ถูกต้อง (วัคซีนพิษสุนัขบ้า):**
+
+| โดสที่ | วันนัด (ถ้าเข็มแรก = 1 ม.ค.) | ระยะห่างจากเข็มแรก |
+|--------|------------------------------|---------------------|
+| 1 | 1 มกราคม | 0 วัน |
+| 2 | 4 มกราคม | 3 วัน ✅ |
+| 3 | 8 มกราคม | 7 วัน ✅ |
+| 4 | 15 มกราคม | 14 วัน ✅ |
+| 5 | 29 มกราคม | 28 วัน ✅ |
+
+---
+
+### 🟢 **ขั้นตอนที่ 3: อัพเดทโปรแกรม Desktop (ถ้าต้องการ)**
+
+#### เมื่อไหร่ต้อง Rebuild?
+
+**❌ ไม่ต้อง rebuild ถ้า:**
+- ใช้งานผ่าน Web เท่านั้น
+- โปรแกรม Desktop เก่ายังทำงานได้ดี
+- ไม่สนใจ UI ใหม่ของ VaccineDoseCalculator
+
+**✅ ต้อง rebuild ถ้า:**
+- ต้องการ UI ใหม่ที่เรียบง่ายกว่า (3 คอลัมน์แทน 4)
+- ต้องการลบฟิลด์ "วันที่ฉีดครั้งล่าสุด" ออก
+- ต้องการ version ล่าสุดสำหรับ production
+
+#### วิธี Build โปรแกรม Desktop ใหม่
+
+\`\`\`bash
+cd D:\MainProjectVaccineHome\VaccineHomeBot
+git pull origin main
 npm run dist-win
-```
-
-##### **3. Upload ไป GitHub Releases:**
-```
-Files ที่ต้อง upload:
-✅ VCHome Hospital Setup 1.0.4.exe
-✅ VCHome Hospital Setup 1.0.4.exe.blockmap
-✅ latest.yml
-```
-
-##### **4. ระบบจะทำงานอัตโนมัติ:**
-```
-1. ✅ App ตรวจสอบ update ทุก 4 ชั่วโมง
-2. ✅ พบ version ใหม่ → แจ้งเตือนผู้ใช้
-3. ✅ ดาวน์โหลดใน background
-4. ✅ ถามผู้ใช้ว่าจะ restart ติดตั้งเลยไหม
-5. ✅ ติดตั้งและ restart อัตโนมัติ
-```
+\`\`\`
 
 ---
 
-### **📦 ตัวเลือกที่ 2: สร้างตัวติดตั้งใหม่ (Manual)**
+## ⚡ Quick Start (TL;DR)
 
-#### **⚠️ เมื่อไหร่ต้องสร้างใหม่:**
-- 🔧 **เปลี่ยน Electron version** - อัพเกรด Electron framework
-- 🏗️ **เปลี่ยนโครงสร้างไฟล์** - เปลี่ยน main process หรือ config
-- 🔐 **เปลี่ยน security settings** - อัพเดท webPreferences
-- 📦 **เปลี่ยน dependencies หลัก** - เพิ่ม/ลบ package สำคัญ
+**สำหรับผู้ที่รีบ:**
 
-#### **✅ สำหรับการอัพเดทครั้งนี้:**
-```
-Changes Made:
-✅ เมนูสิทธิ์ - UI changes only
-✅ Permission logic - Code changes only  
-✅ Admin system - Feature additions
-✅ Role management - Database integration
+### Step 1: อัพเดทฐานข้อมูล (จำเป็น)
+\`\`\`sql
+UPDATE vaccine_schedules
+SET dose_intervals = '[3,7,14,28]'::jsonb, updated_at = NOW()
+WHERE vaccine_type = 'rabies';
+\`\`\`
 
-Result: ไม่ต้องสร้างตัวติดตั้งใหม่!
-```
+### Step 2: ทดสอบ
+- เข้าหน้านัดครั้งถัดไป
+- คลิก "ดูตารางนัดครบทุกโดส"
+- ตรวจสอบวันนัดถูกต้อง
 
----
-
-## 🎯 **แนะนำสำหรับการอัพเดทครั้งนี้**
-
-### **✅ ใช้ Auto-Update System:**
-
-#### **📋 เหตุผล:**
-1. **🔧 การเปลี่ยนแปลง** - เป็น code และ UI เท่านั้น
-2. **🏗️ โครงสร้างเดิม** - ไม่เปลี่ยน Electron config
-3. **📦 Dependencies** - ไม่เพิ่ม/ลบ package หลัก
-4. **🔐 Security** - ไม่เปลี่ยน webPreferences
-
-#### **🚀 ขั้นตอนที่แนะนำ:**
-
-##### **1. อัพเดท Version เป็น 1.0.4:**
-```bash
-# แก้ไข package.json
-"version": "1.0.4"
-```
-
-##### **2. Build และสร้าง Installer:**
-```bash
-npm run build
+### Step 3: (ถ้าต้องการ) Build Desktop ใหม่
+\`\`\`bash
 npm run dist-win
-```
-
-##### **3. ผลลัพธ์:**
-```
-release/
-├── VCHome Hospital Setup 1.0.4.exe    (ใหม่)
-├── VCHome Hospital Setup 1.0.4.exe.blockmap
-├── latest.yml                          (อัพเดท)
-└── VCHome-Hospital-Portable.exe       (อัพเดท)
-```
-
-##### **4. Upload ไป GitHub Releases:**
-```
-Create Release: v1.0.4
-Title: "Menu Permission Fix & Admin System Update"
-Description: 
-- ✅ แก้ไขระบบสิทธิ์เมนู
-- ✅ ปรับปรุงระบบ Admin และ Role
-- ✅ เพิ่มเมนูจัดการวัคซีน
-- ✅ ปรับปรุง UI/UX
-
-Files:
-- VCHome Hospital Setup 1.0.4.exe
-- VCHome Hospital Setup 1.0.4.exe.blockmap
-- latest.yml
-```
+\`\`\`
 
 ---
 
-## 🔄 **การทำงานของ Auto-Update**
+## ⚠️ คำเตือนสำคัญ
 
-### **✅ สำหรับผู้ใช้เดิม (มี v1.0.3):**
+### 🔴 ต้องรัน SQL Update
 
-#### **📱 User Experience:**
-```
-1. 🔔 แจ้งเตือน: "มี update ใหม่ v1.0.4"
-2. 📥 ดาวน์โหลด: ใน background (~50-100MB)
-3. ✅ พร้อมติดตั้ง: "Restart เพื่อติดตั้ง update?"
-4. 🔄 Restart: ติดตั้งและเปิดใหม่
-5. 🎉 เสร็จสิ้น: ใช้งาน v1.0.4 ได้เลย
-```
+**ก่อนอัพเดท:** ระบบจะคำนวณผิด
+\`\`\`
+วัคซีนพิษสุนัขบ้า [3,4,7,14]
+เข็ม 3 = เข็มแรก + 4 = ผิด! (ควรเป็น +7)
+\`\`\`
 
-#### **⏱️ เวลาที่ใช้:**
-```
-ดาวน์โหลด: ~2-5 นาที (ขึ้นกับ internet)
-ติดตั้ง: ~30 วินาที
-รวม: ~3-6 นาที (vs 15-20 นาที สำหรับ manual install)
-```
-
-### **✅ สำหรับผู้ใช้ใหม่:**
-
-#### **📦 Manual Installation:**
-```
-1. ดาวน์โหลด: VCHome Hospital Setup 1.0.4.exe
-2. ติดตั้ง: ทำตาม wizard
-3. เปิดใช้งาน: เวอร์ชันล่าสุดทันที
-```
+**หลังอัพเดท:** ระบบคำนวณถูกต้อง
+\`\`\`
+วัคซีนพิษสุนัขบ้า [3,7,14,28]
+เข็ม 3 = เข็มแรก + 7 = ถูกต้อง! ✅
+\`\`\`
 
 ---
 
-## 📊 **เปรียบเทียบตัวเลือก**
-
-### **🔄 Auto-Update vs 📦 Manual Install:**
-
-| ด้าน | Auto-Update | Manual Install |
-|------|-------------|----------------|
-| **ผู้ใช้เดิม** | ✅ สะดวก | ⚠️ ต้องดาวน์โหลดใหม่ |
-| **ผู้ใช้ใหม่** | ❌ ไม่มี app | ✅ ติดตั้งใหม่ |
-| **ขนาดไฟล์** | ✅ เล็ก (~50MB) | ⚠️ ใหญ่ (~180MB) |
-| **เวลาติดตั้ง** | ✅ เร็ว (~3-6 นาที) | ⚠️ ช้า (~15-20 นาที) |
-| **การกระจาย** | ✅ อัตโนมัติ | ⚠️ ต้องแจกจ่ายเอง |
-| **การใช้งาน** | ✅ ไม่ขัดจังหวะ | ⚠️ ต้องหยุดใช้งาน |
-
----
-
-## 🎯 **แผนการ Deployment**
-
-### **✅ แผนที่แนะนำ (Hybrid Approach):**
-
-#### **🔄 Phase 1: Auto-Update (สำหรับผู้ใช้เดิม)**
-```
-Timeline: ทันที
-Target: ผู้ใช้ที่มี v1.0.0-1.0.3
-Method: GitHub Releases + Auto-Update
-Benefit: อัพเดทได้ทันที, ไม่ต้องดาวน์โหลดใหม่
-```
-
-#### **📦 Phase 2: Manual Install (สำหรับผู้ใช้ใหม่)**
-```
-Timeline: พร้อมกับ Phase 1
-Target: ผู้ใช้ใหม่, ผู้ที่ต้องการติดตั้งใหม่
-Method: ตัวติดตั้ง v1.0.4
-Benefit: เวอร์ชันล่าสุดทันที
-```
-
-#### **📋 Rollout Strategy:**
-```
-Week 1: 
-- Upload v1.0.4 ไป GitHub Releases
-- Auto-update สำหรับผู้ใช้เดิม
-- Monitor update success rate
-
-Week 2:
-- แจกจ่ายตัวติดตั้งใหม่
-- Support ผู้ใช้ที่มีปัญหา
-- Collect feedback
-
-Week 3+:
-- Full deployment
-- Documentation update
-- Training (ถ้าจำเป็น)
-```
-
----
-
-## 🛠️ **ขั้นตอนการ Deploy**
-
-### **✅ Step-by-Step Deployment:**
-
-#### **1. 📝 เตรียมการ:**
-```bash
-# อัพเดท version
-# แก้ไข package.json: "version": "1.0.4"
-
-# ตรวจสอบการเปลี่ยนแปลง
-git status
-git add .
-git commit -m "feat: menu permission fix & admin system update"
-```
-
-#### **2. 🏗️ Build:**
-```bash
-# Build application
-npm run build
-
-# สร้าง installer
-npm run dist-win
-
-# ตรวจสอบไฟล์
-ls release/
-```
-
-#### **3. 🧪 Test:**
-```bash
-# ทดสอบ installer ใหม่
-./release/VCHome\ Hospital\ Setup\ 1.0.4.exe
-
-# ทดสอบ portable version
-./release/VCHome-Hospital-Portable.exe
-
-# ตรวจสอบฟีเจอร์ใหม่
-- เมนูสิทธิ์
-- ระบบ Admin
-- การจัดการ Role
-```
-
-#### **4. 📤 Upload:**
-```bash
-# สร้าง GitHub Release
-gh release create v1.0.4 \
-  --title "Menu Permission Fix & Admin System Update" \
-  --notes "ปรับปรุงระบบสิทธิ์และเพิ่มฟีเจอร์ Admin"
-
-# Upload files
-gh release upload v1.0.4 \
-  release/VCHome\ Hospital\ Setup\ 1.0.4.exe \
-  release/VCHome\ Hospital\ Setup\ 1.0.4.exe.blockmap \
-  release/latest.yml
-```
-
-#### **5. 📢 Announce:**
-```
-Channels:
-✅ IT Team notification
-✅ User documentation update  
-✅ Training materials (ถ้าจำเป็น)
-✅ Support team briefing
-```
-
----
-
-## 📋 **Checklist การ Deploy**
-
-### **✅ Pre-Deployment:**
-- [ ] ✅ Code tested และ reviewed
-- [ ] ✅ Version number updated
-- [ ] ✅ Build successful
-- [ ] ✅ Installer tested
-- [ ] ✅ Auto-update mechanism verified
-
-### **✅ Deployment:**
-- [ ] 🔄 GitHub Release created
-- [ ] 📤 Files uploaded
-- [ ] 🧪 Auto-update tested
-- [ ] 📱 User notification sent
-- [ ] 📚 Documentation updated
-
-### **✅ Post-Deployment:**
-- [ ] 📊 Monitor update success rate
-- [ ] 🐛 Track any issues
-- [ ] 💬 Collect user feedback
-- [ ] 📈 Measure adoption rate
-- [ ] 🔧 Prepare hotfix if needed
-
----
-
-## 🎉 **สรุปคำแนะนำ**
-
-### **✅ สำหรับการอัพเดทครั้งนี้:**
-
-#### **🔄 ใช้ Auto-Update System:**
-- **เหตุผล:** การเปลี่ยนแปลงเป็น code และ UI เท่านั้น
-- **ประโยชน์:** ผู้ใช้อัพเดทได้ทันที ไม่ต้องดาวน์โหลดใหม่
-- **ขั้นตอน:** อัพเดท version → Build → Upload ไป GitHub
-
-#### **📦 สร้างตัวติดตั้งใหม่ด้วย:**
-- **เหตุผล:** สำหรับผู้ใช้ใหม่และ backup
-- **ประโยชน์:** มี installer เวอร์ชันล่าสุดพร้อมใช้
-- **ขั้นตอน:** เดียวกับ Auto-Update
-
-#### **🎯 แผนการ:**
-1. **ทันที:** Upload v1.0.4 → Auto-update ผู้ใช้เดิม
-2. **พร้อมกัน:** แจกจ่ายตัวติดตั้งใหม่
-3. **ติดตาม:** Monitor success rate และ feedback
-
----
-
-**📅 แนะนำเมื่อ:** November 5, 2025  
-**🎯 คำตอบ:** ✅ **ใช้ Auto-Update + สร้างตัวติดตั้งใหม่**  
-**🔄 Auto-Update:** สำหรับผู้ใช้เดิม (แนะนำ)  
-**📦 Manual Install:** สำหรับผู้ใช้ใหม่ (สำรอง)  
-**⏱️ เวลา Deploy:** ~30 นาที (Build + Upload)  
-**🎉 ผลลัพธ์:** ผู้ใช้ได้รับ update อย่างรวดเร็วและสะดวก!
+**ผู้จัดทำ:** Claude Code AI Assistant
+**วันที่:** 25 มีนาคม 2026
+**เวอร์ชัน:** v1.0.21
+**สถานะ:** ✅ พร้อมใช้งาน
