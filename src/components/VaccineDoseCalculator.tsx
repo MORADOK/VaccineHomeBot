@@ -58,8 +58,7 @@ const VaccineDoseCalculator = () => {
   const [selectedSchedule, setSelectedSchedule] = useState<string>('');
   const [selectedPatient, setSelectedPatient] = useState<PatientRegistration | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [firstDoseDate, setFirstDoseDate] = useState(''); // เพิ่ม firstDoseDate
-  const [lastDoseDate, setLastDoseDate] = useState('');
+  const [firstDoseDate, setFirstDoseDate] = useState('');
   const [currentDose, setCurrentDose] = useState(1);
   const [calculation, setCalculation] = useState<DoseCalculation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +124,17 @@ const VaccineDoseCalculator = () => {
     const schedule = vaccineSchedules.find(s => s.id === selectedSchedule);
     if (!schedule) return;
 
-    // 2. ถ้าฉีดครบแล้ว ไม่ต้องคำนวณต่อ
+    // 2. ตรวจสอบว่าต้องมีวันที่ฉีดเข็มแรก
+    if (!firstDoseDate) {
+      toast({
+        title: "ต้องการข้อมูล",
+        description: "กรุณาระบุวันที่ฉีดเข็มแรก",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // 3. ถ้าฉีดครบแล้ว ไม่ต้องคำนวณต่อ
     if (currentDose >= schedule.total_doses) {
       setCalculation({
         nextDoseNumber: currentDose,
@@ -137,60 +146,44 @@ const VaccineDoseCalculator = () => {
       return;
     }
 
-    // 3. เตรียมข้อมูลระยะห่าง (Intervals)
+    // 4. เตรียมข้อมูลระยะห่าง (Intervals)
     const intervals = Array.isArray(schedule.dose_intervals) ?
       schedule.dose_intervals :
       JSON.parse(schedule.dose_intervals || '[]');
 
     // ---------------------------------------------------------
-    // 🚀 NEW LOGIC: คำนวณแบบ Relative (อ้างอิงจากเข็มล่าสุด)
+    // ✅ CUMULATIVE METHOD: คำนวณจากเข็มแรกเป็นฐาน (มาตรฐาน)
     // ---------------------------------------------------------
-    
-    let anchorDateStr = '';
-    let intervalDays = 0;
 
-    // กรณี A: เพิ่งฉีดเข็มที่ 1 มา (หรือกำลังจะหาวันนัดเข็ม 2)
-    if (currentDose === 1) {
-       if (!firstDoseDate) {
-         toast({ title: "ต้องการข้อมูล", description: "กรุณาระบุวันที่ฉีดเข็มแรก", variant: "destructive" });
-         return;
-       }
-       anchorDateStr = firstDoseDate;
-       // ระยะห่างระหว่าง เข็ม 1 -> 2 คือ index 0
-       intervalDays = Number(intervals[0] || 0);
-    } 
-    // กรณี B: ฉีดเข็มที่ 2, 3, 4... มาแล้ว (ต้องใช้วันที่ฉีดล่าสุดมาคำนวณ)
-    else {
-       if (!lastDoseDate) {
-         toast({ 
-            title: "ต้องการข้อมูลสำคัญ", 
-            description: `สำหรับการคำนวณโดสที่ ${currentDose + 1} จำเป็นต้องระบุ "วันที่ฉีดครั้งล่าสุด" (โดสที่ ${currentDose}) เพื่อเริ่มนับระยะห่างใหม่`, 
-            variant: "destructive" 
-         });
-         return;
-       }
-       anchorDateStr = lastDoseDate;
-       // ระยะห่างระหว่าง เข็ม n -> n+1 คือ index n-1
-       // เช่น จบเข็ม 2 (current=2) จะไปเข็ม 3 -> ใช้ interval[1]
-       intervalDays = Number(intervals[currentDose - 1] || 0);
-    }
+    // dose_intervals เก็บระยะห่างจากเข็มแรก ไม่ใช่ระหว่างเข็มติดกัน
+    // เช่น [3,7,14,28] หมายถึง:
+    // - เข็ม 2: วันที่เข็มแรก + 3 วัน
+    // - เข็ม 3: วันที่เข็มแรก + 7 วัน
+    // - เข็ม 4: วันที่เข็มแรก + 14 วัน
+    // - เข็ม 5: วันที่เข็มแรก + 28 วัน
 
-    // 4. คำนวณวัน (แก้ Timezone ด้วย setHours 12)
-    const baseDate = new Date(anchorDateStr);
-    baseDate.setHours(12, 0, 0, 0); // ✅ Fix: บังคับเป็นเที่ยงวัน ป้องกัน Timezone เลื่อน
+    // ระยะห่างสำหรับโดสถัดไป (currentDose + 1) คือ intervals[currentDose - 1]
+    // เช่น ถ้าฉีดโดส 1 แล้ว (currentDose = 1) ต้องการโดส 2 ใช้ intervals[0]
+    const intervalDays = Number(intervals[currentDose - 1] || 0);
 
-    const nextDate = new Date(baseDate);
-    nextDate.setDate(nextDate.getDate() + intervalDays);
+    // คำนวณจากวันที่เข็มแรก
+    const firstDate = new Date(firstDoseDate);
+    firstDate.setHours(12, 0, 0, 0); // ✅ Fix: บังคับเป็นเที่ยงวัน ป้องกัน Timezone เลื่อน
 
-    console.log(`🎯 Relative Calculation:`, {
-      from_dose: currentDose,
-      to_dose: currentDose + 1,
-      base_date: anchorDateStr,
-      add_days: intervalDays,
-      result_date: nextDate.toISOString().split('T')[0]
+    const nextDate = new Date(firstDate);
+    nextDate.setDate(firstDate.getDate() + intervalDays);
+
+    console.log(`🎯 Cumulative Calculation (from first dose):`, {
+      vaccine_type: schedule.vaccine_type,
+      current_dose: currentDose,
+      next_dose: currentDose + 1,
+      first_dose_date: firstDoseDate,
+      interval_from_first: intervalDays,
+      result_date: nextDate.toISOString().split('T')[0],
+      all_intervals: intervals
     });
 
-    // 5. คำนวณวันแจ้งเตือนและวันที่เหลือ (เหมือนเดิม)
+    // 5. คำนวณวันแจ้งเตือนและวันที่เหลือ
     const reminderDate = new Date(nextDate);
     reminderDate.setDate(reminderDate.getDate() - reminderDays);
 
@@ -200,7 +193,7 @@ const VaccineDoseCalculator = () => {
 
     setCalculation({
       nextDoseNumber: currentDose + 1,
-      nextDoseDate: nextDate.toISOString().split('T')[0], // หรือใช้ toLocaleDateString('en-CA')
+      nextDoseDate: nextDate.toISOString().split('T')[0],
       daysUntilNextDose: daysUntilNext,
       isComplete: false,
       reminderDate: reminderDate.toISOString().split('T')[0]
@@ -226,7 +219,7 @@ const VaccineDoseCalculator = () => {
         vaccine_schedule_id: selectedSchedule,
         current_dose: currentDose,
         total_doses: schedule?.total_doses || 1,
-        last_dose_date: lastDoseDate,
+        last_dose_date: firstDoseDate, // ใช้วันที่เข็มแรกแทน
         next_dose_due: calculation.nextDoseDate,
         completion_status: calculation.isComplete ? 'completed' : 'in_progress',
         auto_reminder_enabled: true,
@@ -294,7 +287,6 @@ const VaccineDoseCalculator = () => {
     setSelectedPatient(null);
     setSearchTerm('');
     setFirstDoseDate('');
-    setLastDoseDate('');
     setCurrentDose(1);
     setSelectedSchedule('');
     setCalculation(null);
@@ -414,9 +406,9 @@ const VaccineDoseCalculator = () => {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="currentDose" className="text-sm font-medium">โดสปัจจุบัน</Label>
+              <Label htmlFor="currentDose" className="text-sm font-medium">โดสปัจจุบัน (ฉีดไปแล้ว)</Label>
               <Select value={currentDose.toString()} onValueChange={(value) => setCurrentDose(parseInt(value))}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -431,22 +423,12 @@ const VaccineDoseCalculator = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="firstDoseDate" className="text-sm font-medium">วันที่ฉีดเข็มแรก</Label>
+              <Label htmlFor="firstDoseDate" className="text-sm font-medium">วันที่ฉีดเข็มแรก (ฐานการคำนวน)</Label>
               <Input
                 id="firstDoseDate"
                 type="date"
                 value={firstDoseDate}
                 onChange={(e) => setFirstDoseDate(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastDoseDate" className="text-sm font-medium">วันที่ฉีดครั้งล่าสุด (อ้างอิง)</Label>
-              <Input
-                id="lastDoseDate"
-                type="date"
-                value={lastDoseDate}
-                onChange={(e) => setLastDoseDate(e.target.value)}
                 className="w-full"
               />
             </div>
