@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.line.me ws://localhost:* http://localhost:*; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' data: https:; base-uri 'self'; form-action 'self'; object-src 'none';" />
+    <title>VCHome Hospital Management System</title>
+
+    <!-- โหลดสไตล์ของหน้ารอโหลดจาก /public ล่วงหน้า (ไม่ต้อง unsafe-inline) -->
+    <link rel="stylesheet" href="./loader.css" />
+    <script type="module" crossorigin src="./assets/main-BNMtmjFG.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/react-vendor-CuaTZuKz.js">
+    <link rel="modulepreload" crossorigin href="./assets/ui-vendor-9DfrX2RI.js">
+    <link rel="modulepreload" crossorigin href="./assets/chart-vendor-Cx-9LZFE.js">
+    <link rel="modulepreload" crossorigin href="./assets/icons-vendor-48vOPc4h.js">
+    <link rel="modulepreload" crossorigin href="./assets/query-vendor-qrRaRq3e.js">
+    <link rel="modulepreload" crossorigin href="./assets/supabase-vendor-DnM0K3jK.js">
+    <link rel="stylesheet" crossorigin href="./assets/main-DhDfEXTe.css">
+  </head>
+  <body>
+    <div id="root">
+      <!-- Enhanced Loading screen -->
+      <div class="vhc-wrap">
+        <div class="vhc-card">
+          <div class="vhc-spinner"></div>
+          <h1 class="vhc-title">🏥 ระบบจัดการวัคซีน</h1>
+          <p class="vhc-sub">VCHome Hospital</p>
+          <p class="vhc-note">กำลังโหลดระบบ</p>
+          <div class="vhc-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สำคัญ: ให้ Vite แปลง/บันเดิลผ่าน main.tsx ไม่ใช่ .tsx ของเพจ -->
+
+    <noscript>
+      ต้องเปิดใช้งาน JavaScript เพื่อใช้งานระบบนี้
+    </noscript>
+  </body>
+</html>
