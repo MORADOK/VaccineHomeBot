@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🖨️ ทดสอบระบบเลือกขนาดพิมพ์บัตรนัด - VCHome Hospital</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .controls {
+      padding: 30px;
+      background: #f9fafb;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      color: #374151;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    .size-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .size-option {
+      border: 3px solid #d1d5db;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .size-option:hover {
+      border-color: #9333ea;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(147, 51, 234, 0.2);
+    }
+
+    .size-option.active {
+      border-color: #9333ea;
+      background: #f3e8ff;
+      box-shadow: 0 10px 30px rgba(147, 51, 234, 0.3);
+    }
+
+    .size-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .size-icon {
+      font-size: 24px;
+    }
+
+    .size-name {
+      font-weight: bold;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    .size-details {
+      color: #6b7280;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .size-description {
+      color: #9333ea;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .current-selection {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .current-selection-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      color: #92400e;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .current-selection-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .current-size-text {
+      color: #78350f;
+      font-size: 14px;
+    }
+
+    .size-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .preview-box {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+
+    .preview-a4-portrait {
+      width: 48px;
+      height: 64px;
+      border: 3px solid #9333ea;
+    }
+
+    .preview-a4-landscape {
+      width: 64px;
+      height: 48px;
+      border: 3px solid #2563eb;
+    }
+
+    .preview-a5-portrait {
+      width: 40px;
+      height: 56px;
+      border: 3px solid #16a34a;
+    }
+
+    .preview-card-small {
+      width: 32px;
+      height: 48px;
+      border: 3px solid #ea580c;
+    }
+
+    .print-button {
+      background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 18px 40px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px rgba(147, 51, 234, 0.3);
+    }
+
+    .print-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 40px rgba(147, 51, 234, 0.4);
+    }
+
+    .print-button:active {
+      transform: translateY(0);
+    }
+
+    /* Print Content */
+    .print-content {
+      padding: 40px;
+    }
+
+    .patient-info {
+      background: #f9fafb;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .patient-info h2 {
+      color: #9333ea;
+      margin-bottom: 20px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .info-label {
+      font-size: 13px;
+      color: #6b7280;
+      font-weight: 600;
+    }
+
+    .info-value {
+      font-size: 16px;
+      color: #111827;
+      font-weight: bold;
+    }
+
+    .schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .schedule-table thead {
+      background: #9333ea;
+      color: white;
+    }
+
+    .schedule-table th {
+      padding: 15px;
+      text-align: left;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .schedule-table td {
+      padding: 15px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
+    }
+
+    .schedule-table tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    .schedule-table tbody tr:hover {
+      background: #f3e8ff;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-completed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-scheduled {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .status-upcoming {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .notes {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .notes h3 {
+      color: #92400e;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .notes ul {
+      margin-left: 20px;
+      color: #78350f;
+    }
+
+    .notes li {
+      margin-bottom: 8px;
+    }
+
+    /* Print Styles */
+    @page {
+      margin: 0;
+    }
+
+    @page a4-portrait {
+      size: A4 portrait;
+      margin: 15mm;
+    }
+
+    @page a4-landscape {
+      size: A4 landscape;
+      margin: 15mm;
+    }
+
+    @page a5-portrait {
+      size: A5 portrait;
+      margin: 10mm;
+    }
+
+    @page card-small {
+      size: 100mm 150mm;
+      margin: 5mm;
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .container {
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .header,
+      .controls {
+        display: none !important;
+      }
+
+      .print-content {
+        page-break-after: avoid;
+      }
+
+      .print-instruction {
+        display: block !important;
+        background: #fef3c7;
+        border: 2px solid #f59e0b;
+        padding: 10px;
+        margin-bottom: 10px;
+        text-align: center;
+        font-size: 10pt;
+        font-weight: bold;
+        color: #92400e;
+      }
+
+      /* A4 Portrait */
+      body[data-print-size="a4-portrait"] .print-content {
+        page: a4-portrait;
+        max-width: 210mm;
+        font-size: 11pt;
+      }
+
+      /* A4 Landscape */
+      body[data-print-size="a4-landscape"] .print-content {
+        page: a4-landscape;
+        max-width: 297mm;
+        font-size: 11pt;
+      }
+
+      /* A5 Portrait */
+      body[data-print-size="a5-portrait"] .print-content {
+        page: a5-portrait;
+        max-width: 148mm;
+        font-size: 9pt;
+      }
+
+      body[data-print-size="a5-portrait"] h2 {
+        font-size: 16pt;
+      }
+
+      body[data-print-size="a5-portrait"] .schedule-table {
+        font-size: 8pt;
+      }
+
+      /* Card Small */
+      body[data-print-size="card-small"] .print-content {
+        page: card-small;
+        max-width: 100mm;
+        font-size: 7pt;
+        padding: 10px;
+      }
+
+      body[data-print-size="card-small"] h2 {
+        font-size: 12pt;
+      }
+
+      body[data-print-size="card-small"] .schedule-table {
+        font-size: 6.5pt;
+      }
+
+      body[data-print-size="card-small"] .schedule-table th,
+      body[data-print-size="card-small"] .schedule-table td {
+        padding: 6px;
+      }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .print-instruction {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🖨️ ทดสอบระบบเลือกขนาดพิมพ์บัตรนัด</h1>
+      <p>VCHome Hospital - Vaccine Management System</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label">
+          <span>📐</span>
+          <span>เลือกขนาดกระดาษสำหรับพิมพ์:</span>
+        </div>
+
+        <div class="size-selector">
+          <!-- A4 Portrait -->
+          <div class="size-option active" onclick="selectSize('a4-portrait')">
+            <div class="size-header">
+              <span class="size-icon">📄</span>
+              <span class="size-name">A4 แนวตั้ง</span>
+            </div>
+            <div class="size-details">210 x 297 mm</div>
+            <div class="size-description">📄 เหมาะสำหรับพิมพ์เอกสารทั่วไป - แนะนำสำหรับการเก็บในแฟ้ม</div>
+          </div>
+
+          <!-- A4 Landscape -->
+          <div class="size-option" onclick="selectSize('a4-landscape')">
+            <div class="size-header">
+              <span class="size-icon">📐</span>
+              <span class="size-name">A4 แนวนอน</span>
+            </div>
+            <div class="size-details">297 x 210 mm</div>
+            <div class="size-description">📐 เหมาะสำหรับตารางกว้างที่มีข้อมูลเยอะ</div>
+          </div>
+
+          <!-- A5 Portrait -->
+          <div class="size-option" onclick="selectSize('a5-portrait')">
+            <div class="size-header">
+              <span class="size-icon">📋</span>
+              <span class="size-name">A5 แนวตั้ง</span>
+            </div>
+            <div class="size-details">148 x 210 mm</div>
+            <div class="size-description">📋 เหมาะสำหรับบันทึกในสมุดหรือแฟ้มขนาดเล็ก</div>
+          </div>
+
+          <!-- Card Small -->
+          <div class="size-option" onclick="selectSize('card-small')">
+            <div class="size-header">
+              <span class="size-icon">🎫</span>
+              <span class="size-name">บัตรนัดขนาดเล็ก</span>
+            </div>
+            <div class="size-details">100 x 150 mm</div>
+            <div class="size-description">🎫 เหมาะสำหรับพกพา แนบสมุดสุขภาพ หรือใส่กระเป๋า</div>
+          </div>
+        </div>
+
+        <!-- Current Selection Display -->
+        <div class="current-selection">
+          <div class="current-selection-header">
+            <span>✅</span>
+            <span>ขนาดที่เลือก:</span>
+          </div>
+          <div class="current-selection-info">
+            <div class="current-size-text" id="current-size-text">
+              A4 แนวตั้ง (210x297mm)
+            </div>
+            <div class="size-preview">
+              <span style="font-size: 12px; color: #6b7280;">ตัวอย่าง:</span>
+              <div class="preview-box preview-a4-portrait" id="preview-box"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Print Button -->
+        <button class="print-button" onclick="printSchedule()">
+          🖨️ พิมพ์ตารางนัด
+        </button>
+      </div>
+    </div>
+
+    <!-- Print Content -->
+    <div class="print-content">
+      <!-- Print-only Instruction -->
+      <div class="print-instruction" id="print-instruction">
+        ⚠️ คำแนะนำ: โปรดเลือกขนาดกระดาษใน Print Dialog เป็น "A4 แนวตั้ง (210x297mm)"
+      </div>
+
+      <!-- Patient Info -->
+      <div class="patient-info">
+        <h2>
+          <span>👤</span>
+          <span>ข้อมูลผู้ป่วย</span>
+        </h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">ชื่อผู้ป่วย:</span>
+            <span class="info-value">นางสาวสมหญิง ใจดี</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">วัคซีน:</span>
+            <span class="info-value">IPV (Inactivated Polio Vaccine)</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">จำนวนโดสทั้งหมด:</span>
+            <span class="info-value">3 โดส</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Table -->
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>โดสที่</th>
+            <th>วันที่นัด</th>
+            <th>ระยะห่าง (วัน)</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>💉 โดสที่ 1</td>
+            <td>📅 1 มกราคม 2568</td>
+            <td>-</td>
+            <td><span class="status-badge status-completed">✓ ฉีดแล้ว</span></td>
+          </tr>
+          <tr>
+            <td>💉 โดสที่ 2</td>
+            <td>📅 4 มกราคม 2568</td>
+            <td>3 วัน</td>
+            <td><span class="status-badge status-scheduled">📅 มีนัด</span></td>
+          </tr>
+          <tr>
+            <td>💉 โดสที่ 3</td>
+            <td>📅 8 มกราคม 2568</td>
+            <td>7 วัน</td>
+            <td><span class="status-badge status-upcoming">⏳ รอฉีด</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Notes -->
+      <div class="notes">
+        <h3>
+          <span>⚠️</span>
+          <span>หมายเหตุสำหรับบุคลากร:</span>
+        </h3>
+        <ul>
+          <li>โปรดตรวจสอบวันนัดกับผู้ป่วยอีกครั้งก่อนฉีด</li>
+          <li>บันทึกวันที่ฉีดจริงในระบบ</li>
+          <li>เก็บเอกสารนี้ไว้ในประวัติผู้ป่วย</li>
+          <li>กรณีเลื่อนนัด ให้แจ้งผู้ป่วยล่วงหน้า</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentSize = 'a4-portrait';
+
+    const sizeLabels = {
+      'a4-portrait': 'A4 แนวตั้ง (210x297mm)',
+      'a4-landscape': 'A4 แนวนอน (297x210mm)',
+      'a5-portrait': 'A5 แนวตั้ง (148x210mm)',
+      'card-small': 'บัตรนัดขนาดเล็ก (100x150mm)'
+    };
+
+    const sizeInstructions = {
+      'a4-portrait': 'A4 (แนวตั้ง/Portrait)',
+      'a4-landscape': 'A4 (แนวนอน/Landscape)',
+      'a5-portrait': 'A5 (แนวตั้ง/Portrait)',
+      'card-small': 'กำหนดเอง (100x150mm) หรือใกล้เคียง'
+    };
+
+    const previewClasses = {
+      'a4-portrait': 'preview-a4-portrait',
+      'a4-landscape': 'preview-a4-landscape',
+      'a5-portrait': 'preview-a5-portrait',
+      'card-small': 'preview-card-small'
+    };
+
+    function selectSize(size) {
+      console.log('📝 เปลี่ยนขนาดกระดาษเป็น:', size);
+      currentSize = size;
+
+      // Update active state
+      document.querySelectorAll('.size-option').forEach(option => {
+        option.classList.remove('active');
+      });
+      event.currentTarget.classList.add('active');
+
+      // Update current size text
+      document.getElementById('current-size-text').textContent = sizeLabels[size];
+
+      // Update preview box
+      const previewBox = document.getElementById('preview-box');
+      previewBox.className = 'preview-box ' + previewClasses[size];
+
+      // Update print instruction
+      document.getElementById('print-instruction').textContent =
+        `⚠️ คำแนะนำ: โปรดเลือกขนาดกระดาษใน Print Dialog เป็น "${sizeLabels[size]}"`;
+
+      // Save to localStorage
+      localStorage.setItem('vaccine-print-size', size);
+    }
+
+    function printSchedule() {
+      console.log('🖨️ เริ่มพิมพ์บัตรนัด - ขนาด:', currentSize);
+
+      const instruction = sizeInstructions[currentSize];
+
+      // Show instruction alert
+      const userConfirmed = confirm(
+        `📋 คำแนะนำการพิมพ์\n\n` +
+        `คุณเลือกขนาดกระดาษ: ${sizeLabels[currentSize]}\n\n` +
+        `⚠️ เมื่อเปิด Print Dialog โปรด:\n` +
+        `1. เลือก "Paper size" หรือ "ขนาดกระดาษ" เป็น: ${instruction}\n` +
+        `2. ตรวจสอบ "Margins" หรือ "ระยะขอบ" ตามที่ระบบแนะนำ\n` +
+        `3. สำหรับบัตรนัดขนาดเล็ก: อาจต้องตั้งค่า Custom size\n\n` +
+        `กด OK เพื่อเปิด Print Dialog`
+      );
+
+      if (!userConfirmed) {
+        console.log('❌ ผู้ใช้ยกเลิกการพิมพ์');
+        return;
+      }
+
+      // Apply print size to body
+      document.body.setAttribute('data-print-size', currentSize);
+
+      console.log('✅ ตั้งค่า data-print-size:', document.body.getAttribute('data-print-size'));
+
+      // Trigger print
+      window.print();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeAttribute('data-print-size');
+        console.log('🧹 ล้างค่า data-print-size แล้ว');
+      }, 100);
+    }
+
+    // Load saved size on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedSize = localStorage.getItem('vaccine-print-size');
+      if (savedSize && sizeLabels[savedSize]) {
+        // Simulate click on saved size
+        const options = document.querySelectorAll('.size-option');
+        const sizeOrder = ['a4-portrait', 'a4-landscape', 'a5-portrait', 'card-small'];
+        const index = sizeOrder.indexOf(savedSize);
+        if (index >= 0 && options[index]) {
+          options[index].click();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -47,7 +47,15 @@ type PrintSize = 'a4-portrait' | 'a4-landscape' | 'a5-portrait' | 'card-small';
 const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseScheduleModalProps) => {
   const [scheduleData, setScheduleData] = useState<FullDoseSchedule[]>([]);
   const [loading, setLoading] = useState(false);
-  const [printSize, setPrintSize] = useState<PrintSize>('a4-portrait');
+
+  // Load saved print size from localStorage or default to 'a4-portrait'
+  const [printSize, setPrintSize] = useState<PrintSize>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vaccine-print-size');
+      return (saved as PrintSize) || 'a4-portrait';
+    }
+    return 'a4-portrait';
+  });
 
   const calculateFullDoseSchedule = async (appt: NextAppointment): Promise<FullDoseSchedule[]> => {
     try {
@@ -187,12 +195,46 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
   }, [appointment, isOpen]);
 
   const printSchedule = () => {
+    console.log('🖨️ เริ่มพิมพ์บัตรนัด - ขนาด:', printSize);
+
+    // Get instruction text based on selected size
+    const sizeInstructions = {
+      'a4-portrait': 'A4 (แนวตั้ง/Portrait)',
+      'a4-landscape': 'A4 (แนวนอน/Landscape)',
+      'a5-portrait': 'A5 (แนวตั้ง/Portrait)',
+      'card-small': 'กำหนดเอง (100x150mm) หรือใกล้เคียง'
+    };
+
+    const instruction = sizeInstructions[printSize];
+
+    // Show instruction alert
+    const userConfirmed = window.confirm(
+      `📋 คำแนะนำการพิมพ์\n\n` +
+      `คุณเลือกขนาดกระดาษ: ${getPrintSizeLabel(printSize)}\n\n` +
+      `⚠️ เมื่อเปิด Print Dialog โปรด:\n` +
+      `1. เลือก "Paper size" หรือ "ขนาดกระดาษ" เป็น: ${instruction}\n` +
+      `2. ตรวจสอบ "Margins" หรือ "ระยะขอบ" ตามที่ระบบแนะนำ\n` +
+      `3. สำหรับบัตรนัดขนาดเล็ก: อาจต้องตั้งค่า Custom size\n\n` +
+      `กด OK เพื่อเปิด Print Dialog`
+    );
+
+    if (!userConfirmed) {
+      console.log('❌ ผู้ใช้ยกเลิกการพิมพ์');
+      return;
+    }
+
     // Apply print size class to body for CSS targeting
     document.body.setAttribute('data-print-size', printSize);
+
+    console.log('✅ ตั้งค่า data-print-size:', document.body.getAttribute('data-print-size'));
+
+    // Trigger print dialog
     window.print();
-    // Clean up after print
+
+    // Clean up after print dialog closes
     setTimeout(() => {
       document.body.removeAttribute('data-print-size');
+      console.log('🧹 ล้างค่า data-print-size แล้ว');
     }, 100);
   };
 
@@ -213,6 +255,35 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {/* Print-friendly styles */}
         <style>{`
+          /* @page rules for print size control */
+          @page {
+            margin: 0;
+          }
+
+          /* A4 Portrait */
+          @page a4-portrait {
+            size: A4 portrait;
+            margin: 15mm;
+          }
+
+          /* A4 Landscape */
+          @page a4-landscape {
+            size: A4 landscape;
+            margin: 15mm;
+          }
+
+          /* A5 Portrait */
+          @page a5-portrait {
+            size: A5 portrait;
+            margin: 10mm;
+          }
+
+          /* Card Small (Custom size) */
+          @page card-small {
+            size: 100mm 150mm;
+            margin: 5mm;
+          }
+
           @media print {
             /* Base print styles */
             body * {
@@ -231,14 +302,23 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
               display: none !important;
             }
 
-            /* A4 Portrait (210x297mm) - Default */
-            body[data-print-size="a4-portrait"] {
-              size: A4 portrait;
+            /* Print-only instruction banner */
+            .print-instruction {
+              display: block !important;
+              background: #fef3c7;
+              border: 2px solid #f59e0b;
+              padding: 10px;
+              margin-bottom: 10px;
+              text-align: center;
+              font-size: 10pt;
+              font-weight: bold;
+              color: #92400e;
             }
+
+            /* A4 Portrait (210x297mm) - Default */
             body[data-print-size="a4-portrait"] .print-area {
-              width: 210mm;
-              min-height: 297mm;
-              padding: 15mm;
+              page: a4-portrait;
+              max-width: 210mm;
               font-size: 11pt;
             }
             body[data-print-size="a4-portrait"] table {
@@ -250,13 +330,9 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
             }
 
             /* A4 Landscape (297x210mm) */
-            body[data-print-size="a4-landscape"] {
-              size: A4 landscape;
-            }
             body[data-print-size="a4-landscape"] .print-area {
-              width: 297mm;
-              min-height: 210mm;
-              padding: 15mm;
+              page: a4-landscape;
+              max-width: 297mm;
               font-size: 11pt;
             }
             body[data-print-size="a4-landscape"] table {
@@ -268,13 +344,9 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
             }
 
             /* A5 Portrait (148x210mm) */
-            body[data-print-size="a5-portrait"] {
-              size: A5 portrait;
-            }
             body[data-print-size="a5-portrait"] .print-area {
-              width: 148mm;
-              min-height: 210mm;
-              padding: 10mm;
+              page: a5-portrait;
+              max-width: 148mm;
               font-size: 9pt;
             }
             body[data-print-size="a5-portrait"] h2 {
@@ -293,13 +365,9 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
             }
 
             /* Card Small (100x150mm) - Compact */
-            body[data-print-size="card-small"] {
-              size: 100mm 150mm;
-            }
             body[data-print-size="card-small"] .print-area {
-              width: 100mm;
-              min-height: 150mm;
-              padding: 5mm;
+              page: card-small;
+              max-width: 100mm;
               font-size: 7pt;
             }
             body[data-print-size="card-small"] h2 {
@@ -322,13 +390,9 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
             }
 
             /* Default fallback (if no size specified) - use A4 Portrait */
-            body:not([data-print-size]) {
-              size: A4 portrait;
-            }
             body:not([data-print-size]) .print-area {
-              width: 210mm;
-              min-height: 297mm;
-              padding: 15mm;
+              page: a4-portrait;
+              max-width: 210mm;
             }
 
             /* Print-only elements visibility */
@@ -352,6 +416,11 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
         `}</style>
 
         <div className="print-area">
+          {/* Print-only Instruction Banner */}
+          <div className="hidden print-instruction">
+            ⚠️ คำแนะนำ: โปรดเลือกขนาดกระดาษใน Print Dialog เป็น "{getPrintSizeLabel(printSize)}"
+          </div>
+
           {/* Print-only Header */}
           <div className="hidden print:block border-b-4 border-purple-600 pb-4 mb-6">
             <h1 className="text-2xl font-bold text-purple-900 text-center mb-2">
@@ -480,47 +549,107 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
           <div className="p-6 border-t-2 border-gray-200 bg-gray-50 no-print">
             {/* Print Size Selector */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <Printer className="h-5 w-5 text-purple-600" />
                 เลือกขนาดกระดาษสำหรับพิมพ์:
               </label>
-              <Select value={printSize} onValueChange={(value) => setPrintSize(value as PrintSize)}>
-                <SelectTrigger className="w-full bg-white border-2">
+
+              <Select
+                value={printSize}
+                onValueChange={(value) => {
+                  const newSize = value as PrintSize;
+                  setPrintSize(newSize);
+                  // Save to localStorage for next time
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('vaccine-print-size', newSize);
+                  }
+                  console.log('📝 เปลี่ยนขนาดกระดาษเป็น:', newSize, '(บันทึกค่าแล้ว)');
+                }}
+              >
+                <SelectTrigger className="w-full bg-white border-2 border-purple-300 hover:border-purple-500 focus:ring-2 focus:ring-purple-500 h-12">
                   <SelectValue placeholder="เลือกขนาดกระดาษ" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="a4-portrait">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      A4 แนวตั้ง (210x297mm) - มาตรฐาน
+                <SelectContent className="z-[60]">
+                  <SelectItem value="a4-portrait" className="cursor-pointer hover:bg-purple-50">
+                    <div className="flex items-center gap-3 py-1">
+                      <FileText className="h-5 w-5 text-purple-600" />
+                      <div>
+                        <div className="font-semibold">A4 แนวตั้ง</div>
+                        <div className="text-xs text-gray-500">210 x 297 mm - มาตรฐาน (แนะนำ)</div>
+                      </div>
                     </div>
                   </SelectItem>
-                  <SelectItem value="a4-landscape">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 rotate-90" />
-                      A4 แนวนอน (297x210mm) - ตารางกว้าง
+                  <SelectItem value="a4-landscape" className="cursor-pointer hover:bg-purple-50">
+                    <div className="flex items-center gap-3 py-1">
+                      <FileText className="h-5 w-5 rotate-90 text-blue-600" />
+                      <div>
+                        <div className="font-semibold">A4 แนวนอน</div>
+                        <div className="text-xs text-gray-500">297 x 210 mm - ตารางกว้าง</div>
+                      </div>
                     </div>
                   </SelectItem>
-                  <SelectItem value="a5-portrait">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      A5 แนวตั้ง (148x210mm) - ขนาดกลาง
+                  <SelectItem value="a5-portrait" className="cursor-pointer hover:bg-purple-50">
+                    <div className="flex items-center gap-3 py-1">
+                      <FileText className="h-5 w-5 text-green-600" />
+                      <div>
+                        <div className="font-semibold">A5 แนวตั้ง</div>
+                        <div className="text-xs text-gray-500">148 x 210 mm - ขนาดกลาง</div>
+                      </div>
                     </div>
                   </SelectItem>
-                  <SelectItem value="card-small">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      บัตรนัดขนาดเล็ก (100x150mm) - พกพาสะดวก
+                  <SelectItem value="card-small" className="cursor-pointer hover:bg-purple-50">
+                    <div className="flex items-center gap-3 py-1">
+                      <Calendar className="h-5 w-5 text-orange-600" />
+                      <div>
+                        <div className="font-semibold">บัตรนัดขนาดเล็ก</div>
+                        <div className="text-xs text-gray-500">100 x 150 mm - พกพาสะดวก</div>
+                      </div>
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Current Selection Display with Preview */}
+              <div className="mt-3 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                      <div className="font-semibold text-purple-900">ขนาดที่เลือก:</div>
+                      <div className="text-purple-700 font-medium">{getPrintSizeLabel(printSize)}</div>
+                    </div>
+                    <div className="text-xs text-purple-600">
+                      {printSize === 'a4-portrait' && '📄 เหมาะสำหรับพิมพ์เอกสารทั่วไป - แนะนำสำหรับการเก็บในแฟ้ม'}
+                      {printSize === 'a4-landscape' && '📐 เหมาะสำหรับตารางกว้างที่มีข้อมูลเยอะ'}
+                      {printSize === 'a5-portrait' && '📋 เหมาะสำหรับบันทึกในสมุดหรือแฟ้มขนาดเล็ก'}
+                      {printSize === 'card-small' && '🎫 เหมาะสำหรับพกพา แนบสมุดสุขภาพ หรือใส่กระเป๋า'}
+                    </div>
+                  </div>
+
+                  {/* Visual Size Preview */}
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-500">ตัวอย่าง:</div>
+                    {printSize === 'a4-portrait' && (
+                      <div className="w-12 h-16 bg-white border-2 border-purple-400 rounded shadow-sm"></div>
+                    )}
+                    {printSize === 'a4-landscape' && (
+                      <div className="w-16 h-12 bg-white border-2 border-blue-400 rounded shadow-sm"></div>
+                    )}
+                    {printSize === 'a5-portrait' && (
+                      <div className="w-10 h-14 bg-white border-2 border-green-400 rounded shadow-sm"></div>
+                    )}
+                    {printSize === 'card-small' && (
+                      <div className="w-8 h-12 bg-white border-2 border-orange-400 rounded shadow-sm"></div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-3">
               <Button
                 onClick={printSchedule}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-md"
+                className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg hover:shadow-xl transition-all h-12 text-base font-semibold"
               >
                 <Printer className="h-5 w-5 mr-2" />
                 พิมพ์ตารางนัด ({getPrintSizeLabel(printSize).split(' ')[0]})
@@ -528,7 +657,7 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
               <Button
                 onClick={onClose}
                 variant="outline"
-                className="border-2"
+                className="border-2 hover:bg-gray-100 h-12 px-6"
               >
                 ปิด
               </Button>
