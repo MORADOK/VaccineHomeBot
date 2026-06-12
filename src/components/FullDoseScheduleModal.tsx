@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { X, Printer, FileText, Calendar, Syringe, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface NextAppointment {
   id: string;
@@ -35,9 +42,12 @@ interface FullDoseScheduleModalProps {
   onClose: () => void;
 }
 
+type PrintSize = 'a4-portrait' | 'a4-landscape' | 'a5-portrait' | 'card-small';
+
 const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseScheduleModalProps) => {
   const [scheduleData, setScheduleData] = useState<FullDoseSchedule[]>([]);
   const [loading, setLoading] = useState(false);
+  const [printSize, setPrintSize] = useState<PrintSize>('a4-portrait');
 
   const calculateFullDoseSchedule = async (appt: NextAppointment): Promise<FullDoseSchedule[]> => {
     try {
@@ -177,7 +187,23 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
   }, [appointment, isOpen]);
 
   const printSchedule = () => {
+    // Apply print size class to body for CSS targeting
+    document.body.setAttribute('data-print-size', printSize);
     window.print();
+    // Clean up after print
+    setTimeout(() => {
+      document.body.removeAttribute('data-print-size');
+    }, 100);
+  };
+
+  const getPrintSizeLabel = (size: PrintSize) => {
+    switch (size) {
+      case 'a4-portrait': return 'A4 แนวตั้ง (210x297mm)';
+      case 'a4-landscape': return 'A4 แนวนอน (297x210mm)';
+      case 'a5-portrait': return 'A5 แนวตั้ง (148x210mm)';
+      case 'card-small': return 'บัตรนัดขนาดเล็ก (100x150mm)';
+      default: return 'A4 แนวตั้ง';
+    }
   };
 
   if (!isOpen || !appointment) return null;
@@ -188,6 +214,7 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
         {/* Print-friendly styles */}
         <style>{`
           @media print {
+            /* Base print styles */
             body * {
               visibility: hidden;
             }
@@ -203,11 +230,137 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
             .no-print {
               display: none !important;
             }
+
+            /* A4 Portrait (210x297mm) - Default */
+            body[data-print-size="a4-portrait"] {
+              size: A4 portrait;
+            }
+            body[data-print-size="a4-portrait"] .print-area {
+              width: 210mm;
+              min-height: 297mm;
+              padding: 15mm;
+              font-size: 11pt;
+            }
+            body[data-print-size="a4-portrait"] table {
+              font-size: 10pt;
+            }
+            body[data-print-size="a4-portrait"] th,
+            body[data-print-size="a4-portrait"] td {
+              padding: 8px 12px;
+            }
+
+            /* A4 Landscape (297x210mm) */
+            body[data-print-size="a4-landscape"] {
+              size: A4 landscape;
+            }
+            body[data-print-size="a4-landscape"] .print-area {
+              width: 297mm;
+              min-height: 210mm;
+              padding: 15mm;
+              font-size: 11pt;
+            }
+            body[data-print-size="a4-landscape"] table {
+              font-size: 10pt;
+            }
+            body[data-print-size="a4-landscape"] th,
+            body[data-print-size="a4-landscape"] td {
+              padding: 8px 16px;
+            }
+
+            /* A5 Portrait (148x210mm) */
+            body[data-print-size="a5-portrait"] {
+              size: A5 portrait;
+            }
+            body[data-print-size="a5-portrait"] .print-area {
+              width: 148mm;
+              min-height: 210mm;
+              padding: 10mm;
+              font-size: 9pt;
+            }
+            body[data-print-size="a5-portrait"] h2 {
+              font-size: 16pt;
+            }
+            body[data-print-size="a5-portrait"] table {
+              font-size: 8pt;
+            }
+            body[data-print-size="a5-portrait"] th,
+            body[data-print-size="a5-portrait"] td {
+              padding: 6px 8px;
+            }
+            body[data-print-size="a5-portrait"] .lucide {
+              width: 14px;
+              height: 14px;
+            }
+
+            /* Card Small (100x150mm) - Compact */
+            body[data-print-size="card-small"] {
+              size: 100mm 150mm;
+            }
+            body[data-print-size="card-small"] .print-area {
+              width: 100mm;
+              min-height: 150mm;
+              padding: 5mm;
+              font-size: 7pt;
+            }
+            body[data-print-size="card-small"] h2 {
+              font-size: 12pt;
+              margin-bottom: 8px;
+            }
+            body[data-print-size="card-small"] table {
+              font-size: 6.5pt;
+            }
+            body[data-print-size="card-small"] th,
+            body[data-print-size="card-small"] td {
+              padding: 4px 6px;
+            }
+            body[data-print-size="card-small"] .lucide {
+              width: 10px;
+              height: 10px;
+            }
+            body[data-print-size="card-small"] .text-sm {
+              font-size: 6pt;
+            }
+
+            /* Default fallback (if no size specified) - use A4 Portrait */
+            body:not([data-print-size]) {
+              size: A4 portrait;
+            }
+            body:not([data-print-size]) .print-area {
+              width: 210mm;
+              min-height: 297mm;
+              padding: 15mm;
+            }
+
+            /* Print-only elements visibility */
+            .print\\:block {
+              display: block !important;
+            }
+
+            /* Adjust header sizes for different print sizes */
+            body[data-print-size="card-small"] .print-area h1 {
+              font-size: 10pt;
+              margin-bottom: 4px;
+            }
+            body[data-print-size="card-small"] .print-area .text-sm,
+            body[data-print-size="card-small"] .print-area p.text-sm {
+              font-size: 5.5pt;
+            }
+            body[data-print-size="a5-portrait"] .print-area h1 {
+              font-size: 14pt;
+            }
           }
         `}</style>
 
         <div className="print-area">
-          {/* Header */}
+          {/* Print-only Header */}
+          <div className="hidden print:block border-b-4 border-purple-600 pb-4 mb-6">
+            <h1 className="text-2xl font-bold text-purple-900 text-center mb-2">
+              ตารางนัดฉีดวัคซีนครบทุกโดส
+            </h1>
+            <p className="text-center text-gray-600 text-sm">โรงพยาบาลโฮม - VCHome Vaccine Management System</p>
+          </div>
+
+          {/* Screen Header */}
           <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-t-xl no-print">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -324,21 +477,62 @@ const FullDoseScheduleModal = ({ appointment, isOpen, onClose }: FullDoseSchedul
           </div>
 
           {/* Footer Buttons */}
-          <div className="p-6 border-t-2 border-gray-200 bg-gray-50 flex gap-3 no-print">
-            <Button
-              onClick={printSchedule}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-md"
-            >
-              <Printer className="h-5 w-5 mr-2" />
-              พิมพ์ตารางนัด
-            </Button>
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="border-2"
-            >
-              ปิด
-            </Button>
+          <div className="p-6 border-t-2 border-gray-200 bg-gray-50 no-print">
+            {/* Print Size Selector */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                เลือกขนาดกระดาษสำหรับพิมพ์:
+              </label>
+              <Select value={printSize} onValueChange={(value) => setPrintSize(value as PrintSize)}>
+                <SelectTrigger className="w-full bg-white border-2">
+                  <SelectValue placeholder="เลือกขนาดกระดาษ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a4-portrait">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      A4 แนวตั้ง (210x297mm) - มาตรฐาน
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="a4-landscape">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 rotate-90" />
+                      A4 แนวนอน (297x210mm) - ตารางกว้าง
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="a5-portrait">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      A5 แนวตั้ง (148x210mm) - ขนาดกลาง
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="card-small">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      บัตรนัดขนาดเล็ก (100x150mm) - พกพาสะดวก
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={printSchedule}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-md"
+              >
+                <Printer className="h-5 w-5 mr-2" />
+                พิมพ์ตารางนัด ({getPrintSizeLabel(printSize).split(' ')[0]})
+              </Button>
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="border-2"
+              >
+                ปิด
+              </Button>
+            </div>
           </div>
         </div>
       </div>

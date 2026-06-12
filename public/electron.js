@@ -1,10 +1,18 @@
-const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
 const isDev = require('electron-is-dev');
 
 // Load environment variables for Electron
 if (isDev) {
   require('dotenv').config();
+}
+
+// Import auto-updater (only in production)
+let autoUpdater = null;
+let updateManager = null;
+if (!isDev) {
+  autoUpdater = require('./auto-updater');
+  updateManager = autoUpdater.getUpdateManager();
 }
 
 // Hide console in production
@@ -293,11 +301,38 @@ function createMenu() {
               type: 'info',
               title: 'About VCHome Hospital',
               message: 'VCHome Hospital Management System',
-              detail: 'Version 1.0.0\n\nA comprehensive vaccine management system for healthcare providers.\n\nDeveloped with ❤️ for VCHome Hospital',
+              detail: `Version ${app.getVersion()}\n\nA comprehensive vaccine management system for healthcare providers.\n\nDeveloped with ❤️ for VCHome Hospital`,
               buttons: ['OK']
             });
           }
         },
+        ...(!isDev ? [{
+          label: 'Check for Updates...',
+          click: async () => {
+            if (autoUpdater) {
+              try {
+                dialog.showMessageBox(mainWindow, {
+                  type: 'info',
+                  title: 'Checking for Updates',
+                  message: 'กำลังตรวจสอบอัปเดต...',
+                  detail: 'กรุณารอสักครู่',
+                  buttons: ['OK']
+                });
+
+                await autoUpdater.checkForUpdates();
+              } catch (error) {
+                dialog.showMessageBox(mainWindow, {
+                  type: 'error',
+                  title: 'Update Check Failed',
+                  message: 'ไม่สามารถตรวจสอบอัปเดตได้',
+                  detail: error.message,
+                  buttons: ['OK']
+                });
+              }
+            }
+          }
+        }] : []),
+        { type: 'separator' },
         {
           label: 'System Information',
           click: () => {
@@ -309,8 +344,9 @@ Node.js: ${process.version}
 Electron: ${process.versions.electron}
 Chrome: ${process.versions.chrome}
 Memory: ${Math.round(os.totalmem() / 1024 / 1024 / 1024)} GB
+App Version: ${app.getVersion()}
             `.trim();
-            
+
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'System Information',
@@ -430,8 +466,134 @@ app.on('web-contents-created', (event, contents) => {
   });
 });
 
-// Handle app updates (placeholder for future implementation)
-if (!isDev) {
-  // Auto-updater logic can be added here
-  console.log('Production mode - Auto-updater can be configured here');
+// Initialize auto-updater (only in production)
+if (!isDev && autoUpdater) {
+  console.log('Initializing auto-updater...');
+
+  // Set main window for auto-updater
+  app.whenReady().then(() => {
+    setTimeout(() => {
+      if (mainWindow) {
+        autoUpdater.setMainWindow(mainWindow);
+
+        // Check for updates on startup if enabled
+        const checkOnStartup = updateManager.getPreference('checkOnStartup');
+        if (checkOnStartup) {
+          console.log('Checking for updates on startup...');
+          setTimeout(() => {
+            autoUpdater.checkForUpdates();
+          }, 5000); // Wait 5 seconds after app is ready
+        }
+      }
+    }, 1000);
+  });
 }
+
+// IPC Handlers for update functionality
+ipcMain.handle('check-for-updates', async () => {
+  if (isDev) {
+    return { isDev: true, message: 'Auto-update not available in development mode' };
+  }
+
+  if (autoUpdater) {
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { success: true, result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  return { success: false, error: 'Auto-updater not initialized' };
+});
+
+ipcMain.handle('download-update', async () => {
+  if (isDev) {
+    return { isDev: true, message: 'Auto-update not available in development mode' };
+  }
+
+  if (autoUpdater) {
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  return { success: false, error: 'Auto-updater not initialized' };
+});
+
+ipcMain.handle('install-update', () => {
+  if (isDev) {
+    return { isDev: true, message: 'Auto-update not available in development mode' };
+  }
+
+  if (autoUpdater) {
+    autoUpdater.quitAndInstall();
+    return { success: true };
+  }
+
+  return { success: false, error: 'Auto-updater not initialized' };
+});
+
+ipcMain.handle('get-update-state', () => {
+  if (isDev) {
+    return { isDev: true };
+  }
+
+  if (updateManager) {
+    return updateManager.getState();
+  }
+
+  return null;
+});
+
+ipcMain.handle('get-update-preferences', () => {
+  if (isDev) {
+    return { isDev: true };
+  }
+
+  if (updateManager) {
+    return updateManager.getAllPreferences();
+  }
+
+  return null;
+});
+
+ipcMain.handle('set-update-preference', (event, key, value) => {
+  if (isDev) {
+    return { isDev: true };
+  }
+
+  if (updateManager) {
+    return updateManager.setPreference(key, value);
+  }
+
+  return false;
+});
+
+ipcMain.handle('get-update-logs', () => {
+  if (isDev) {
+    return [];
+  }
+
+  if (updateManager) {
+    return updateManager.getLogs();
+  }
+
+  return [];
+});
+
+ipcMain.handle('open-manual-download', () => {
+  if (autoUpdater) {
+    autoUpdater.openManualDownload();
+    return { success: true };
+  }
+
+  return { success: false };
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
