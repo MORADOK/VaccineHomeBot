@@ -247,12 +247,18 @@ const NextAppointments = () => {
           // Calculate from the FIRST dose date, not the latest
           const firstDoseDate = new Date(patient.first_dose_date);
 
-          // Get the interval for the NEXT dose (not cumulative)
-          const nextDoseIntervalDays = typeof intervals[patient.doses_received] === 'number' 
-            ? intervals[patient.doses_received] 
-            : 0;
+          // Get the interval for the NEXT dose
+          // ✅ FIX: dose_intervals is CUMULATIVE from first dose
+          // intervals[0] = days from first dose to dose 2
+          // intervals[1] = days from first dose to dose 3
+          // So for next dose after dose N, we use intervals[N-1]
+          const nextDoseIntervalDays = patient.doses_received === 0
+            ? 0
+            : (typeof intervals[patient.doses_received - 1] === 'number'
+                ? intervals[patient.doses_received - 1]
+                : 0);
 
-          console.log(`  เข็มที่ ${patient.doses_received + 1}: ระยะห่าง ${nextDoseIntervalDays} วัน`);
+          console.log(`  เข็มที่ ${patient.doses_received + 1}: ระยะห่าง ${nextDoseIntervalDays} วัน จากเข็มแรก`);
 
           // Calculate next dose date from first dose + interval for this specific dose
           const nextDoseDate = new Date(firstDoseDate.getTime());

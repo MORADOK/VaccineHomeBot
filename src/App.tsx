@@ -18,6 +18,9 @@ import PatientPortalPage from "./pages/PatientPortalPage";
 import StaffPortalPage from "./pages/StaffPortalPage";
 import AuthPage from "./pages/AuthPage";
 import SimpleAuthPage from "./pages/SimpleAuthPage";
+import ImprovedAuthPage from "./pages/ImprovedAuthPage";
+import StaffManagementPage from "./pages/StaffManagementPage";
+import RequireAdmin from "./components/RequireAdmin";
 import LoadingPage from "./pages/LoadingPage";
 import FastIndexPage from "./pages/FastIndexPage";
 import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
@@ -246,10 +249,19 @@ const App = () => {
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/Auth" element={<AuthPage />} />
                 <Route path="/auth-simple" element={<SimpleAuthPage />} />
+                <Route path="/improved-auth" element={<ImprovedAuthPage />} />
 
                 {/* Admin/Staff */}
                 <Route path="/admin" element={<Index />} />
                 <Route path="/staff-portal" element={<StaffPortalPage />} />
+                <Route
+                  path="/staff-management"
+                  element={
+                    <RequireAdmin>
+                      <StaffManagementPage />
+                    </RequireAdmin>
+                  }
+                />
                 <Route path="/StaffPortal" element={<StaffPortalPage />} />
                 <Route path="/next-appointments" element={<NextAppointmentsPage />} />
                 <Route path="/edit-appointments" element={<EditAppointmentsPage />} />
