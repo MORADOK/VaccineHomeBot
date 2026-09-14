@@ -7,14 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 1.0.7)'
+        description: 'Version to release (e.g., 1.0.23)'
         required: true
         type: string
 
 jobs:
   release:
     runs-on: windows-latest
-    
+
     permissions:
       contents: write
 
@@ -39,19 +39,40 @@ jobs:
           VITE_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
         run: npm run build
 
-      - name: Build and publish to GitHub Releases
+      - name: Build Windows installers
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
           VITE_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
-        run: npx electron-builder --win --publish=always
+        run: npx electron-builder --win --publish=never
+
+      - name: Resolve release tag
+        id: release_tag
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            "tag=v${{ inputs.version }}" >> $env:GITHUB_OUTPUT
+          } else {
+            "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Create GitHub Release and upload installers
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: VCHome Hospital ${{ steps.release_tag.outputs.tag }}
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installers
+          name: windows-installers-${{ steps.release_tag.outputs.tag }}
           path: |
             release/*.exe
             release/*.blockmap
@@ -59,14 +80,15 @@ jobs:
           retention-days: 30
 
       - name: Create release summary
+        shell: pwsh
         run: |
-          echo "## Release Build Complete ✅" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Generated Files:" >> $GITHUB_STEP_SUMMARY
+          echo "## Release Build Complete ✅" >> $env:GITHUB_STEP_SUMMARY
+          echo "" >> $env:GITHUB_STEP_SUMMARY
+          echo "### Generated Files:" >> $env:GITHUB_STEP_SUMMARY
           Get-ChildItem release/*.exe, release/*.yml | ForEach-Object {
             $size = [math]::Round($_.Length / 1MB, 2)
-            echo "- $($_.Name) ($size MB)" >> $GITHUB_STEP_SUMMARY
+            echo "- $($_.Name) ($size MB)" >> $env:GITHUB_STEP_SUMMARY
           }
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Release URL:" >> $GITHUB_STEP_SUMMARY
-          echo "https://github.com/${{ github.repository }}/releases/latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $env:GITHUB_STEP_SUMMARY
+          echo "### Release URL:" >> $env:GITHUB_STEP_SUMMARY
+          echo "https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_tag.outputs.tag }}" >> $env:GITHUB_STEP_SUMMARY
