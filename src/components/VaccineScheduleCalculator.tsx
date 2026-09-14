@@ -355,7 +355,7 @@ const VaccineScheduleCalculator: React.FC = () => {
         date: currentDate,
         dueDays: differenceInDays(currentDate, today),
         status: 'scheduled',
-        description: `โดสที่ ${i + 1} ของวัคซีน ${schedule.vaccine_name} (หลังจากโดสก่อนหน้า ${intervalDays} วัน)`
+        description: `โดสที่ ${i + 1} ของวัคซีน ${schedule.vaccine_name} (ห่างจากโดสแรก ${intervalDays} วัน)`
       });
     }
 

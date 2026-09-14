@@ -67,8 +67,8 @@ sequenceDiagram
     UI->>Util: calculateNextDoseDate(params)
     Util->>Util: Validate inputs
     Util->>Util: Parse dose_intervals
-    Util->>Util: Calculate cumulative days
-    Util->>Util: Add to first_dose_date
+    Util->>Util: Read absolute offset from first dose
+    Util->>Util: Add absolute offset to first_dose_date
     Util-->>UI: Return calculated date
     
     UI->>UI: Display result
@@ -412,7 +412,7 @@ describe('vaccineCalculationUtils', () => {
       expect(result.cumulativeDays).toBe(30);
     });
     
-    it('should handle multiple doses with cumulative intervals', () => {
+    it('should handle multiple doses with absolute offsets from first dose', () => {
       const params = {
         vaccineSchedule: {
           id: '1',
@@ -430,9 +430,9 @@ describe('vaccineCalculationUtils', () => {
       const result = calculateNextDoseDate(params);
       
       expect(result.nextDoseNumber).toBe(3);
-      // Should be first_dose (2024-01-01) + 60 + 120 = 2024-05-01
-      expect(result.nextDoseDate).toBe('2024-05-01');
-      expect(result.cumulativeDays).toBe(180);
+      // Should be first_dose (2024-01-01) + 120 days = 2024-04-30
+      expect(result.nextDoseDate).toBe('2024-04-30');
+      expect(result.cumulativeDays).toBe(120);
     });
     
     it('should return isComplete when all doses received', () => {
@@ -521,9 +521,9 @@ describe('vaccineCalculationUtils', () => {
   });
   
   describe('calculateCumulativeDays', () => {
-    it('should sum intervals up to current dose', () => {
-      expect(calculateCumulativeDays([30, 60, 90], 2)).toBe(90); // 30 + 60
-      expect(calculateCumulativeDays([30, 60, 90], 3)).toBe(180); // 30 + 60 + 90
+    it('should return the absolute offset for the next dose', () => {
+      expect(calculateCumulativeDays([30, 60, 90], 2)).toBe(60); // day 60 from dose 1
+      expect(calculateCumulativeDays([30, 60, 90], 3)).toBe(90); // day 90 from dose 1
     });
     
     it('should return 0 for first dose', () => {
@@ -710,7 +710,7 @@ describe('Vaccine Calculation Integration', () => {
 console.log(`🎯 ${patientName}: คำนวณจาก vaccine_schedules`);
 console.log(`   - วัคซีน: ${vaccineType}`);
 console.log(`   - เข็มแรก: ${firstDoseDate}`);
-console.log(`   - รวมระยะห่าง: ${cumulativeDays} วัน`);
+console.log(`   - ระยะห่างจากเข็มแรก: ${cumulativeDays} วัน`);
 console.log(`   - นัดเข็มที่ ${nextDoseNumber}: ${nextDoseDate}`);
 
 // Error log

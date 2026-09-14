@@ -110,12 +110,10 @@ export function AppointmentVerification() {
           if (i === 0) {
             calculatedDate = firstDoseDate;
           } else {
-            let cumulativeDays = 0;
-            for (let j = 0; j < i; j++) {
-              cumulativeDays += intervals[j] || 0;
-            }
+            // dose_intervals stores absolute day offsets from the first dose.
+            const daysFromFirstDose = intervals[i - 1] || 0;
             calculatedDate = new Date(firstDoseDate);
-            calculatedDate.setDate(calculatedDate.getDate() + cumulativeDays);
+            calculatedDate.setDate(calculatedDate.getDate() + daysFromFirstDose);
           }
 
           const actualDate = new Date(patient.all_doses[i].appointment_date);
@@ -139,13 +137,11 @@ export function AppointmentVerification() {
         let nextDoseMatches = false;
 
         if (patient.all_doses.length < schedule.total_doses) {
-          let cumulativeDays = 0;
-          for (let i = 0; i < patient.all_doses.length; i++) {
-            cumulativeDays += intervals[i] || 0;
-          }
+          // After N completed doses, dose N+1 uses offset index N-1.
+          const daysFromFirstDose = intervals[patient.all_doses.length - 1] || 0;
 
           const nextDate = new Date(firstDoseDate);
-          nextDate.setDate(nextDate.getDate() + cumulativeDays);
+          nextDate.setDate(nextDate.getDate() + daysFromFirstDose);
           nextDoseCalculated = nextDate.toISOString().split('T')[0];
 
           // Check existing appointment

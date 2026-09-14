@@ -38,8 +38,8 @@
 #### Acceptance Criteria
 
 1. WHEN the System calculates next dose date THEN the System SHALL use first_dose_date as the base date
-2. WHEN the System determines interval days THEN the System SHALL sum all dose_intervals from index 0 to current_dose - 1
-3. WHEN the System computes next appointment THEN the System SHALL add the cumulative interval days to first_dose_date
+2. WHEN the System determines the next-dose offset THEN the System SHALL read dose_intervals[current_dose - 1] as the absolute number of days from the first dose
+3. WHEN the System computes next appointment THEN the System SHALL add that absolute day offset to first_dose_date
 4. IF doses were given at irregular intervals THEN the System SHALL still calculate based on first_dose_date and standard intervals
 5. WHEN the System displays calculated dates THEN the System SHALL show both calculated date and actual appointment date if different
 
@@ -86,7 +86,7 @@
 #### Acceptance Criteria
 
 1. WHEN the System calculates next dose THEN the System SHALL log vaccine_type, total_doses, and dose_intervals
-2. WHEN the System processes intervals THEN the System SHALL log each interval addition with cumulative total
+2. WHEN the System processes intervals THEN the System SHALL log the selected absolute offset index and day value from the first dose
 3. WHEN the System computes final date THEN the System SHALL log first_dose_date, total_days, and calculated_date
 4. WHEN the System finds existing appointments THEN the System SHALL log comparison between calculated and scheduled dates
 5. WHERE logging is implemented THEN the System SHALL use console.log with emoji prefixes for readability

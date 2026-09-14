@@ -41,7 +41,7 @@
 - [x] 1.4 Implement calculateCumulativeDays function
 
 
-  - Sum intervals from index 0 to currentDose - 1
+  - Return intervals[currentDose - 1] as the absolute offset from the first dose (legacy function name retained)
   - Return 0 for first dose (currentDose = 0)
   - Handle edge cases (empty intervals, negative values)
   - _Requirements: 2.2_
@@ -64,8 +64,8 @@
   - Parse dose_intervals using parseDoseIntervals
   - Find first_dose_date using findFirstDoseDate
   - Check if vaccine is complete (currentDose >= total_doses)
-  - Calculate cumulative days using calculateCumulativeDays
-  - Add cumulative days to first_dose_date to get next_dose_date
+  - Read the absolute day offset using calculateCumulativeDays
+  - Add the absolute day offset to first_dose_date to get next_dose_date
   - Calculate daysUntilNextDose from today
   - Build and return CalculationResult with debug info
   - Handle all errors and return CalculationError when needed
@@ -76,7 +76,7 @@
 
   - Log vaccine information with emoji prefixes
   - Log first dose date
-  - Log each interval step with cumulative total
+  - Log the selected dose_intervals index and absolute day offset
   - Log final calculated date
   - Log next dose number and interval used
   - Use consistent format across all logs
@@ -85,11 +85,11 @@
 - [ ]* 1.8 Write unit tests for utility functions
   - Test parseDoseIntervals with arrays, JSON strings, and invalid inputs
   - Test findFirstDoseDate with multiple dates and empty array
-  - Test calculateCumulativeDays with various dose numbers
+  - Test calculateCumulativeDays returns absolute offsets for various dose numbers
   - Test validateVaccineSchedule with valid and invalid schedules
   - Test calculateNextDoseDate with single-dose vaccines
   - Test calculateNextDoseDate with multi-dose vaccines
-  - Test calculateNextDoseDate with cumulative intervals
+  - Test calculateNextDoseDate with absolute offsets from the first dose
   - Test calculateNextDoseDate when vaccine is complete
   - Test error cases (missing schedule, no doses, invalid data)
   - Achieve 90%+ code coverage
@@ -235,7 +235,7 @@
 - [ ] 5.3 Update UI to show calculation breakdown
   - Display step-by-step calculation
   - Show intervals used
-  - Display cumulative days
+  - Display days from the first dose
   - Show calculation from first dose
   - _Requirements: 6.1, 6.2, 6.3_
 
