@@ -247,29 +247,24 @@ const NextAppointments = () => {
           // Calculate from the FIRST dose date, not the latest
           const firstDoseDate = new Date(patient.first_dose_date);
 
-          // Get the interval for the NEXT dose
-          // ✅ FIX: dose_intervals is CUMULATIVE from first dose
-          // intervals[0] = days from first dose to dose 2
-          // intervals[1] = days from first dose to dose 3
-          // So for next dose after dose N, we use intervals[N-1]
-          const nextDoseIntervalDays = patient.doses_received === 0
-            ? 0
-            : (typeof intervals[patient.doses_received - 1] === 'number'
-                ? intervals[patient.doses_received - 1]
-                : 0);
+          // dose_intervals stores ABSOLUTE day offsets from the first dose.
+          // For the next dose after N completed doses, use intervals[N - 1].
+          const nextDoseIntervalDays = typeof intervals[patient.doses_received - 1] === 'number'
+            ? intervals[patient.doses_received - 1]
+            : 0;
 
-          console.log(`  เข็มที่ ${patient.doses_received + 1}: ระยะห่าง ${nextDoseIntervalDays} วัน จากเข็มแรก`);
+          console.log(`  เข็มที่ ${patient.doses_received + 1}: ห่างจากเข็มแรก ${nextDoseIntervalDays} วัน`);
 
-          // Calculate next dose date from first dose + interval for this specific dose
+          // Calculate next dose date from first dose + absolute offset.
           const nextDoseDate = new Date(firstDoseDate.getTime());
           nextDoseDate.setDate(firstDoseDate.getDate() + nextDoseIntervalDays);
 
           const nextDoseNumber = patient.doses_received + 1;
-          const nextDoseIntervalFromSchedule = intervals[patient.doses_received] || 0;
+          const nextDoseIntervalFromSchedule = nextDoseIntervalDays;
 
           console.log(`🎯 ${patient.patient_name}: คำนวณจาก vaccine_schedules`);
           console.log(`   - เข็มแรก: ${patient.first_dose_date}`);
-          console.log(`   - ระยะห่างของโดสนี้: ${nextDoseIntervalDays} วัน`);
+          console.log(`   - ระยะห่างจากเข็มแรก: ${nextDoseIntervalDays} วัน`);
           console.log(`   - ต้องการโดส: ${nextDoseNumber}/${schedule.total_doses}`);
           console.log(`   - นัดคำนวน: ${nextDoseDate.toISOString().split('T')[0]}`);
 

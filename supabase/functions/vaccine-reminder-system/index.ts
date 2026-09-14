@@ -337,13 +337,43 @@ async function scheduleNextDose(trackingId: string, supabase: any) {
     );
   }
 
-  // Calculate next dose date
+  // Calculate next dose date using the authoritative standard:
+  // dose_intervals stores ABSOLUTE day offsets from the first dose.
   const schedule = tracking.vaccine_schedules;
-  const currentDoseIndex = tracking.current_dose - 1; // 0-based index for intervals
-  const intervalDays = schedule.dose_intervals[currentDoseIndex] || 30;
-  
-  const nextDoseDate = new Date();
-  nextDoseDate.setDate(nextDoseDate.getDate() + intervalDays);
+  const intervals = Array.isArray(schedule.dose_intervals)
+    ? schedule.dose_intervals
+    : JSON.parse(schedule.dose_intervals ?? '[]');
+
+  // current_dose is the number of completed doses. The next dose uses index current_dose - 1.
+  const offsetIndex = tracking.current_dose - 1;
+  const daysFromFirstDose = Number(intervals[offsetIndex]);
+
+  if (!Number.isFinite(daysFromFirstDose) || daysFromFirstDose <= 0) {
+    throw new Error(`Invalid dose_intervals offset for dose ${tracking.current_dose + 1}`);
+  }
+
+  // Always anchor follow-up dates to the earliest completed dose for this patient/vaccine.
+  const { data: firstDose, error: firstDoseError } = await supabase
+    .from('appointments')
+    .select('appointment_date')
+    .or(`patient_id_number.eq.${tracking.patient_id},line_user_id.eq.${tracking.line_user_id || tracking.patient_id}`)
+    .eq('vaccine_type', schedule.vaccine_type)
+    .eq('status', 'completed')
+    .order('appointment_date', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (firstDoseError) {
+    throw firstDoseError;
+  }
+
+  const firstDoseDate = firstDose?.appointment_date || tracking.last_dose_date;
+  if (!firstDoseDate) {
+    throw new Error('First dose date not found');
+  }
+
+  const nextDoseDate = new Date(firstDoseDate);
+  nextDoseDate.setDate(nextDoseDate.getDate() + daysFromFirstDose);
 
   // Update tracking record
   await supabase

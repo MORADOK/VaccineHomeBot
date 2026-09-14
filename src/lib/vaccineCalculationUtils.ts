@@ -175,14 +175,16 @@ export function findFirstDoseDate(completedDoses: CompletedDose[]): string | nul
 
 
 /**
- * Calculate cumulative days from first dose to current dose
- * 
- * Sums all intervals from index 0 to currentDose - 1.
- * Returns 0 for first dose (currentDose = 0).
- * 
- * @param intervals - Array of interval days between doses
- * @param currentDose - Current dose number (0-indexed)
- * @returns Total cumulative days
+ * Get the absolute day offset from the first dose for the next dose.
+ *
+ * IMPORTANT: dose_intervals already stores offsets from dose 1.
+ * Example [3, 7, 14, 28] means dose 2/3/4/5 occur on day 3/7/14/28.
+ *
+ * The legacy function name is kept for API compatibility.
+ *
+ * @param intervals - Absolute day offsets from the first dose
+ * @param currentDose - Number of completed doses
+ * @returns Days from the first dose to the next dose
  */
 export function calculateCumulativeDays(intervals: number[], currentDose: number): number {
   // First dose has no interval
@@ -195,21 +197,15 @@ export function calculateCumulativeDays(intervals: number[], currentDose: number
     return 0;
   }
 
-  // Sum intervals from 0 to currentDose - 1
-  let cumulative = 0;
-  for (let i = 0; i < currentDose && i < intervals.length; i++) {
-    const interval = intervals[i];
-    
-    // Handle negative values
-    if (interval < 0) {
-      console.warn(`⚠️ calculateCumulativeDays: Negative interval at index ${i}: ${interval}`);
-      continue;
-    }
-    
-    cumulative += interval;
+  const index = currentDose - 1;
+  const offset = intervals[index];
+
+  if (typeof offset !== 'number' || offset < 0) {
+    console.warn(`⚠️ calculateCumulativeDays: Invalid absolute offset at index ${index}:`, offset);
+    return 0;
   }
 
-  return cumulative;
+  return offset;
 }
 
 
@@ -344,10 +340,10 @@ export function calculateNextDoseDate(
       };
     }
 
-    // Step 6: Calculate cumulative days from first dose
+    // Step 6: Get the absolute day offset from the first dose
     const cumulativeDays = calculateCumulativeDays(intervals, currentDoseNumber);
 
-    // Step 7: Add cumulative days to first dose date
+    // Step 7: Add the absolute offset to the first dose date
     const firstDate = new Date(firstDoseDate);
     const nextDate = new Date(firstDate);
     nextDate.setDate(nextDate.getDate() + cumulativeDays);
@@ -438,19 +434,14 @@ export function logCalculationSteps(
   if (!result.isComplete) {
     console.log('📊 Calculation Steps');
     
-    // Log each interval step
-    let cumulative = 0;
     const intervals = result.debugInfo.intervals;
-    
-    for (let i = 0; i < currentDoseNumber && i < intervals.length; i++) {
-      cumulative += intervals[i];
-      console.log(`   - เข็มที่ ${i + 1} → ${i + 2}: +${intervals[i]} วัน (รวม: ${cumulative} วัน)`);
-    }
-    
+    const offsetIndex = currentDoseNumber - 1;
+    console.log(`   - ใช้ dose_intervals[${offsetIndex}] = ${intervals[offsetIndex]} วัน จากเข็มแรก`);
+
     console.log('📅 Calculated Next Dose');
     console.log(`   - เข็มถัดไป: เข็มที่ ${result.nextDoseNumber}`);
     console.log(`   - ระยะห่างที่ใช้: ${result.intervalUsed} วัน`);
-    console.log(`   - รวมระยะห่างจากเข็มแรก: ${result.cumulativeDays} วัน`);
+    console.log(`   - ระยะห่างจากเข็มแรก: ${result.cumulativeDays} วัน`);
     console.log(`   - วันที่นัดเข็มถัดไป: ${result.nextDoseDate}`);
     console.log(`   - จำนวนวันจนถึงนัด: ${result.daysUntilNextDose} วัน`);
     console.log(`   - วิธีการคำนวณ: ${result.calculationMethod}`);

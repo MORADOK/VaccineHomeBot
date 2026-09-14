@@ -226,25 +226,22 @@ const VaccineScheduleCalculator: React.FC = () => {
             // This ensures accuracy even if doses were given at irregular intervals
             let baseDate = new Date(patient.first_dose_date);
 
-            // Sum up all intervals up to the current dose to get the correct next dose date
-            let totalDaysFromFirstDose = 0;
-            for (let i = 0; i < patient.doses_received; i++) {
-              const intervalDays = typeof intervals[i] === 'number' ? intervals[i] : 0;
-              totalDaysFromFirstDose += intervalDays;
-              console.log(`  เข็มที่ ${i + 1} -> ${i + 2}: +${intervalDays} วัน (รวม: ${totalDaysFromFirstDose} วัน)`);
-            }
+            // dose_intervals stores ABSOLUTE day offsets from the first dose.
+            const daysFromFirstDose = typeof intervals[patient.doses_received - 1] === 'number'
+              ? intervals[patient.doses_received - 1]
+              : 0;
 
-            // Calculate next dose date from first dose + cumulative intervals
+            // Calculate next dose date from first dose + absolute offset.
             const nextDate = new Date(baseDate);
-            nextDate.setDate(nextDate.getDate() + totalDaysFromFirstDose);
+            nextDate.setDate(nextDate.getDate() + daysFromFirstDose);
 
             nextDoseDate = nextDate.toISOString().split('T')[0];
 
-            const nextDoseIntervalFromSchedule = intervals[patient.doses_received] || 0;
+            const nextDoseIntervalFromSchedule = daysFromFirstDose;
 
             console.log(`🎯 วัคซีน ${patient.vaccine_type}: คำนวณจาก vaccine_schedules`);
             console.log(`   - เข็มแรก: ${patient.first_dose_date}`);
-            console.log(`   - รวมระยะห่าง: ${totalDaysFromFirstDose} วัน`);
+            console.log(`   - ระยะห่างจากเข็มแรก: ${daysFromFirstDose} วัน`);
             console.log(`   - นัดเข็มที่ ${patient.doses_received + 1}: ${nextDoseDate}`);
             console.log(`   - ช่วงห่างจาก vaccine_schedules: ${nextDoseIntervalFromSchedule} วัน`);
 
@@ -349,10 +346,9 @@ const VaccineScheduleCalculator: React.FC = () => {
     });
 
     // Subsequent doses
-    let currentDate = today;
     for (let i = 1; i < schedule.total_doses; i++) {
       const intervalDays = schedule.dose_intervals[i - 1] || 30;
-      currentDate = addDays(currentDate, intervalDays);
+      const currentDate = addDays(today, intervalDays);
 
       scheduleArray.push({
         dose: i + 1,

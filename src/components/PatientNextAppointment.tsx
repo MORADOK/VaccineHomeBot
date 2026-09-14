@@ -211,8 +211,8 @@ const PatientNextAppointment = () => {
           const firstDoseDate = new Date(vaccine.first_dose_date);
 
           // Get the interval for the NEXT dose (not cumulative)
-          const nextDoseIntervalDays = typeof intervals[vaccine.doses_received] === 'number' 
-            ? intervals[vaccine.doses_received] 
+          const nextDoseIntervalDays = typeof intervals[vaccine.doses_received - 1] === 'number' 
+            ? intervals[vaccine.doses_received - 1] 
             : 0;
 
           console.log(`  เข็มที่ ${vaccine.doses_received + 1}: ระยะห่าง ${nextDoseIntervalDays} วัน`);
@@ -222,7 +222,7 @@ const PatientNextAppointment = () => {
           nextDoseDate.setDate(firstDoseDate.getDate() + nextDoseIntervalDays);
 
           const nextDoseNumber = vaccine.doses_received + 1;
-          const nextDoseIntervalFromSchedule = intervals[vaccine.doses_received] || 0;
+          const nextDoseIntervalFromSchedule = intervals[vaccine.doses_received - 1] || 0;
 
           console.log(`🎯 ${vaccine.patient_name}: คำนวณจาก vaccine_schedules`);
           console.log(`   - เข็มแรก: ${vaccine.first_dose_date}`);

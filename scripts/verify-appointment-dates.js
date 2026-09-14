@@ -1,6 +1,6 @@
 /**
  * สคริปต์ตรวจสอบความถูกต้องของวันนัดในฐานข้อมูล
- * ตรวจสอบว่าวันนัดคำนวณจากเข็มแรก + ระยะห่างสะสมถูกต้องหรือไม่
+ * ตรวจสอบว่าวันนัดคำนวณจากเข็มแรก + ระยะห่างมาตรฐานจาก dose_intervals ถูกต้องหรือไม่
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -93,20 +93,14 @@ async function verifyAppointmentDates() {
       console.log(`📆 นัดที่มี: ${scheduledAppointments.length} นัด`);
       console.log('');
 
-      // ตรวจสอบแต่ละโดส
-      let cumulativeDays = 0;
-
+      // ตรวจสอบแต่ละโดส โดย dose_intervals เป็น absolute offset จากเข็มแรก
       for (let i = 0; i < schedule.total_doses; i++) {
         const doseNumber = i + 1;
-        const intervalDays = i === 0 ? 0 : (intervals[i - 1] || 0);
-
-        if (i > 0) {
-          cumulativeDays += intervalDays;
-        }
+        const daysFromFirstDose = i === 0 ? 0 : (intervals[i - 1] || 0);
 
         // คำนวณวันที่ที่ควรจะเป็น
         const expectedDate = new Date(firstDoseDate);
-        expectedDate.setDate(expectedDate.getDate() + cumulativeDays);
+        expectedDate.setDate(expectedDate.getDate() + daysFromFirstDose);
         const expectedDateStr = expectedDate.toISOString().split('T')[0];
 
         // หานัดจริงสำหรับโดสนี้
