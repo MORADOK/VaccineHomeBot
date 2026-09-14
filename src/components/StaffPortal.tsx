@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getBangkokDateString, getBangkokTimeString, addDaysToDateString } from '@/lib/dateOnlyUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,7 +123,7 @@ interface StaffPortalProps {
 const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(getBangkokDateString());
   const [vaccineOptions, setVaccineOptions] = useState<VaccineOption[]>([]);
   const [patientRegistrations, setPatientRegistrations] = useState<PatientRegistration[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -268,9 +269,9 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
     }
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getBangkokDateString();
       const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5);
+      const currentTime = getBangkokTimeString(now);
 
       const doseText = walkInForm.doseNumber === '1' ? 'เข็มที่ 1' :
         walkInForm.doseNumber === '2' ? 'เข็มที่ 2' :
@@ -287,6 +288,7 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
         appointment_time: currentTime,
         status: 'completed',
         scheduled_by: 'walk_in',
+        dose_number: Number(walkInForm.doseNumber),
         notes: `ฉีดวัคซีน Walk-in ${doseText} (${selectedVaccine?.vaccine_name}) วันนี้${walkInForm.notes ? ' - ' + walkInForm.notes : ''}`
       };
 
@@ -365,7 +367,7 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
   const scheduledToday = todayAppointments.filter(a => a.status === 'scheduled').length;
   const totalToday = todayAppointments.length;
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === getBangkokDateString();
   const dateLabel = isToday ? 'วันนี้' : new Date(selectedDate).toLocaleDateString('th-TH');
 
   return (
@@ -430,7 +432,7 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
             </div>
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+                onClick={() => handleDateChange(getBangkokDateString())}
                 variant="outline"
                 size="sm"
                 disabled={isToday}
@@ -439,9 +441,7 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
               </Button>
               <Button
                 onClick={() => {
-                  const tomorrow = new Date();
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  handleDateChange(tomorrow.toISOString().split('T')[0]);
+                  handleDateChange(addDaysToDateString(getBangkokDateString(), 1));
                 }}
                 variant="outline"
                 size="sm"
@@ -756,7 +756,7 @@ const StaffPortal = ({ isAdmin: propIsAdmin }: StaffPortalProps = {}) => {
                             </Button>
                           </>
                         )}
-                        {appointment.status === 'scheduled' && new Date(appointment.appointment_date) < new Date(new Date().toISOString().split('T')[0]) && (
+                        {appointment.status === 'scheduled' && appointment.appointment_date < getBangkokDateString() && (
                           <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
                             <Clock className="h-4 w-4 text-yellow-600" />
                             <span className="text-xs text-yellow-700">นัดที่พลาด</span>

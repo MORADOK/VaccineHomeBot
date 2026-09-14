@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { addDaysToDateString, getBangkokDateString } from '@/lib/dateOnlyUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +55,7 @@ const NextAppointments = () => {
       const completedAppointments = appointmentData?.filter(a => a.status === 'completed') || [];
 
       // กรองเฉพาะนัดที่ยังไม่ถูกยกเลิก (รวมทั้งนัดที่เกินกำหนด)
-      const today = new Date().toISOString().split('T')[0]; // เช่น "2024-12-15"
+      const today = getBangkokDateString();
       const scheduledAppointments = appointmentData?.filter(a =>
         ['scheduled', 'pending'].includes(a.status)
         // ไม่กรองตามวันที่ - เพื่อแสดงนัดที่เกินกำหนดด้วย
@@ -213,22 +214,10 @@ const NextAppointments = () => {
             return null; // Already has appointment (will be shown from existing appointments above)
           }
 
-          // ตรวจสอบว่ามีนัดที่ถูกยกเลิกและเกินกำหนดหรือไม่ (ไม่ต้องแสดงซ้ำ)
-          const cancelledOverdueAppointment = appointmentData?.find(appt => {
-            const apptPatientKey = appt.patient_id_number || appt.line_user_id;
-            const matchesPatient = apptPatientKey === patient.patient_id;
-            const matchesVaccine = appt.vaccine_type.toLowerCase() === patient.vaccine_type.toLowerCase();
-            const isCancelled = appt.status === 'cancelled';
-            const isOverdue = appt.appointment_date < today;
-            return matchesPatient && matchesVaccine && isCancelled && isOverdue;
-          });
-
-          if (cancelledOverdueAppointment) {
-            console.log(`🚫 ผู้ป่วย ${patient.patient_name} มีนัดเกินกำหนดที่ถูกยกเลิกแล้ว (${cancelledOverdueAppointment.appointment_date}) - ไม่แสดงอีก`);
-            return null; // Don't show again if cancelled overdue appointment exists
-          }
-
-          console.log(`🆕 ผู้ป่วย ${patient.patient_name} ยังไม่มีนัด ${patient.vaccine_type} - ต้องสร้างนัด`);
+          // A cancelled appointment must NOT suppress future dose calculation.
+          // If there is no active scheduled/pending appointment, continue calculating
+          // the next required dose from the vaccination history and vaccine schedule.
+          console.log(`🆕 ผู้ป่วย ${patient.patient_name} ยังไม่มีนัดที่ active สำหรับ ${patient.vaccine_type} - คำนวณนัดถัดไป`);
 
           // Calculate next dose date from vaccine_schedules (source of truth)
           // Calculate from FIRST dose to ensure accuracy
@@ -245,8 +234,6 @@ const NextAppointments = () => {
           });
 
           // Calculate from the FIRST dose date, not the latest
-          const firstDoseDate = new Date(patient.first_dose_date);
-
           // dose_intervals stores ABSOLUTE day offsets from the first dose.
           // For the next dose after N completed doses, use intervals[N - 1].
           const nextDoseIntervalDays = typeof intervals[patient.doses_received - 1] === 'number'
@@ -255,9 +242,8 @@ const NextAppointments = () => {
 
           console.log(`  เข็มที่ ${patient.doses_received + 1}: ห่างจากเข็มแรก ${nextDoseIntervalDays} วัน`);
 
-          // Calculate next dose date from first dose + absolute offset.
-          const nextDoseDate = new Date(firstDoseDate.getTime());
-          nextDoseDate.setDate(firstDoseDate.getDate() + nextDoseIntervalDays);
+          // Date-only arithmetic avoids UTC/local timezone shifts.
+          const nextDoseDate = addDaysToDateString(patient.first_dose_date, nextDoseIntervalDays);
 
           const nextDoseNumber = patient.doses_received + 1;
           const nextDoseIntervalFromSchedule = nextDoseIntervalDays;
@@ -266,7 +252,7 @@ const NextAppointments = () => {
           console.log(`   - เข็มแรก: ${patient.first_dose_date}`);
           console.log(`   - ระยะห่างจากเข็มแรก: ${nextDoseIntervalDays} วัน`);
           console.log(`   - ต้องการโดส: ${nextDoseNumber}/${schedule.total_doses}`);
-          console.log(`   - นัดคำนวน: ${nextDoseDate.toISOString().split('T')[0]}`);
+          console.log(`   - นัดคำนวน: ${nextDoseDate}`);
 
           return {
             id: `new-${patient.patient_id}-${patient.vaccine_type}`,
@@ -370,6 +356,7 @@ const NextAppointments = () => {
         appointment_date: patientTracking.next_dose_due,
         status: 'scheduled',
         line_user_id: patientTracking.line_user_id,
+        dose_number: patientTracking.current_dose + 1,
         notes: `นัดเข็มที่ ${patientTracking.current_dose + 1} จาก ${patientTracking.total_doses} เข็ม`
       };
 
@@ -512,6 +499,11 @@ const NextAppointments = () => {
       return;
     }
 
+    const confirmed = window.confirm(
+      `ยืนยันยกเลิกนัดของ ${appointment.patient_name}\n${appointment.vaccine_name || appointment.vaccine_type}\nวันที่ ${new Date(appointment.next_dose_due).toLocaleDateString('th-TH')} ?`
+    );
+    if (!confirmed) return;
+
     setCancelingAppointment(appointment.id);
 
     try {
@@ -520,9 +512,21 @@ const NextAppointments = () => {
       // Extract appointment ID from scheduled ID (format: scheduled-{id})
       const appointmentId = appointment.id.replace('scheduled-', '');
 
+      const cancelledAt = new Date().toISOString();
+      const { data: currentAppointment } = await supabase
+        .from('appointments')
+        .select('notes')
+        .eq('id', appointmentId)
+        .maybeSingle();
+
+      const auditNote = `[ยกเลิกจากหน้า NextAppointments เมื่อ ${new Date().toLocaleString('th-TH')}]`;
       const { error } = await supabase
         .from('appointments')
-        .update({ status: 'cancelled' })
+        .update({
+          status: 'cancelled',
+          notes: `${currentAppointment?.notes || ''} ${auditNote}`.trim(),
+          updated_at: cancelledAt,
+        })
         .eq('id', appointmentId);
 
       if (error) throw error;

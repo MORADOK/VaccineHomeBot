@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           appointment_id: string | null
           created_at: string
+          dose_number: number | null
           id: string
           line_user_id: string | null
           message_content: string | null
@@ -29,6 +30,7 @@ export type Database = {
         Insert: {
           appointment_id?: string | null
           created_at?: string
+          dose_number?: number | null
           id?: string
           line_user_id?: string | null
           message_content?: string | null
@@ -40,6 +42,7 @@ export type Database = {
         Update: {
           appointment_id?: string | null
           created_at?: string
+          dose_number?: number | null
           id?: string
           line_user_id?: string | null
           message_content?: string | null

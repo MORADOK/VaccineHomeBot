@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { addDaysToDateString } from '@/lib/dateOnlyUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -228,7 +229,7 @@ const PatientNextAppointment = () => {
           console.log(`   - เข็มแรก: ${vaccine.first_dose_date}`);
           console.log(`   - ระยะห่างของโดสนี้: ${nextDoseIntervalDays} วัน`);
           console.log(`   - ต้องการโดส: ${nextDoseNumber}/${schedule.total_doses}`);
-          console.log(`   - นัดคำนวน: ${nextDoseDate.toISOString().split('T')[0]}`);
+          console.log(`   - นัดคำนวน: ${nextDoseDate}`);
 
           return {
             id: `new-${userId}-${vaccine.vaccine_type}`,
@@ -238,7 +239,7 @@ const PatientNextAppointment = () => {
             vaccine_type: vaccine.vaccine_type,
             current_dose: vaccine.doses_received, // จำนวนโดสที่ฉีดแล้วจริง
             total_doses: schedule.total_doses,
-            next_dose_due: nextDoseDate.toISOString().split('T')[0],
+            next_dose_due: nextDoseDate,
             last_dose_date: vaccine.latest_date, // วันที่ฉีดเข็มล่าสุดจริง
             completion_status: 'needs_appointment'
           };
