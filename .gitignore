@@ -26,3 +26,6 @@ yarn-error.log*
 
 NUL
 nul
+/dev-server.log
+/detailed-check-output.txt
+/appointment-verification-report.json
