@@ -2,35 +2,37 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 1.0.23)'
+        description: 'Version to release (e.g. 1.0.25)'
         required: true
         type: string
 
 jobs:
   release:
     runs-on: windows-latest
-
     permissions:
       contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Resolve and validate release version
+        id: ver
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") { $v="${{ inputs.version }}" } else { $v="${{ github.ref_name }}".TrimStart('v') }
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid release version: $v" }
+          npm version $v --no-git-tag-version
+          "version=$v" >> $env:GITHUB_OUTPUT
+          "tag=v$v" >> $env:GITHUB_OUTPUT
+      - name: Test
+        run: npm run test:run
       - name: Build application
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -38,7 +40,6 @@ jobs:
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
           VITE_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
         run: npm run build
-
       - name: Build Windows installers
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -46,49 +47,22 @@ jobs:
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
           VITE_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
         run: npx electron-builder --win --publish=never
-
-      - name: Resolve release tag
-        id: release_tag
-        shell: pwsh
-        run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            "tag=v${{ inputs.version }}" >> $env:GITHUB_OUTPUT
-          } else {
-            "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
-          }
-
-      - name: Create GitHub Release and upload installers
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.release_tag.outputs.tag }}
-          name: VCHome Hospital ${{ steps.release_tag.outputs.tag }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: VCHome Hospital ${{ steps.ver.outputs.tag }}
           generate_release_notes: true
           make_latest: true
           files: |
             release/*.exe
             release/*.blockmap
             release/latest.yml
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: windows-installers-${{ steps.release_tag.outputs.tag }}
+          name: windows-installers-${{ steps.ver.outputs.tag }}
           path: |
             release/*.exe
             release/*.blockmap
-            release/*.yml
+            release/latest.yml
           retention-days: 30
-
-      - name: Create release summary
-        shell: pwsh
-        run: |
-          echo "## Release Build Complete ✅" >> $env:GITHUB_STEP_SUMMARY
-          echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "### Generated Files:" >> $env:GITHUB_STEP_SUMMARY
-          Get-ChildItem release/*.exe, release/*.yml | ForEach-Object {
-            $size = [math]::Round($_.Length / 1MB, 2)
-            echo "- $($_.Name) ($size MB)" >> $env:GITHUB_STEP_SUMMARY
-          }
-          echo "" >> $env:GITHUB_STEP_SUMMARY
-          echo "### Release URL:" >> $env:GITHUB_STEP_SUMMARY
-          echo "https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_tag.outputs.tag }}" >> $env:GITHUB_STEP_SUMMARY
