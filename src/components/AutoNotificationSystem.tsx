@@ -1,256 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Bell, 
-  Clock, 
-  CheckCircle, 
-  AlertTriangle, 
-  Send,
-  RefreshCw,
-  Activity,
-  Calendar,
-  Users
-} from 'lucide-react';
+import { Bell, CalendarDays, CheckCircle, MessageCircle, Phone, PhoneOff, RefreshCw, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface NotificationLog {
-  id: string;
-  appointment_id: string;
-  notification_type: string;
-  sent_to: string;
-  message_content: string;
-  status: string;
-  sent_at: string;
-  created_at: string;
-}
+type ReminderChannel = 'phone' | 'line' | 'both' | 'none';
+type ReminderStatus = 'pending' | 'phone_done' | 'line_sent' | 'both_done' | 'unreachable' | 'not_required';
 
-interface NotificationStats {
-  appointmentsChecked: number;
-  overdueAppointmentsChecked: number;
-  notificationsSent: number;
-  errors: number;
-}
-
-const AutoNotificationSystem = () => {
-  const [notifications, setNotifications] = useState<NotificationLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastRunResult, setLastRunResult] = useState<{ statistics?: NotificationStats; timestamp?: string } | null>(null);
-  const { toast } = useToast();
-
-  // โหลดประวัติการแจ้งเตือน
-  const loadNotificationHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('appointment_notifications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setNotifications(data || []);
-    } catch (error: any) {
-      console.error('Error loading notification history:', error);
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "ไม่สามารถโหลดประวัติการแจ้งเตือนได้",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // เรียกใช้ระบบแจ้งเตือนอัตโนมัติ
-  const runAutoNotifications = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('manual-notification-trigger', {
-        body: {}
-      });
-
-      if (error) throw error;
-
-      setLastRunResult(data.result);
-      
-      toast({
-        title: "ระบบแจ้งเตือนทำงานสำเร็จ",
-        description: `ส่งการแจ้งเตือน ${data.result?.statistics?.notificationsSent || 0} รายการ`,
-      });
-
-      // โหลดประวัติใหม่หลังจากส่งการแจ้งเตือน
-      setTimeout(() => {
-        loadNotificationHistory();
-      }, 2000);
-      
-    } catch (error: any) {
-      console.error('Error running auto notifications:', error);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: error.message || "ไม่สามารถเรียกใช้ระบบแจ้งเตือนได้",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'sent': return 'bg-green-100 text-green-800 border-green-200';
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getNotificationTypeIcon = (type: string) => {
-    switch (type) {
-      case 'reminder': return <Clock className="h-4 w-4" />;
-      case 'overdue': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Bell className="h-4 w-4" />;
-    }
-  };
-
-  const getNotificationTypeText = (type: string) => {
-    switch (type) {
-      case 'reminder': return 'แจ้งเตือนล่วงหน้า';
-      case 'overdue': return 'การนัดเกินกำหนด';
-      default: return type;
-    }
-  };
-
-  useEffect(() => {
-    loadNotificationHistory();
-  }, []);
-
-  return (
-    <div className="space-y-4 md:space-y-6">
-      {/* ส่วนควบคุมระบบ */}
-      <Card>
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Activity className="h-5 w-5 text-primary" />
-            ระบบแจ้งเตือนอัตโนมัติ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 p-4 md:p-6">
-          <Alert>
-            <Bell className="h-4 w-4" />
-            <AlertDescription className="text-sm md:text-base">
-              ระบบจะตรวจสอบและส่งการแจ้งเตือนล่วงหน้าอัตโนมัติ:
-              <br />• แจ้งเตือน 1 วันก่อนวันนัด และ 8 ชั่วโมงก่อนวันนัด
-              <br />• ตรวจสอบการนัดเกินกำหนดและส่งการแจ้งเตือน
-            </AlertDescription>
-          </Alert>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              onClick={runAutoNotifications} 
-              disabled={isLoading}
-              className="flex-1 h-11"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              {isLoading ? 'กำลังดำเนินการ...' : 'เรียกใช้ระบบแจ้งเตือน'}
-            </Button>
-            <Button 
-              onClick={loadNotificationHistory} 
-              variant="outline"
-              className="h-11"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              รีเฟรช
-            </Button>
-          </div>
-
-          {/* สถิติการทำงานล่าสุด */}
-          {lastRunResult?.statistics && (
-            <div className="mt-4 p-3 md:p-4 bg-muted/50 rounded-lg border">
-              <h3 className="font-medium text-sm md:text-base mb-3 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                ผลการทำงานล่าสุด
-              </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                <div className="text-center">
-                  <div className="font-semibold text-lg">{lastRunResult.statistics.appointmentsChecked}</div>
-                  <div className="text-muted-foreground">นัดพรุ่งนี้</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-lg">{lastRunResult.statistics.overdueAppointmentsChecked}</div>
-                  <div className="text-muted-foreground">นัดเกินกำหนด</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-lg text-green-600">{lastRunResult.statistics.notificationsSent}</div>
-                  <div className="text-muted-foreground">ส่งสำเร็จ</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-lg text-red-600">{lastRunResult.statistics.errors}</div>
-                  <div className="text-muted-foreground">ข้อผิดพลาด</div>
-                </div>
-              </div>
-              {lastRunResult.timestamp && (
-                <div className="text-xs text-muted-foreground mt-2">
-                  เมื่อ: {new Date(lastRunResult.timestamp).toLocaleString('th-TH')}
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ประวัติการแจ้งเตือน */}
-      <Card>
-        <CardHeader className="pb-3 md:pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-            <Calendar className="h-5 w-5 text-primary" />
-            ประวัติการแจ้งเตือน ({notifications.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 md:p-6">
-          {notifications.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>ยังไม่มีการแจ้งเตือน</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notifications.map((notification) => (
-                <div key={notification.id} className="border rounded-lg p-3 md:p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      {getNotificationTypeIcon(notification.notification_type)}
-                      <span className="font-medium text-sm md:text-base">
-                        {getNotificationTypeText(notification.notification_type)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(notification.status) + ' text-xs'}>
-                        {notification.status === 'sent' ? 'ส่งแล้ว' : 
-                         notification.status === 'failed' ? 'ไม่สำเร็จ' : 
-                         notification.status}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(notification.created_at).toLocaleString('th-TH')}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground mb-2">
-                    ส่งถึง: {notification.sent_to}
-                  </div>
-                  
-                  <div className="text-xs md:text-sm bg-background p-2 rounded border border-border/30 max-h-20 overflow-y-auto">
-                    {notification.message_content}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+type Appointment = {
+  id: string; patient_name: string; patient_phone: string | null; line_user_id: string | null;
+  vaccine_type: string; vaccine_name: string | null; appointment_date: string; appointment_time: string | null;
+  status: string | null; reminder_channel: ReminderChannel; reminder_status: ReminderStatus;
+  reminder_contacted_at: string | null; reminder_contacted_by: string | null; reminder_note: string | null;
 };
 
+const localISODate = (offset = 0) => {
+  const d = new Date(); d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const thaiDate = (v: string) => new Date(`${v}T00:00:00`).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+
+const AutoNotificationSystem = () => {
+  const [rows,setRows] = useState<Appointment[]>([]); const [loading,setLoading]=useState(false); const {toast}=useToast();
+  const today=localISODate(0), tomorrow=localISODate(1);
+
+  const load = useCallback(async()=>{
+    setLoading(true);
+    const {data,error}=await supabase.from('appointments').select('*').in('appointment_date',[today,tomorrow]).eq('status','scheduled').order('appointment_date').order('appointment_time');
+    setLoading(false);
+    if(error){ toast({title:'โหลดรายการไม่สำเร็จ',description:error.message,variant:'destructive'}); return; }
+    setRows((data||[]) as unknown as Appointment[]);
+  },[today,tomorrow,toast]);
+  useEffect(()=>{void load();},[load]);
+
+  const todayRows=useMemo(()=>rows.filter(x=>x.appointment_date===today),[rows,today]);
+  const tomorrowRows=useMemo(()=>rows.filter(x=>x.appointment_date===tomorrow),[rows,tomorrow]);
+  const pendingPhone=tomorrowRows.filter(x=>['phone','both'].includes(x.reminder_channel) && !['phone_done','both_done'].includes(x.reminder_status));
+
+  const updateReminder=async(row:Appointment,status:ReminderStatus)=>{
+    const {data:{user}}=await supabase.auth.getUser();
+    const {error}=await supabase.from('appointments').update({reminder_status:status,reminder_contacted_at:new Date().toISOString(),reminder_contacted_by:user?.email||user?.id||'staff'} as never).eq('id',row.id);
+    if(error) toast({title:'บันทึกไม่สำเร็จ',description:error.message,variant:'destructive'}); else {toast({title:'บันทึกสถานะแล้ว'}); void load();}
+  };
+  const setChannel=async(row:Appointment,channel:ReminderChannel)=>{
+    const status:ReminderStatus=channel==='none'?'not_required':'pending';
+    const {error}=await supabase.from('appointments').update({reminder_channel:channel,reminder_status:status} as never).eq('id',row.id);
+    if(error) toast({title:'เปลี่ยนช่องทางไม่สำเร็จ',description:error.message,variant:'destructive'}); else void load();
+  };
+  const sendLine=async(row:Appointment)=>{
+    if(!row.line_user_id){toast({title:'ส่ง LINE ไม่ได้',description:'ผู้ป่วยรายนี้ไม่มี LINE User ID',variant:'destructive'});return;}
+    setLoading(true);
+    try{
+      const {error}=await supabase.functions.invoke('manual-notification-trigger',{body:{appointmentId:row.id}}); if(error) throw error;
+      await supabase.from('appointments').update({reminder_status:row.reminder_channel==='both'?'both_done':'line_sent',reminder_contacted_at:new Date().toISOString()} as never).eq('id',row.id);
+      toast({title:'ส่ง LINE แล้ว',description:row.patient_name}); await load();
+    }catch(e:any){toast({title:'ส่ง LINE ไม่สำเร็จ',description:e.message,variant:'destructive'});}finally{setLoading(false);}
+  };
+
+  const Row=({row,phoneActions=false}:{row:Appointment;phoneActions?:boolean})=>(
+    <div className="rounded-lg border p-3 space-y-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div><div className="font-medium">{row.patient_name}</div><div className="text-sm text-muted-foreground">{row.vaccine_name||row.vaccine_type} • {row.appointment_time?.slice(0,5)||'ไม่ระบุเวลา'} • {row.patient_phone||'ไม่มีเบอร์โทร'}</div></div>
+        <div className="flex flex-wrap gap-2"><Badge variant="outline">{row.reminder_channel==='phone'?'โทรศัพท์':row.reminder_channel==='line'?'LINE':row.reminder_channel==='both'?'โทร + LINE':'ไม่แจ้ง'}</Badge><Badge>{row.reminder_status}</Badge></div>
+      </div>
+      {phoneActions&&<div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={()=>updateReminder(row,row.reminder_channel==='both'&&row.reminder_status==='line_sent'?'both_done':'phone_done')}><Phone className="h-4 w-4 mr-1"/>โทรแจ้งแล้ว</Button>
+        <Button size="sm" variant="outline" onClick={()=>updateReminder(row,'unreachable')}><PhoneOff className="h-4 w-4 mr-1"/>ติดต่อไม่ได้</Button>
+        {(row.reminder_channel==='line'||row.reminder_channel==='both')&&<Button size="sm" variant="outline" onClick={()=>sendLine(row)} disabled={loading}><MessageCircle className="h-4 w-4 mr-1"/>ส่ง LINE</Button>}
+        <select className="h-9 rounded-md border bg-background px-2 text-sm" value={row.reminder_channel} onChange={e=>setChannel(row,e.target.value as ReminderChannel)}><option value="phone">โทรศัพท์</option><option value="line">LINE</option><option value="both">โทร + LINE</option><option value="none">ไม่ต้องแจ้ง</option></select>
+      </div>}
+    </div>
+  );
+
+  return <div className="space-y-6">
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5"/>ศูนย์แจ้งเตือนการนัด</CardTitle></CardHeader><CardContent className="space-y-4">
+      <Alert><Phone className="h-4 w-4"/><AlertDescription>ค่าเริ่มต้นเป็นการโทรแจ้งล่วงหน้า 1 วัน ส่วน LINE เป็นตัวเลือกของแต่ละนัด เจ้าหน้าที่สามารถบันทึกว่าโทรแล้วหรือติดต่อไม่ได้ได้จากหน้านี้</AlertDescription></Alert>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="border rounded-lg p-3"><div className="text-2xl font-bold">{todayRows.length}</div><div className="text-sm text-muted-foreground">นัดฉีดวันนี้</div></div>
+        <div className="border rounded-lg p-3"><div className="text-2xl font-bold">{tomorrowRows.length}</div><div className="text-sm text-muted-foreground">นัดพรุ่งนี้</div></div>
+        <div className="border rounded-lg p-3"><div className="text-2xl font-bold">{pendingPhone.length}</div><div className="text-sm text-muted-foreground">ต้องโทรวันนี้</div></div>
+        <div className="border rounded-lg p-3"><div className="text-2xl font-bold">{tomorrowRows.filter(x=>['phone_done','line_sent','both_done'].includes(x.reminder_status)).length}</div><div className="text-sm text-muted-foreground">แจ้งแล้ว</div></div>
+      </div>
+      <Button variant="outline" onClick={load} disabled={loading}><RefreshCw className={`h-4 w-4 mr-2 ${loading?'animate-spin':''}`}/>รีเฟรช</Button>
+    </CardContent></Card>
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Phone className="h-5 w-5"/>ต้องแจ้งวันนี้ — นัดวันที่ {thaiDate(tomorrow)}</CardTitle></CardHeader><CardContent className="space-y-3">{tomorrowRows.length?tomorrowRows.map(r=><Row key={r.id} row={r} phoneActions/>):<div className="text-center py-8 text-muted-foreground"><CheckCircle className="h-10 w-10 mx-auto mb-2"/>ไม่มีนัดที่ต้องแจ้งสำหรับพรุ่งนี้</div>}</CardContent></Card>
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5"/>ผู้ป่วยนัดฉีดวันนี้ — {thaiDate(today)}</CardTitle></CardHeader><CardContent className="space-y-3">{todayRows.length?todayRows.map(r=><Row key={r.id} row={r}/>):<div className="text-center py-8 text-muted-foreground"><Users className="h-10 w-10 mx-auto mb-2"/>วันนี้ไม่มีผู้ป่วยนัดฉีดวัคซีน</div>}</CardContent></Card>
+  </div>;
+};
 export default AutoNotificationSystem;
