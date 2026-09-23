@@ -89,6 +89,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -123,13 +124,76 @@
   "build": {
     "appId": "com.vchomehospital.vaccine-app",
     "productName": "VCHome Hospital",
-    "directories": { "output": "release", "buildResources": "build" },
-    "files": ["dist-electron/**/*", "public/electron-final-fix.js", "public/preload.js", "public/auto-updater.js", "public/update-manager.js", "electron/assets/**/*", "node_modules/**/*", "package.json"],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "public/electron-final-fix.js",
+      "public/preload.js",
+      "public/auto-updater.js",
+      "public/update-manager.js",
+      "electron/assets/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
     "asar": false,
-    "win": { "target": [{"target":"nsis","arch":["x64"]},{"target":"portable","arch":["x64"]}], "icon":"electron/assets/icons/win/app.ico", "artifactName":"VCHome-Hospital-${version}-${arch}.${ext}", "requestedExecutionLevel":"asInvoker" },
-    "nsis": { "oneClick":false, "allowToChangeInstallationDirectory":true, "createDesktopShortcut":true, "createStartMenuShortcut":true, "shortcutName":"VCHome Hospital", "installerIcon":"electron/assets/icons/win/app.ico", "uninstallerIcon":"electron/assets/icons/win/app.ico", "installerHeaderIcon":"electron/assets/icons/win/app.ico", "deleteAppDataOnUninstall":false, "runAfterFinish":true, "allowElevation":true, "perMachine":false, "menuCategory":"VCHome Hospital" },
-    "mac": { "target":["dmg","zip"], "icon":"electron/assets/icons/mac/app.icns", "category":"public.app-category.medical" },
-    "linux": { "target":["AppImage","deb"], "icon":"electron/assets/icons/png", "category":"Medical" },
-    "publish": { "provider":"github", "owner":"MORADOK", "repo":"VaccineHomeBot", "releaseType":"release" }
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/assets/icons/win/app.ico",
+      "artifactName": "VCHome-Hospital-${version}-${arch}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VCHome Hospital",
+      "installerIcon": "electron/assets/icons/win/app.ico",
+      "uninstallerIcon": "electron/assets/icons/win/app.ico",
+      "installerHeaderIcon": "electron/assets/icons/win/app.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "allowElevation": true,
+      "perMachine": false,
+      "menuCategory": "VCHome Hospital"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "electron/assets/icons/mac/app.icns",
+      "category": "public.app-category.medical"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "electron/assets/icons/png",
+      "category": "Medical"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MORADOK",
+      "repo": "VaccineHomeBot",
+      "releaseType": "release"
+    }
   }
 }
