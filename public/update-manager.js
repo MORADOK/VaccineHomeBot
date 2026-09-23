@@ -6,8 +6,9 @@ const path = require('path');
 class UpdateManager {
   constructor() {
     this.state = { updateAvailable:false, updateInfo:null, downloadProgress:null, updateDownloaded:false, error:null, lastCheckTime:null, pendingInstall:false };
-    // Production default: check, download, and install automatically on app exit.
-    this.preferences = { autoDownload:true, autoInstallOnAppQuit:true, checkOnStartup:true, checkInterval:4*60*60*1000 };
+    // Production default: check on startup and then once every 24 hours.
+    // Download automatically and install when the app exits.
+    this.preferences = { autoDownload:true, autoInstallOnAppQuit:true, checkOnStartup:true, checkInterval:24*60*60*1000 };
     this.logFilePath=path.join(app.getPath('userData'),'update-logs.json');
     this.preferencesPath=path.join(app.getPath('userData'),'update-preferences.json');
     this.loadPreferences(); this.initializeLogFile();
