@@ -1,7 +1,7 @@
 {
   "name": "vchome-hospital-vaccine-app",
   "private": true,
-  "version": "1.0.26",
+  "version": "1.0.27",
   "description": "VCHome Hospital Management System - Vaccine Management Application",
   "author": "VCHome Hospital",
   "main": "public/electron-final-fix.cjs",
