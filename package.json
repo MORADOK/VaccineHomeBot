@@ -1,10 +1,10 @@
 {
   "name": "vchome-hospital-vaccine-app",
   "private": true,
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "VCHome Hospital Management System - Vaccine Management Application",
   "author": "VCHome Hospital",
-  "main": "public/electron-final-fix.js",
+  "main": "public/electron-final-fix.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -84,7 +84,9 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "electron-updater": "^6.6.2",
+    "electron-log": "^5.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
@@ -103,8 +105,6 @@
     "electron": "^37.3.1",
     "electron-builder": "^26.0.12",
     "electron-is-dev": "^3.0.1",
-    "electron-log": "^5.4.3",
-    "electron-updater": "^6.6.2",
     "eslint": "^9.32.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.31.0",
@@ -130,15 +130,15 @@
     },
     "files": [
       "dist-electron/**/*",
-      "public/electron-final-fix.js",
-      "public/preload.js",
-      "public/auto-updater.js",
-      "public/update-manager.js",
+      "public/electron-final-fix.cjs",
+      "public/preload.cjs",
+      "public/auto-updater.cjs",
+      "public/update-manager.cjs",
       "electron/assets/**/*",
       "node_modules/**/*",
       "package.json"
     ],
-    "asar": false,
+    "asar": true,
     "win": {
       "target": [
         {
@@ -194,6 +194,9 @@
       "owner": "MORADOK",
       "repo": "VaccineHomeBot",
       "releaseType": "release"
+    },
+    "portable": {
+      "artifactName": "VCHome-Hospital-Portable-${version}-${arch}.${ext}"
     }
   }
 }
