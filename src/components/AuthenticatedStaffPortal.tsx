@@ -14,6 +14,7 @@ import PatientRegistrationsList from './PatientRegistrationsList';
 import NextAppointments from './NextAppointments';
 import PastVaccinations from './PastVaccinations';
 import AutoNotificationSystem from './AutoNotificationSystem';
+import AppointmentDayChecker from './AppointmentDayChecker';
 import PatientAppointmentManager from './GoogleSheetsIntegration';
 import EditAppointments from './EditAppointments';
 import NotificationTestPanel from './NotificationTestPanel';
@@ -383,7 +384,7 @@ const AuthenticatedStaffPortal = () => {
           )}
 
           <TabsContent value="staff-portal">
-            <StaffPortal isAdmin={isAdmin} />
+            <div className="space-y-6"><AppointmentDayChecker /><StaffPortal isAdmin={isAdmin} /></div>
           </TabsContent>
 
           <TabsContent value="registrations">
