@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g. 1.0.25)'
+        description: 'Version to release (e.g. 1.0.26)'
         required: true
         type: string
 
@@ -21,7 +21,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
       - name: Resolve and validate release version
         id: ver
         shell: pwsh
@@ -31,22 +34,55 @@ jobs:
           npm version $v --no-git-tag-version
           "version=$v" >> $env:GITHUB_OUTPUT
           "tag=v$v" >> $env:GITHUB_OUTPUT
+
+      - name: Resolve and validate build configuration
+        shell: pwsh
+        env:
+          SECRET_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SECRET_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SECRET_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          SECRET_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
+        run: |
+          $url=$env:SECRET_SUPABASE_URL
+          $key=$env:SECRET_SUPABASE_ANON_KEY
+          if ([string]::IsNullOrWhiteSpace($url) -or [string]::IsNullOrWhiteSpace($key)) {
+            Write-Host 'Repository Supabase secrets are missing; using the committed production configuration fallback.'
+            Get-Content '.env.production' | ForEach-Object {
+              if ($_ -match '^VITE_SUPABASE_URL=(.+)$' -and [string]::IsNullOrWhiteSpace($url)) { $url=$Matches[1].Trim() }
+              if ($_ -match '^VITE_SUPABASE_ANON_KEY=(.+)$' -and [string]::IsNullOrWhiteSpace($key)) { $key=$Matches[1].Trim() }
+            }
+          }
+          if ([string]::IsNullOrWhiteSpace($url)) { throw 'VITE_SUPABASE_URL is unavailable' }
+          if ([string]::IsNullOrWhiteSpace($key)) { throw 'VITE_SUPABASE_ANON_KEY is unavailable' }
+          if ($url -notmatch '^https://.+\.supabase\.co/?$') { throw 'VITE_SUPABASE_URL has an invalid format' }
+          "VITE_SUPABASE_URL=$url" >> $env:GITHUB_ENV
+          "VITE_SUPABASE_ANON_KEY=$key" >> $env:GITHUB_ENV
+          if (-not [string]::IsNullOrWhiteSpace($env:SECRET_SUPABASE_PROJECT_ID)) { "VITE_SUPABASE_PROJECT_ID=$($env:SECRET_SUPABASE_PROJECT_ID)" >> $env:GITHUB_ENV }
+          if (-not [string]::IsNullOrWhiteSpace($env:SECRET_WEBHOOK_URL)) { "VITE_WEBHOOK_URL=$($env:SECRET_WEBHOOK_URL)" >> $env:GITHUB_ENV }
+          Write-Host 'Production build configuration validated.'
+
       - name: Test
         run: npm run test:run
-      - name: Build application
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-          VITE_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
-        run: npm run build
+
       - name: Build Windows installers
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-          VITE_WEBHOOK_URL: ${{ secrets.VITE_WEBHOOK_URL }}
-        run: npx electron-builder --win --publish=never
+        run: npm run electron-build && npx electron-builder --win --x64 --publish=never
+
+      - name: Validate release artifacts
+        shell: pwsh
+        run: |
+          $v='${{ steps.ver.outputs.version }}'
+          $required=@(
+            "release/VCHome-Hospital-$v-x64.exe",
+            "release/VCHome-Hospital-$v-x64.exe.blockmap",
+            "release/VCHome-Hospital-Portable-$v-x64.exe",
+            'release/latest.yml'
+          )
+          foreach($file in $required) { if(-not (Test-Path $file)) { throw "Missing release artifact: $file" } }
+          $latest=Get-Content 'release/latest.yml' -Raw
+          if($latest -notmatch "version: $([regex]::Escape($v))") { throw 'latest.yml version does not match release version' }
+          if($latest -notmatch "VCHome-Hospital-$([regex]::Escape($v))-x64\.exe") { throw 'latest.yml does not point to the NSIS installer' }
+          Write-Host "Release artifacts validated for v$v"
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -55,14 +91,17 @@ jobs:
           generate_release_notes: true
           make_latest: true
           files: |
-            release/*.exe
-            release/*.blockmap
+            release/VCHome-Hospital-${{ steps.ver.outputs.version }}-x64.exe
+            release/VCHome-Hospital-${{ steps.ver.outputs.version }}-x64.exe.blockmap
+            release/VCHome-Hospital-Portable-${{ steps.ver.outputs.version }}-x64.exe
             release/latest.yml
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installers-${{ steps.ver.outputs.tag }}
           path: |
-            release/*.exe
-            release/*.blockmap
+            release/VCHome-Hospital-${{ steps.ver.outputs.version }}-x64.exe
+            release/VCHome-Hospital-${{ steps.ver.outputs.version }}-x64.exe.blockmap
+            release/VCHome-Hospital-Portable-${{ steps.ver.outputs.version }}-x64.exe
             release/latest.yml
           retention-days: 30
