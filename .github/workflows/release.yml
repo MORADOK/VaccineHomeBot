@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g. 1.0.26)'
+        description: 'Version to release (e.g. 1.0.28)'
         required: true
         type: string
 
@@ -31,9 +31,11 @@ jobs:
         run: |
           if ("${{ github.event_name }}" -eq "workflow_dispatch") { $v="${{ inputs.version }}" } else { $v="${{ github.ref_name }}".TrimStart('v') }
           if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid release version: $v" }
-          npm version $v --no-git-tag-version
+          $packageVersion=(Get-Content 'package.json' -Raw | ConvertFrom-Json).version
+          if ($packageVersion -ne $v) { throw "Tag/workflow version $v does not match package.json version $packageVersion" }
           "version=$v" >> $env:GITHUB_OUTPUT
           "tag=v$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Release version validated: $v"
 
       - name: Resolve and validate build configuration
         shell: pwsh
