@@ -15,6 +15,7 @@ import NextAppointments from './NextAppointments';
 import PastVaccinations from './PastVaccinations';
 import AutoNotificationSystem from './AutoNotificationSystem';
 import AppointmentDayChecker from './AppointmentDayChecker';
+import AppointmentAlertPopup from './AppointmentAlertPopup';
 import PatientAppointmentManager from './GoogleSheetsIntegration';
 import EditAppointments from './EditAppointments';
 import NotificationTestPanel from './NotificationTestPanel';
@@ -28,6 +29,7 @@ const AuthenticatedStaffPortal = () => {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('registrations');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -299,17 +301,14 @@ const AuthenticatedStaffPortal = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="staff-portal" className="w-full">
+        <AppointmentAlertPopup onOpenAppointments={() => setActiveTab('staff-portal')} />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Mobile: Scrollable tabs */}
           <div className="block lg:hidden mb-6">
             <div className="overflow-x-auto">
               <TabsList className="flex w-max gap-1 p-1">
-                <TabsTrigger value="staff-portal" className="text-xs px-3 py-2 whitespace-nowrap">
-                  นัดวันนี้
-                </TabsTrigger>
-                <TabsTrigger value="registrations" className="text-xs px-3 py-2 whitespace-nowrap">
-                  ลงทะเบียน
-                </TabsTrigger>
+                <TabsTrigger value="registrations" className="text-xs px-3 py-2 whitespace-nowrap">ลงทะเบียน</TabsTrigger>
+                <TabsTrigger value="staff-portal" className="text-xs px-3 py-2 whitespace-nowrap">จัดการนัด / นัดวันนี้</TabsTrigger>
                 {!isKioskMode && (
                   <>
                     <TabsTrigger value="next-appointments" className="text-xs px-3 py-2 whitespace-nowrap">
@@ -343,21 +342,13 @@ const AuthenticatedStaffPortal = () => {
           {/* Desktop: Grid tabs */}
           {isKioskMode ? (
             <TabsList className="hidden lg:grid w-full mb-6 gap-1 grid-cols-2">
-              <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">
-                นัดวันนี้ / บันทึกการฉีด
-              </TabsTrigger>
-              <TabsTrigger value="registrations" className="text-sm px-2 py-2">
-                รายการลงทะเบียน
-              </TabsTrigger>
+              <TabsTrigger value="registrations" className="text-sm px-2 py-2">ลงทะเบียนผู้ป่วย</TabsTrigger>
+              <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">จัดการนัด / บันทึกการฉีด</TabsTrigger>
             </TabsList>
           ) : (
             <TabsList className={`hidden lg:grid w-full mb-6 gap-1 ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
-              <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">
-                นัดวันนี้
-              </TabsTrigger>
-              <TabsTrigger value="registrations" className="text-sm px-2 py-2">
-                รายการลงทะเบียน
-              </TabsTrigger>
+              <TabsTrigger value="registrations" className="text-sm px-2 py-2">ลงทะเบียนผู้ป่วย</TabsTrigger>
+              <TabsTrigger value="staff-portal" className="text-sm px-2 py-2">จัดการนัด / นัดวันนี้</TabsTrigger>
               <TabsTrigger value="next-appointments" className="text-sm px-2 py-2">
                 นัดครั้งถัดไป
               </TabsTrigger>

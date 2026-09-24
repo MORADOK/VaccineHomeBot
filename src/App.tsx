@@ -21,6 +21,7 @@ import SimpleAuthPage from "./pages/SimpleAuthPage";
 import ImprovedAuthPage from "./pages/ImprovedAuthPage";
 import StaffManagementPage from "./pages/StaffManagementPage";
 import RequireAdmin from "./components/RequireAdmin";
+import RequireStaffAuth from "./components/RequireStaffAuth";
 import LoadingPage from "./pages/LoadingPage";
 import FastIndexPage from "./pages/FastIndexPage";
 import LiffPatientPortalPage from "./pages/LiffPatientPortalPage";
@@ -215,6 +216,29 @@ const App = () => {
   // 🔒 Security: Block web browser access in production - only allow Electron desktop app
   // Allow web access in development mode for Visual Edits and testing
   const isDevelopment = import.meta.env.DEV;
+  const isPasswordRecovery = new URLSearchParams(window.location.search).get('type') === 'recovery';
+
+  // Supabase recovery links open from email in a normal browser. Allow only
+  // this recovery URL on the production website; staff routes stay blocked.
+  if (!isElectron && !isDevelopment && isPasswordRecovery) {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter basename={BASENAME}>
+              <Routes>
+                <Route path="/" element={<AuthPage />} />
+                <Route path="*" element={<AuthPage />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  }
+
   if (!isElectron && !isDevelopment) {
     console.log('[App] Web browser detected in production - redirecting to download page only');
     return (
@@ -242,7 +266,7 @@ const App = () => {
             <main className="flex-1 scroll-area">
               <Routes>
                 {/* Home - Redirect to Admin */}
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<RequireStaffAuth><Index /></RequireStaffAuth>} />
                 <Route path="/loading" element={<LoadingPage />} />
 
                 {/* Auth */}
@@ -252,8 +276,8 @@ const App = () => {
                 <Route path="/improved-auth" element={<ImprovedAuthPage />} />
 
                 {/* Admin/Staff */}
-                <Route path="/admin" element={<Index />} />
-                <Route path="/staff-portal" element={<StaffPortalPage />} />
+                <Route path="/admin" element={<RequireStaffAuth><Index /></RequireStaffAuth>} />
+                <Route path="/staff-portal" element={<RequireStaffAuth><StaffPortalPage /></RequireStaffAuth>} />
                 <Route
                   path="/staff-management"
                   element={
@@ -262,14 +286,14 @@ const App = () => {
                     </RequireAdmin>
                   }
                 />
-                <Route path="/StaffPortal" element={<StaffPortalPage />} />
-                <Route path="/next-appointments" element={<NextAppointmentsPage />} />
-                <Route path="/edit-appointments" element={<EditAppointmentsPage />} />
-                <Route path="/patient-registrations" element={<PatientRegistrationsPage />} />
-                <Route path="/past-vaccinations" element={<PastVaccinationsPage />} />
-                <Route path="/verify-appointments" element={<AppointmentVerificationPage />} />
-                <Route path="/fix-appointments" element={<FixAppointmentsPage />} />
-                <Route path="/line-debugger" element={<LineDebuggerPage />} />
+                <Route path="/StaffPortal" element={<RequireStaffAuth><StaffPortalPage /></RequireStaffAuth>} />
+                <Route path="/next-appointments" element={<RequireStaffAuth><NextAppointmentsPage /></RequireStaffAuth>} />
+                <Route path="/edit-appointments" element={<RequireStaffAuth><EditAppointmentsPage /></RequireStaffAuth>} />
+                <Route path="/patient-registrations" element={<RequireStaffAuth><PatientRegistrationsPage /></RequireStaffAuth>} />
+                <Route path="/past-vaccinations" element={<RequireStaffAuth><PastVaccinationsPage /></RequireStaffAuth>} />
+                <Route path="/verify-appointments" element={<RequireStaffAuth><AppointmentVerificationPage /></RequireStaffAuth>} />
+                <Route path="/fix-appointments" element={<RequireStaffAuth><FixAppointmentsPage /></RequireStaffAuth>} />
+                <Route path="/line-debugger" element={<RequireStaffAuth><LineDebuggerPage /></RequireStaffAuth>} />
 
                 {/* Patient */}
                 <Route path="/patient-portal" element={<PatientPortalPage />} />
@@ -281,7 +305,7 @@ const App = () => {
                 <Route path="/download" element={<DownloadPage />} />
 
                 {/* Optional fast page */}
-                <Route path="/fast" element={<FastIndexPage />} />
+                <Route path="/fast" element={<RequireStaffAuth><FastIndexPage /></RequireStaffAuth>} />
 
                 {/* Catch-all */}
                 <Route path="*" element={<NotFound />} />

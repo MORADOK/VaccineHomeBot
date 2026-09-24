@@ -222,7 +222,7 @@ const AuthPage = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/auth?type=recovery`,
+        redirectTo: `${SITE_URL}/?type=recovery`,
       });
 
       if (error) {
