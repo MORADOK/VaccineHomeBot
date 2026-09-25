@@ -28,6 +28,9 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Build for GitHub Pages
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npx vite build --mode github-pages
 
       - name: Verify build output
