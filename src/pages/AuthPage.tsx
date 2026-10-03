@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogIn, UserPlus, Home } from 'lucide-react';
+import { LogIn, Home } from 'lucide-react';
 import type { User, Session } from '@supabase/supabase-js';
 import { AuthApiError } from '@supabase/supabase-js';
 
@@ -438,31 +438,14 @@ const AuthPage = () => {
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground font-medium">
-                    เลือกระหว่างเข้าสู่ระบบหรือสร้างบัญชีใหม่
+                    สำหรับบัญชีเจ้าหน้าที่ที่ได้รับอนุมัติจากผู้ดูแลระบบ
                   </p>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {!showForgotPassword ? (
-                <Tabs value={isSignUp ? 'signup' : 'signin'} onValueChange={(v) => setIsSignUp(v === 'signup')}>
-                  <TabsList className="grid w-full grid-cols-2 bg-green-50 p-1 rounded-xl border border-green-200">
-                    <TabsTrigger
-                      value="signin"
-                      className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
-                    >
-                      <LogIn className="h-4 w-4" />
-                      เข้าสู่ระบบ
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="signup"
-                      className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-green-200 rounded-lg font-semibold transition-all duration-300"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      ลงทะเบียน
-                    </TabsTrigger>
-                  </TabsList>
-
+                <Tabs value="signin">
                   <TabsContent value="signin" className="mt-8 animate-fade-in">
                     <div className="mb-6 text-center">
                       <h3 className="text-lg font-semibold text-foreground mb-2">ยินดีต้อนรับกลับ</h3>
@@ -519,52 +502,6 @@ const AuthPage = () => {
                     </form>
                   </TabsContent>
 
-                  <TabsContent value="signup" className="mt-8 animate-fade-in">
-                    <div className="mb-6 text-center">
-                      <h3 className="text-lg font-semibold text-foreground mb-2">สร้างบัญชีใหม่</h3>
-                      <p className="text-sm text-muted-foreground">เริ่มต้นใช้งานระบบจัดการการนัดหมาย</p>
-                    </div>
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email">อีเมล</Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="example@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="border-2 border-green-300 focus:border-primary"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password">รหัสผ่าน</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          placeholder="รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          minLength={6}
-                          className="border-2 border-green-300 focus:border-primary"
-                        />
-                      </div>
-                      <Button
-                        type="submit"
-                        className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-500/90 hover:to-green-500/90 shadow-lg hover:shadow-xl transition-all duration-300"
-                        disabled={isLoading}
-                        aria-busy={isLoading}
-                      >
-                        {isLoading ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                        ) : (
-                          <UserPlus className="h-5 w-5 mr-3" />
-                        )}
-                        ลงทะเบียน
-                      </Button>
-                    </form>
-                  </TabsContent>
                 </Tabs>
               ) : (
                 <div className="mt-8 animate-fade-in">

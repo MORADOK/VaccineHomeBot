@@ -20,6 +20,43 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate caller and require an application admin role before using service-role privileges.
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    const token = authHeader.slice(7)
+    const { data: callerData, error: callerError } = await supabaseAdmin.auth.getUser(token)
+    if (callerError || !callerData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { data: callerRole, error: callerRoleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', callerData.user.id)
+      .single()
+
+    if (callerRoleError || !['admin', 'superadmin'].includes(callerRole?.role)) {
+      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Admin role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Get request body
     const { email, password, role }: CreateStaffRequest = await req.json()
 
@@ -80,18 +117,6 @@ serve(async (req) => {
         }
       )
     }
-
-    // Create Supabase Admin client (has full access)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
 
     // Step 1: Create user in Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({

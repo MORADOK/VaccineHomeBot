@@ -22,6 +22,11 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // Create Supabase Admin client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -33,6 +38,16 @@ serve(async (req) => {
         }
       }
     )
+
+    const token = authHeader.slice(7)
+    const { data: callerData, error: callerError } = await supabaseAdmin.auth.getUser(token)
+    if (callerError || !callerData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const { data: callerRole, error: callerRoleError } = await supabaseAdmin.from('user_roles').select('role').eq('user_id', callerData.user.id).single()
+    if (callerRoleError || !['admin', 'superadmin'].includes(callerRole?.role)) {
+      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Admin role required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // Get all staff from user_roles table
     const { data: roles, error: rolesError } = await supabaseAdmin

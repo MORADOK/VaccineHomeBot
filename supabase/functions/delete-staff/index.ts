@@ -18,6 +18,26 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const token = authHeader.slice(7)
+    const { data: callerData, error: callerError } = await supabaseAdmin.auth.getUser(token)
+    if (callerError || !callerData.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const { data: callerRole, error: callerRoleError } = await supabaseAdmin.from('user_roles').select('role').eq('user_id', callerData.user.id).single()
+    if (callerRoleError || !['admin', 'superadmin'].includes(callerRole?.role)) {
+      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Admin role required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // Get request body
     const { user_id }: DeleteStaffRequest = await req.json()
 
@@ -50,17 +70,13 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase Admin client
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // Prevent an administrator from accidentally deleting their own active account.
+    if (user_id === callerData.user.id) {
+      return new Response(JSON.stringify({ error: 'Cannot delete own account', details: 'Sign in as another administrator to delete this account' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     // Get user info before deletion (for logging/response)
     const { data: userData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(user_id)
