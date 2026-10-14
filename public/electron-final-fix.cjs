@@ -56,9 +56,31 @@ function createWindow() {
 }
 
 app.on('web-contents-created', (_event, contents) => {
-  contents.setWindowOpenHandler(({ url }) => { void shell.openExternal(url); return { action: 'deny' }; });
+  contents.setWindowOpenHandler(({ url }) => {
+    // Print previews created by window.open('', '_blank') use about:blank.
+    // They must stay inside Electron instead of being sent to Windows.
+    if (url === 'about:blank') {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 850,
+          height: 650,
+          autoHideMenuBar: true,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            webSecurity: true
+          }
+        }
+      };
+    }
+    // Only actual web links can be opened by the OS browser.
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
+    return { action: 'deny' };
+  });
   contents.on('will-navigate', (event, navigationURL) => {
-    if (navigationURL.startsWith('file://') || navigationURL.startsWith('data:')) return;
+    if (navigationURL.startsWith('file://') || navigationURL.startsWith('data:') || navigationURL === 'about:blank') return;
     let allowed = false;
     try {
       const origin = new URL(navigationURL).origin;
