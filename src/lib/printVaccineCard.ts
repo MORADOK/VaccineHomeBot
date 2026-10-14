@@ -37,11 +37,26 @@ export function printVaccineCard(input: {
   const base = new URL(import.meta.env.BASE_URL || '/', window.location.href);
   const logo = new URL('images/11570.jpg', base).href;
   const fallbackLogo = new URL('images/home-hospital-logo.svg', base).href;
-  const popup = window.open('', '_blank', 'width=850,height=650');
-  if (!popup) {
-    window.alert('เบราว์เซอร์ปิดกั้นหน้าต่างพิมพ์ โปรดอนุญาต Pop-up แล้วลองอีกครั้ง');
-    return;
-  }
+  // Render the print preview inside the current app window. Electron and
+  // embedded platform hosts may block window.open even for about:blank.
+  document.getElementById('vaccine-print-preview-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'vaccine-print-preview-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.65);display:flex;flex-direction:column;padding:12px;gap:8px';
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;justify-content:flex-end;gap:10px';
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'ปิดตัวอย่างบัตรนัด';
+  closeButton.style.cssText = 'background:white;color:#14532d;border:0;border-radius:6px;padding:9px 16px;cursor:pointer';
+  closeButton.addEventListener('click', () => overlay.remove());
+  toolbar.appendChild(closeButton);
+  const frame = document.createElement('iframe');
+  frame.title = 'ตัวอย่างบัตรนัดฉีดวัคซีน';
+  frame.style.cssText = 'width:100%;height:100%;background:white;border:0;border-radius:8px';
+  overlay.append(toolbar, frame);
+  document.body.appendChild(overlay);
+  const popup = frame.contentWindow;
+  if (!popup) { overlay.remove(); window.alert('ไม่สามารถเปิดตัวอย่างบัตรนัดได้'); return; }
   popup.document.open();
   popup.document.write(`<!doctype html><html lang="th"><head><meta charset="utf-8"><title>บัตรนัดฉีดวัคซีน</title>
 <style>
