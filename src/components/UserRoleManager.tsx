@@ -122,7 +122,16 @@ export function UserRoleManager() {
       const { data, error } = await supabase.functions.invoke('invite-staff', {
         body: { email, role: newUserRole },
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || 'ไม่สามารถส่งคำเชิญได้');
+      if (error || !data?.success) {
+        let detail = data?.details || data?.error;
+        if (error && 'context' in error && error.context instanceof Response) {
+          const response = error.context;
+          const payload = await response.clone().json().catch(() => null);
+          detail = payload?.details || payload?.error || detail;
+          if (!detail) detail = `HTTP ${response.status}`;
+        }
+        throw new Error(detail || error?.message || 'ไม่สามารถส่งคำเชิญได้');
+      }
       toast({ title: 'ส่งคำเชิญสำเร็จ', description: `ส่งอีเมลให้ ${email} ตั้งรหัสผ่านแล้ว` });
       setNewUserEmail('');
       await loadUsers();
