@@ -21,7 +21,7 @@ enabled = true
 # in emails.
 site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["https://127.0.0.1:3000", "https://moradok.github.io/VaccineHomeBot/?type=recovery", "https://moradok.github.io/VaccineHomeBot/?type=invite"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604800 (1 week).
 jwt_expiry = 3600
 # If disabled, the refresh token will never expire.
@@ -55,6 +55,12 @@ max_frequency = "5m"
 
 # Use pre-defined map of phone providers
 # The phone provider you want to use for sending SMS
+
+[functions.invite-staff]
+verify_jwt = true
+
+[functions.assign-user-role]
+verify_jwt = true
 
 [functions.line-webhook]
 verify_jwt = false

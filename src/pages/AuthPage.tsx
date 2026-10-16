@@ -15,7 +15,7 @@ import { AuthApiError } from '@supabase/supabase-js';
 const BASE_URL = (import.meta.env.BASE_URL || '/');
 const SITE_URL = (
   import.meta.env.VITE_PUBLIC_SITE_URL // e.g. https://moradok.github.io/VaccineHomeBot
-    ?? (window.location.origin + BASE_URL)
+    ?? (window.location.protocol === 'file:' ? 'https://moradok.github.io/VaccineHomeBot' : window.location.origin + BASE_URL)
 ).replace(/\/+$/, ''); // trim trailing slash(es)
 
 const AuthPage = () => {
@@ -47,14 +47,16 @@ const AuthPage = () => {
     const refreshToken = hashParams.get('refresh_token');
 
     // If coming from recovery link
-    if (type === 'recovery') {
+    if (type === 'recovery' || type === 'invite' || !!code || (!!accessToken && !!refreshToken)) {
       isRecoveryRef.current = true;
-      setShowResetPassword(true);
+      // Do not show the password form until the recovery link is verified.
+      setShowResetPassword(false);
 
       // Newer flow: ?code=...
       if (code) {
-        supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-          if (error) {
+        supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+          if (!error && data.session?.user) setShowResetPassword(true);
+          if (error || !data.session?.user) {
             console.error('exchangeCodeForSession error:', error);
             toast({
               title: 'ลิงก์รีเซ็ตรหัสผ่านใช้ไม่ได้',
@@ -71,8 +73,9 @@ const AuthPage = () => {
         supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
-        }).then(({ error }) => {
-          if (error) {
+        }).then(({ data, error }) => {
+          if (!error && data.session?.user) setShowResetPassword(true);
+          if (error || !data.session?.user) {
             console.error('setSession error:', error);
             toast({
               title: 'เกิดข้อผิดพลาด',
@@ -83,6 +86,10 @@ const AuthPage = () => {
             isRecoveryRef.current = false;
           }
         });
+      } else {
+        // A bare ?type=recovery is not a valid recovery link.
+        isRecoveryRef.current = false;
+        toast({ title: 'ลิงก์รีเซ็ตไม่ถูกต้อง', description: 'กรุณาเปิดลิงก์จากอีเมลรีเซ็ตรหัสผ่าน หรือขอลิงก์ใหม่', variant: 'destructive' });
       }
     }
 
@@ -180,7 +187,7 @@ const AuthPage = () => {
         } else if (error.message?.toLowerCase().includes('password')) {
           toast({
             title: 'รหัสผ่านไม่ถูกต้อง',
-            description: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+            description: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร',
             variant: 'destructive',
           });
         } else {
@@ -233,8 +240,8 @@ const AuthPage = () => {
         });
       } else {
         toast({
-          title: 'ส่งอีเมลรีเซ็ตรหัสผ่านแล้ว',
-          description: 'กรุณาตรวจสอบอีเมลของคุณและคลิกลิงก์เพื่อรีเซ็ตรหัสผ่าน',
+          title: 'รับคำขอรีเซ็ตรหัสผ่านแล้ว',
+          description: 'หากอีเมลนี้มีบัญชีอยู่ กรุณาตรวจสอบกล่องจดหมายเพื่อตั้งรหัสผ่านใหม่',
         });
         setShowForgotPassword(false);
       }
@@ -268,10 +275,10 @@ const AuthPage = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       toast({
         title: 'รหัสผ่านสั้นเกินไป',
-        description: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+        description: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร',
         variant: 'destructive',
       });
       return;
@@ -279,6 +286,11 @@ const AuthPage = () => {
 
     setIsLoading(true);
     try {
+      const { data: authState, error: authError } = await supabase.auth.getSession();
+      if (authError || !authState.session?.user || !isRecoveryRef.current) {
+        toast({ title: 'ลิงก์รีเซ็ตไม่ถูกต้อง', description: 'กรุณาขอลิงก์รีเซ็ตรหัสผ่านใหม่', variant: 'destructive' });
+        return;
+      }
       const { error } = await supabase.auth.updateUser({ password: newPassword });
 
       if (error) {
@@ -290,18 +302,19 @@ const AuthPage = () => {
       } else {
         toast({
           title: 'เปลี่ยนรหัสผ่านสำเร็จ',
-          description: 'รหัสผ่านของคุณได้รับการอัปเดตแล้ว กำลังนำคุณเข้าสู่ระบบ',
+          description: 'เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่ในโปรแกรม',
         });
 
-        // Clear URL params and move back to /auth cleanly
-        navigate('/auth', { replace: true });
-
-        // Small delay then go to portal
-        setTimeout(() => {
-          isRecoveryRef.current = false;
-          setShowResetPassword(false);
-          navigate('/staff-portal', { replace: true });
-        }, 800);
+        // End the temporary recovery session; sign in again in the desktop app.
+        await supabase.auth.signOut();
+        isRecoveryRef.current = false;
+        setShowResetPassword(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        window.history.replaceState({}, '', window.location.pathname);
+        if (window.location.protocol === 'file:' || import.meta.env.DEV) {
+          navigate('/auth', { replace: true });
+        }
       }
     } catch {
       toast({

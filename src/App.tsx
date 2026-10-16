@@ -216,7 +216,9 @@ const App = () => {
   // 🔒 Security: Block web browser access in production - only allow Electron desktop app
   // Allow web access in development mode for Visual Edits and testing
   const isDevelopment = import.meta.env.DEV;
-  const isPasswordRecovery = new URLSearchParams(window.location.search).get('type') === 'recovery';
+  const recoveryQuery = new URLSearchParams(window.location.search);
+  const recoveryHash = new URLSearchParams(window.location.hash.slice(1));
+  const isPasswordRecovery = ['recovery', 'invite'].includes(recoveryQuery.get('type') ?? '') || recoveryQuery.has('code') || ['recovery', 'invite'].includes(recoveryHash.get('type') ?? '') || (recoveryHash.has('access_token') && recoveryHash.has('refresh_token'));
 
   // Supabase recovery links open from email in a normal browser. Allow only
   // this recovery URL on the production website; staff routes stay blocked.

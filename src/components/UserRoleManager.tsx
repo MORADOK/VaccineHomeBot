@@ -27,6 +27,7 @@ interface UserWithRoles {
 export function UserRoleManager() {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState<'admin' | 'healthcare_staff' | 'patient'>('healthcare_staff');
@@ -35,51 +36,29 @@ export function UserRoleManager() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      // Get all user roles first
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Get current session to get user list (simplified approach)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('ไม่ได้เข้าสู่ระบบ');
-
-      // For now, we'll show users that have roles in the system
-      const userRoleMap = new Map<string, string[]>();
-      userRoles?.forEach(ur => {
-        if (!userRoleMap.has(ur.user_id)) {
-          userRoleMap.set(ur.user_id, []);
+      const { data, error } = await supabase.functions.invoke('list-staff');
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'ไม่สามารถโหลดรายชื่อได้');
+      const members: Array<{ id: string; email: string; role: string; created_at: string }> = data.data || [];
+      const grouped = new Map<string, UserWithRoles>();
+      members.forEach(member => {
+        const previous = grouped.get(member.id);
+        if (previous) {
+          if (!previous.roles.includes(member.role)) previous.roles.push(member.role);
+          previous.is_admin = previous.roles.includes('admin') || previous.roles.includes('superadmin');
+          previous.is_healthcare_staff = previous.is_admin || previous.roles.includes('healthcare_staff');
+        } else {
+          grouped.set(member.id, {
+            id: member.id,
+            email: member.email,
+            user_created_at: member.created_at,
+            last_sign_in_at: null,
+            roles: [member.role],
+            is_admin: member.role === 'admin' || member.role === 'superadmin',
+            is_healthcare_staff: ['admin', 'superadmin', 'healthcare_staff'].includes(member.role),
+          });
         }
-        userRoleMap.get(ur.user_id)?.push(ur.role);
       });
-
-      // Create mock users data (in real app, you'd get this from auth.users)
-      const usersWithRoles: UserWithRoles[] = Array.from(userRoleMap.entries()).map(([userId, roles]) => ({
-        id: userId,
-        email: `user-${userId.slice(0, 8)}@example.com`, // Mock email
-        user_created_at: new Date().toISOString(),
-        last_sign_in_at: new Date().toISOString(),
-        roles: roles,
-        is_admin: roles.includes('admin'),
-        is_healthcare_staff: roles.includes('admin') || roles.includes('healthcare_staff')
-      }));
-
-      // Add current user if not in list
-      if (session.user && !userRoleMap.has(session.user.id)) {
-        usersWithRoles.unshift({
-          id: session.user.id,
-          email: session.user.email || 'unknown@example.com',
-          user_created_at: session.user.created_at,
-          last_sign_in_at: session.user.last_sign_in_at || null,
-          roles: [],
-          is_admin: false,
-          is_healthcare_staff: false
-        });
-      }
-
-      setUsers(usersWithRoles);
+      setUsers(Array.from(grouped.values()));
     } catch (error) {
       console.error('Error loading users:', error);
       toast({
@@ -94,31 +73,10 @@ export function UserRoleManager() {
 
   const assignRole = async (userEmail: string, role: 'admin' | 'healthcare_staff' | 'patient') => {
     try {
-      // Get current user
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error('ไม่ได้เข้าสู่ระบบ');
-
-      // For demo purposes, we'll assign role to current user if email matches
-      let targetUserId = currentUser.id;
-      
-      if (userEmail !== currentUser.email) {
-        // In a real app, you'd look up the user by email
-        // For now, we'll just use the current user
-        console.warn('Cannot assign role to different user in demo mode');
-      }
-
-      // Insert role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: targetUserId,
-          role: role,
-          created_by: currentUser.id
-        });
-      
-      if (insertError && !insertError.message.includes('duplicate')) {
-        throw insertError;
-      }
+      const { data, error } = await supabase.functions.invoke('assign-user-role', {
+        body: { email: userEmail.trim(), role },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'ไม่สามารถกำหนดสิทธิ์ได้');
 
       toast({
         title: "สำเร็จ",
@@ -147,7 +105,32 @@ export function UserRoleManager() {
     }
 
     await assignRole(newUserEmail, newUserRole);
-    setNewUserEmail('');
+  };
+
+  const handleInviteStaff = async () => {
+    const email = newUserEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ title: 'กรุณากรอกอีเมลที่ถูกต้อง', variant: 'destructive' });
+      return;
+    }
+    if (newUserRole === 'patient') {
+      toast({ title: 'สร้างบัญชีเจ้าหน้าที่ได้เฉพาะสิทธิ์เจ้าหน้าที่หรือผู้ดูแลระบบ', variant: 'destructive' });
+      return;
+    }
+    setInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-staff', {
+        body: { email, role: newUserRole },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'ไม่สามารถส่งคำเชิญได้');
+      toast({ title: 'ส่งคำเชิญสำเร็จ', description: `ส่งอีเมลให้ ${email} ตั้งรหัสผ่านแล้ว` });
+      setNewUserEmail('');
+      await loadUsers();
+    } catch (error) {
+      toast({ title: 'สร้างบัญชีไม่สำเร็จ', description: error instanceof Error ? error.message : 'กรุณาลองอีกครั้ง', variant: 'destructive' });
+    } finally {
+      setInviting(false);
+    }
   };
 
   useEffect(() => {
@@ -261,6 +244,15 @@ export function UserRoleManager() {
               >
                 <Shield className="h-4 w-4 mr-2" />
                 กำหนดสิทธิ์
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={handleInviteStaff}
+                disabled={inviting || loading || newUserRole === 'patient'}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                {inviting ? 'กำลังส่งคำเชิญ...' : 'สร้างบัญชีเจ้าหน้าที่'}
               </Button>
             </div>
           </div>
