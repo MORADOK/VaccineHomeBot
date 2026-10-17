@@ -17,7 +17,14 @@ serve(async (req) => {
     const { data: caller, error: authError } = await admin.auth.getUser(bearer.slice(7))
     if (authError || !caller.user) return respond(401, { error: 'Unauthorized' })
     const { data: callerRole, error: roleError } = await admin.from('user_roles').select('role').eq('user_id', caller.user.id).in('role', ['admin', 'superadmin']).limit(1)
-    if (roleError || !mayManageRoles((callerRole ?? []).map(r => r.role))) return respond(403, { error: 'Admin role required' })
+    if (roleError) {
+      console.error('invite-staff role lookup failed', { callerId: caller.user.id, code: roleError.code, message: roleError.message })
+      return respond(500, { error: 'Role lookup failed', details: 'Unable to verify permissions' })
+    }
+    if (!mayManageRoles((callerRole ?? []).map(r => r.role))) {
+      console.warn('invite-staff rejected caller', { callerId: caller.user.id, rolesFound: (callerRole ?? []).map(r => r.role) })
+      return respond(403, { error: 'Admin role required', details: 'Your signed-in account does not have an admin role in this Supabase project. Sign out and sign back in with the correct account.' })
+    }
 
     const { email, role } = await req.json()
     const normalizedEmail = normalizeStaffEmail(email)

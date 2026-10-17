@@ -51,47 +51,21 @@ const AuthenticatedStaffPortal = () => {
         setSession(session);
         setUser(session.user);
 
-        // Check if user is healthcare staff
-        const { data: isStaff, error: staffError } = await supabase
-          .rpc('is_healthcare_staff', { _user_id: session.user.id });
-
-        if (staffError) {
-          console.error('Error checking staff status:', staffError);
-          // Fallback: Check email domain for hospital staff
-          const isHospitalEmail = session.user.email?.endsWith('@vchomehospital.co.th') || false;
-          setIsAuthorized(isHospitalEmail);
-        } else {
-          // If RPC returns false, check fallback conditions
-          if (!isStaff) {
-            // Fallback: Check email domain or demo accounts
-            const isHospitalEmail = session.user.email?.endsWith('@vchomehospital.co.th') || false;
-            const isDemoAccount = ['admin@vchomehospital.co.th', 'staff@vchomehospital.co.th'].includes(session.user.email || '');
-            setIsAuthorized(isHospitalEmail || isDemoAccount);
-          } else {
-            setIsAuthorized(isStaff);
-          }
+        // Resolve permissions from the same authenticated account and role table used by Edge Functions.
+        // Never elevate permissions based on an email address or domain.
+        const { data: verified, error: identityError } = await supabase.auth.getUser();
+        if (identityError || !verified.user || verified.user.id !== session.user.id) {
+          throw identityError || new Error('Session identity mismatch');
         }
-
-        // Check if user is admin
-        const { data: hasAdminRole, error: adminError } = await supabase
-          .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
-
-        if (adminError) {
-          console.error('Error checking admin status:', adminError);
-          // Fallback: Check email for admin access
-          const isAdminEmail = session.user.email === 'admin@vchomehospital.co.th' || 
-                              session.user.email === 'superadmin@vchomehospital.co.th';
-          setIsAdmin(isAdminEmail);
-        } else {
-          // If RPC returns false, check fallback conditions
-          if (!hasAdminRole) {
-            const isAdminEmail = session.user.email === 'admin@vchomehospital.co.th' || 
-                                session.user.email === 'superadmin@vchomehospital.co.th';
-            setIsAdmin(isAdminEmail);
-          } else {
-            setIsAdmin(hasAdminRole);
-          }
-        }
+        const { data: assignedRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', verified.user.id);
+        if (rolesError) throw rolesError;
+        const roles = (assignedRoles ?? []).map(item => item.role as string);
+        const admin = roles.includes('admin') || roles.includes('superadmin');
+        setIsAdmin(admin);
+        setIsAuthorized(admin || roles.includes('healthcare_staff'));
 
       } catch (error) {
         console.error('Auth check error:', error);
