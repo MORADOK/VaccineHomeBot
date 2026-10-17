@@ -16,7 +16,7 @@ serve(async (req) => {
     })
     const { data: caller, error: authError } = await admin.auth.getUser(authorization.slice(7))
     if (authError || !caller.user) return reply(401, { error: 'Unauthorized' })
-    const { data: callerRoles, error: callerRoleError } = await admin.from('user_roles').select('role').eq('user_id', caller.user.id).in('role', ['admin', 'superadmin'])
+    const { data: callerRoles, error: callerRoleError } = await admin.from('user_roles').select('role').eq('user_id', caller.user.id)
     if (callerRoleError || !mayManageRoles((callerRoles ?? []).map(r => r.role))) return reply(403, { error: 'Admin role required' })
     const { email, role } = await req.json()
     const normalizedEmail = normalizeStaffEmail(email)
