@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Very permissive CSP for development -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline' data: blob:; img-src * data: blob:; font-src * data:; connect-src * data: blob:; worker-src * blob: data:;" />
+    <title>VCHome Hospital Management System</title>
+
+    <!-- โหลดสไตล์ของหน้ารอโหลดจาก /public ล่วงหน้า (ไม่ต้อง unsafe-inline) -->
+    <link rel="stylesheet" href="/loader.css" />
+  </head>
+  <body>
+    <div id="root">
+      <!-- Enhanced Loading screen -->
+      <div class="vhc-wrap">
+        <div class="vhc-card">
+          <div class="vhc-spinner"></div>
+          <h1 class="vhc-title">🏥 ระบบจัดการวัคซีน</h1>
+          <p class="vhc-sub">VCHome Hospital</p>
+          <p class="vhc-note">กำลังโหลดระบบ (Development Mode)</p>
+          <div class="vhc-progress"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สำคัญ: ให้ Vite แปลง/บันเดิลผ่าน main.tsx ไม่ใช่ .tsx ของเพจ -->
+    <script type="module" src="/src/main.tsx"></script>
+
+    <noscript>
+      ต้องเปิดใช้งาน JavaScript เพื่อใช้งานระบบนี้
+    </noscript>
+  </body>
+</html>
