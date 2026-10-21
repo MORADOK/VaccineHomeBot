@@ -58,6 +58,7 @@ const StaffManagementPage = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [sendingRecoveryFor, setSendingRecoveryFor] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -155,7 +156,7 @@ const StaffManagementPage = () => {
         } else if (errorMessage.includes('Password too short')) {
           toast({
             title: '❌ รหัสผ่านสั้นเกินไป',
-            description: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+            description: 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร',
             variant: 'destructive',
           });
         } else {
@@ -230,6 +231,21 @@ const StaffManagementPage = () => {
     }
   };
 
+  const sendRecoveryLink = async (staff: StaffMember) => {
+    if (!window.confirm(`ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยัง ${staff.email} หรือไม่?`)) return;
+    setSendingRecoveryFor(staff.id);
+    try {
+      const siteUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://moradok.github.io/VaccineHomeBot').replace(/\/+$/, '');
+      const { error } = await supabase.auth.resetPasswordForEmail(staff.email, { redirectTo: `${siteUrl}/?type=recovery` });
+      if (error) throw error;
+      toast({ title: 'ส่งคำขอแล้ว', description: 'หากบัญชีรับอีเมลได้ เจ้าหน้าที่จะได้รับลิงก์สำหรับตั้งรหัสผ่านใหม่' });
+    } catch {
+      toast({ title: 'ส่งลิงก์ไม่สำเร็จ', description: 'กรุณาตรวจสอบการตั้งค่าอีเมลของ Supabase', variant: 'destructive' });
+    } finally {
+      setSendingRecoveryFor(null);
+    }
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
@@ -294,7 +310,7 @@ const StaffManagementPage = () => {
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertTitle className="text-blue-800">ℹ️ ใช้ Edge Functions (Secure)</AlertTitle>
           <AlertDescription className="text-blue-700 text-sm">
-            หน้านี้ใช้ Supabase Edge Functions สำหรับการจัดการบัญชี ปลอดภัย 100%
+            หน้านี้ใช้ Supabase Edge Functions และตรวจสอบสิทธิ์ฝั่งเซิร์ฟเวอร์
             <br />
             Service Role Key ไม่ได้ถูกเปิดเผยใน frontend
           </AlertDescription>
@@ -318,7 +334,7 @@ const StaffManagementPage = () => {
                   <AlertCircle className="h-4 w-4 text-blue-600" />
                   <AlertTitle className="text-blue-800">ℹ️ คำแนะนำ</AlertTitle>
                   <AlertDescription className="text-blue-700 text-sm">
-                    • รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร<br />
+                    • รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร<br />
                     • บัญชีที่สร้างจะถูกยืนยันอีเมลอัตโนมัติ<br />
                     • พนักงานสามารถเข้าสู่ระบบได้ทันที
                   </AlertDescription>
@@ -343,11 +359,11 @@ const StaffManagementPage = () => {
                     <Input
                       id="new-password"
                       type="password"
-                      placeholder="อย่างน้อย 6 ตัวอักษร"
+                      placeholder="อย่างน้อย 8 ตัวอักษร"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
                       disabled={isCreating}
                     />
                   </div>
@@ -481,6 +497,14 @@ const StaffManagementPage = () => {
                           })}
                         </TableCell>
                         <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            className="mr-2"
+                            onClick={() => void sendRecoveryLink(staff)}
+                            disabled={sendingRecoveryFor === staff.id}
+                          >
+                            {sendingRecoveryFor === staff.id ? "กำลังส่ง..." : "ส่งลิงก์รีเซ็ต"}
+                          </Button>
                           <Button
                             variant="destructive"
                             size="sm"

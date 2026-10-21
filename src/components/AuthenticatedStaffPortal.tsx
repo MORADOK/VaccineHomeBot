@@ -101,6 +101,7 @@ const AuthenticatedStaffPortal = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      if (user) { try { sessionStorage.removeItem('vaccine-patient-registration-draft:' + user.id); } catch (error) { console.warn('Unable to clear registration draft on sign out', error); } }
 
       toast({
         title: "ออกจากระบบแล้ว",

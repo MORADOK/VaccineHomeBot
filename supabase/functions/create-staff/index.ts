@@ -90,11 +90,11 @@ serve(async (req) => {
     }
 
     // Validate password length
-    if (password.length < 6) {
+    if (password.length < 8) {
       return new Response(
         JSON.stringify({
           error: 'Password too short',
-          details: 'Password must be at least 6 characters'
+          details: 'Password must be at least 8 characters'
         }),
         {
           status: 400,
@@ -104,7 +104,9 @@ serve(async (req) => {
     }
 
     // Validate role
-    const validRoles = ['admin', 'healthcare_staff', 'superadmin']
+    const validRoles = callerRole.role === 'superadmin'
+      ? ['admin', 'healthcare_staff', 'superadmin']
+      : ['admin', 'healthcare_staff']
     if (!validRoles.includes(role)) {
       return new Response(
         JSON.stringify({
@@ -183,14 +185,15 @@ serve(async (req) => {
     if (roleError) {
       console.error('Role error:', roleError)
 
-      // Rollback: Delete the user if role assignment fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      // Roll back Auth creation, and report accurately if cleanup itself fails.
+      const { error: rollbackError } = await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      if (rollbackError) console.error('Failed to roll back staff account:', rollbackError)
 
       return new Response(
         JSON.stringify({
           error: 'Failed to assign role',
           details: roleError.message,
-          rollback: 'User creation rolled back'
+          rollback: rollbackError ? 'Manual cleanup required' : 'User creation rolled back'
         }),
         {
           status: 500,

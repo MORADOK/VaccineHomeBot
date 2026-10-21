@@ -94,18 +94,22 @@ serve(async (req) => {
       )
     }
 
-    // Step 1: Delete from user_roles table
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .delete()
-      .eq('user_id', user_id)
-
-    if (roleError) {
-      console.error('Role deletion error:', roleError)
-      // Continue anyway - user might not have a role entry
+    // Prevent ordinary admins from deleting superadmin accounts.
+    const { data: targetRole, error: targetRoleError } = await supabaseAdmin
+      .from('user_roles').select('role').eq('user_id', user_id).maybeSingle()
+    if (targetRoleError) {
+      return new Response(JSON.stringify({ error: 'Failed to verify target role' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (targetRole?.role === 'superadmin' && callerRole.role !== 'superadmin') {
+      return new Response(JSON.stringify({ error: 'Forbidden', details: 'Superadmin role required' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    // Step 2: Delete user from Supabase Auth
+    // Delete Auth first: a failed Auth deletion must never strip a live user's role.
+    // Foreign-key cascades may remove the role automatically.
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
 
     if (authError) {
@@ -121,6 +125,16 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
+    }
+
+    // Clean up any role left behind when the database does not cascade deletes.
+    const { error: roleCleanupError } = await supabaseAdmin
+      .from('user_roles').delete().eq('user_id', user_id)
+    if (roleCleanupError) {
+      console.error('Role cleanup after Auth deletion failed:', roleCleanupError)
+      return new Response(JSON.stringify({ error: 'User deleted but role cleanup failed', details: 'Administrator must reconcile the orphaned role' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Success!
