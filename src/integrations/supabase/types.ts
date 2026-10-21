@@ -223,6 +223,7 @@ export type Database = {
       }
       patient_registrations: {
         Row: {
+          hn: string | null
           created_at: string
           created_date_th: string | null
           patient_name: string
@@ -239,6 +240,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          hn?: string | null
           created_at?: string
           created_date_th?: string | null
           patient_name: string
@@ -255,6 +257,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          hn?: string | null
           created_at?: string
           created_date_th?: string | null
           patient_name?: string
